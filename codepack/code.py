@@ -107,17 +107,20 @@ class Code(AbstractCode):
 
     def __call__(self, *args, **kwargs):
         self.update_status(Status.RUNNING)
+        try:
+            for delivery in self.delivery_service:
+                if delivery.sender is not None and delivery.name not in kwargs:
+                    kwargs[delivery.name] = delivery.item
 
-        for delivery in self.delivery_service:
-            if delivery.sender is not None and delivery.name not in kwargs:
-                kwargs[delivery.name] = delivery.item
+            ret = self.function(*args, **kwargs)
 
-        ret = self.function(*args, **kwargs)
+            for c in self.children.values():
+                c.delivery_service.send_deliveries(sender=self.id, item=ret)
 
-        for c in self.children.values():
-            c.delivery_service.send_deliveries(sender=self.id, item=ret)
-
-        self.update_status(Status.TERMINATED)
+            self.update_status(Status.TERMINATED)
+        except Exception as e:
+            self.update_status(Status.READY)
+            raise Exception(e)
         return ret
 
     def clone(self):
@@ -148,7 +151,7 @@ class Code(AbstractCode):
         document['summary'] = tmp.__str__()
         document['source'] = tmp.source
         document['description'] = tmp.description
-        mc.client[db][collection].insert_one(document)
+        mc[db][collection].insert_one(document)
         mc.close()
 
     @staticmethod

@@ -1,4 +1,2 @@
-import codepack.code
-
-
-Code = code.Code
+from codepack.code import Code
+from codepack.codepack import CodePack
