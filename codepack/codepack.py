@@ -3,6 +3,7 @@ from codepack.abc import AbstractCode
 from codepack.status import Status
 from queue import Queue
 from codepack.interface import MongoDB
+from copy import deepcopy
 
 
 class CodePack:
@@ -90,7 +91,7 @@ class CodePack:
                     redo = True
                 self.recursive_run(p, arg_dict)
         if code.id not in self.arg_cache or arg_dict[code.id] != self.arg_cache[code.id] or redo:
-            self.arg_cache[code.id] = arg_dict[code.id]
+            self.arg_cache[code.id] = deepcopy(arg_dict[code.id])
             tmp = code(**arg_dict[code.id])
             if code.id == self.subscribe:
                 self.output = tmp
