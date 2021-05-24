@@ -32,6 +32,7 @@ class MongoDB(Interface):
                                   password=self.config['password'],
                                   **kwargs)
         self.closed = False
+        return self.client
 
     def __getitem__(self, item):
         assert not self.closed, "Connection is closed."
@@ -43,10 +44,9 @@ class MongoDB(Interface):
     def close(self):
         if not self.closed:
             self.client.close()
-            if self.config['ssh_tunneling'] == 'enable':
-                if self.ssh is not None:
-                    self.ssh.stop()
-                    self.ssh = None
+            if self.config['ssh_tunneling'] == 'enable' and self.ssh is not None:
+                self.ssh.stop()
+                self.ssh = None
             self.closed = True
 
     def __del__(self):
