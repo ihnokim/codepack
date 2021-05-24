@@ -7,10 +7,12 @@ from codepack.status import Status
 from codepack.delivery import Delivery, DeliveryService
 from codepack.interface import MongoDB
 from codepack.abc import AbstractCode
+import re
+import ast
 
 
 class Code(AbstractCode):
-    def __init__(self, function, id=None):
+    def __init__(self, function=None, source=None, id=None):
         super().__init__()
 
         self.status = None
@@ -23,18 +25,19 @@ class Code(AbstractCode):
         self.children = None
         self.delivery_service = None
 
-        self.set_function(function)
+        self.set_function(function=function, source=source)
         if id is None:
-            self.id = function.__name__
+            self.id = self.function.__name__
         else:
             self.id = id
 
         self.init()
 
     @staticmethod
-    def getsource(function):
+    def get_source(function):
         assert isinstance(function, Callable), "'function' should be an instance of Callable."
         assert function.__name__ != '<lambda>', "Invalid function '<lambda>'."
+        assert function.__code__.co_filename == '<stdin>', "'function' should be defined in <stdin>."
         source = None
 
         for test in [inspect.getsource, dill.source.getsource]:
@@ -47,9 +50,29 @@ class Code(AbstractCode):
 
         return source
 
-    def set_function(self, function):
-        self.function = function
-        self.source = self.getsource(self.function)
+    @staticmethod
+    def get_function(source):
+        pat = re.compile('^(\\s*def\\s.+[(].*[)].*[:])|(\\s*async\\s+def\\s.+[(].*[)].*[:])')
+        assert pat.match(source), "'source' is not a function"
+        tree = ast.parse(source, mode='exec')
+        n_function = sum(isinstance(exp, ast.FunctionDef) for exp in tree.body)
+        # needs to count all other instances, and assert that there is only one FunctionDef
+        assert n_function == 1, "'source' should contain only one function."
+        namespace = dict()
+        # code = compile(tree, filename='blah', mode='exec')
+        exec(source, namespace)
+        return namespace[tree.body[0].name]
+    
+    def set_function(self, function=None, source=None):
+        assert function or source, "either 'function' or 'source' should not be None."
+        if source:
+            source = source.strip()
+            self.function = self.get_function(source)
+            self.source = source
+        elif function:
+
+            self.function = function
+            self.source = self.get_source(self.function)
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
     def init(self):
