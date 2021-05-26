@@ -37,7 +37,7 @@ class Code(AbstractCode):
     def get_source(function):
         assert isinstance(function, Callable), "'function' should be an instance of Callable."
         assert function.__name__ != '<lambda>', "Invalid function '<lambda>'."
-        assert function.__code__.co_filename == '<stdin>', "'function' should be defined in <stdin>."
+        assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>."
         source = None
 
         for test in [inspect.getsource, dill.source.getsource]:
@@ -151,12 +151,25 @@ class Code(AbstractCode):
         tmp.init()
         return tmp
 
-    def save(self, filename):
-        dill.dump(self, open(filename, 'wb'))
+    def to_file(self, filename):
+        # dill.dump(self, open(filename, 'wb'))
+        s = self.id + '\n'
+        s += self.source
+        with open(filename, 'w') as f:
+            f.write(s)
 
     @staticmethod
-    def load(filename):
-        return dill.load(open(filename, 'rb'))
+    def from_file(filename):
+        # return dill.load(open(filename, 'rb'))
+        id = None
+        source = str()
+        with open(filename, 'r') as f:
+            for i, l in enumerate(f.readlines()):
+                if i == 0:
+                    id = l.replace('\n', '')
+                else:
+                    source += l
+        return Code(id=id, source=source)
 
     def to_binary(self):
         return bson.Binary(dill.dumps(self))
@@ -170,8 +183,8 @@ class Code(AbstractCode):
         mc = MongoDB(config)
         document = dict()
         document['_id'] = tmp.id
-        document['binary'] = tmp.to_binary()
-        document['summary'] = tmp.__str__()
+        # document['binary'] = tmp.to_binary()
+        # document['summary'] = tmp.__str__()
         document['source'] = tmp.source
         document['description'] = tmp.description
         mc[db][collection].insert_one(document)
@@ -185,4 +198,5 @@ class Code(AbstractCode):
         if ret is None:
             return ret
         else:
-            return Code.from_binary(ret['binary'])
+            # return Code.from_binary(ret['binary'])
+            return Code(id=ret['_id'], source=ret['source'])
