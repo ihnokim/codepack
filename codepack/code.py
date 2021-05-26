@@ -3,6 +3,7 @@ from copy import copy
 from collections.abc import Iterable, Callable
 import dill
 import bson
+import json
 from codepack.status import Status
 from codepack.delivery import Delivery, DeliveryService
 from codepack.interface import MongoDB
@@ -170,6 +171,18 @@ class Code(AbstractCode):
                 else:
                     source += l
         return Code(id=id, source=source)
+
+    def to_json(self):
+        d = dict()
+        d['_id'] = self.id
+        d['source'] = self.source
+        d['description'] = self.description
+        return json.dumps(d)
+
+    @staticmethod
+    def from_json(j):
+        d = json.loads(j)
+        return Code(id=d['_id'], source=d['source'])
 
     def to_binary(self):
         return bson.Binary(dill.dumps(self))
