@@ -1,4 +1,6 @@
-import dill, bson
+import dill
+import bson
+import json
 from codepack.abc import AbstractCode
 from codepack.status import Status
 from queue import Queue
@@ -102,7 +104,7 @@ class CodePack:
         return self.output
 
     def to_file(self, filename):
-        self.init()
+        self.init() # clone
         dill.dump(self, open(filename, 'wb'))
 
     @staticmethod
@@ -110,8 +112,37 @@ class CodePack:
         return dill.load(open(filename, 'rb'))
 
     def to_binary(self):
-        self.init()
+        self.init() # clone
         return bson.Binary(dill.dumps(self))
+
+    def to_dict(self):
+        d = dict()
+        d['_id'] = self.id
+        d['subscribe'] = self.subscribe
+        d['structure'] = self.get_structure()
+        d['source'] = {id: code.source for id, code in self.codes.items()}
+        return d
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+    def get_structure(self):
+        ret = str()
+        stack = list()
+        hierarchy = 0
+        first_token = True
+        for root in self.roots:
+            stack.append((root, hierarchy))
+            while len(stack):
+                n, h = stack.pop(-1)
+                if not first_token:
+                    ret += '\n'
+                else:
+                    first_token = False
+                ret += '|%s %s' % ('-' * h, n.get_info(status=False))
+                for c in n.children.values():
+                    stack.append((c, h + 1))
+        return ret
 
     @staticmethod
     def from_binary(b):
@@ -120,13 +151,10 @@ class CodePack:
     def to_db(self, db, collection, config):
         self.init()
         mc = MongoDB(config)
-        tmp = dict()
-        tmp['_id'] = self.id
-        tmp['binary'] = self.to_binary()
-        tmp['structure'] = self.__str__()
-        mc[db][collection].insert_one(tmp)
+        mc[db][collection].insert_one(self.to_dict())
         mc.close()
 
+    '''
     @staticmethod
     def from_db(id, db, collection, config):
         mc = MongoDB(config)
@@ -135,3 +163,4 @@ class CodePack:
             return ret
         else:
             return CodePack.from_binary(ret['binary'])
+    '''
