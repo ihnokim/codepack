@@ -116,12 +116,22 @@ class Code(AbstractCode):
         else:
             raise TypeError(type(other))
 
+    def get_info(self, status=True):
+        ret = '%s(id: %s, function: %s, args: %s, receive: %s'
+        if status:
+            ret += ', status: %s)'
+            return ret % (self.__class__.__name__, self.id, self.function.__name__,
+                          inspect.getfullargspec(self.function).args,
+                          self.delivery_service.get_senders(),
+                          self.status)
+        else:
+            ret += ')'
+            return ret % (self.__class__.__name__, self.id, self.function.__name__,
+                          inspect.getfullargspec(self.function).args,
+                          self.delivery_service.get_senders())
+
     def __str__(self):
-        return '%s(id: %s, function: %s, args: %s, receive: %s, status: %s)' % \
-               (self.__class__.__name__, self.id, self.function.__name__,
-                inspect.getfullargspec(self.function).args,
-                self.delivery_service.get_senders(),
-                self.status)
+        return self.get_info(status=True)
 
     def __repr__(self):
         return self.__str__()
@@ -172,12 +182,19 @@ class Code(AbstractCode):
                     source += l
         return Code(id=id, source=source)
 
-    def to_json(self):
+    def to_dict(self):
         d = dict()
         d['_id'] = self.id
         d['source'] = self.source
         d['description'] = self.description
-        return json.dumps(d)
+        return d
+
+    @staticmethod
+    def from_dict(d):
+        return Code(id=d['_id'], source=d['source'])
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
     @staticmethod
     def from_json(j):
@@ -194,13 +211,8 @@ class Code(AbstractCode):
     def to_db(self, db, collection, config):
         tmp = self.clone()
         mc = MongoDB(config)
-        document = dict()
-        document['_id'] = tmp.id
-        # document['binary'] = tmp.to_binary()
-        # document['summary'] = tmp.__str__()
-        document['source'] = tmp.source
-        document['description'] = tmp.description
-        mc[db][collection].insert_one(document)
+        d = tmp.to_dict()
+        mc[db][collection].insert_one(d)
         mc.close()
 
     @staticmethod
