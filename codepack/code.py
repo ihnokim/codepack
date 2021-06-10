@@ -115,6 +115,7 @@ class Code(AbstractCode):
                 self.__rshift__(t)
         else:
             raise TypeError(type(other))
+        return other
 
     def get_info(self, status=True):
         ret = '%s(id: %s, function: %s, args: %s, receive: %s'
@@ -199,7 +200,7 @@ class Code(AbstractCode):
     @staticmethod
     def from_json(j):
         d = json.loads(j)
-        return Code(id=d['_id'], source=d['source'])
+        return Code.from_dict(d)
 
     def to_binary(self):
         return bson.Binary(dill.dumps(self))
@@ -218,10 +219,10 @@ class Code(AbstractCode):
     @staticmethod
     def from_db(id, db, collection, config):
         mc = MongoDB(config)
-        ret = mc[db][collection].find_one({'_id': id})
+        d = mc[db][collection].find_one({'_id': id})
         mc.close()
-        if ret is None:
-            return ret
+        if d is None:
+            return d
         else:
             # return Code.from_binary(ret['binary'])
-            return Code(id=ret['_id'], source=ret['source'])
+            return Code.from_dict(d)
