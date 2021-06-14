@@ -16,15 +16,15 @@ class MySQL(SQLInterface):
     def connect(self, config, **kwargs):
         self.config = config
         if self.config['ssh_tunneling'] == 'enable':
-            ssh = SSHTunnelForwarder((self.config['ssh_host'], int(self.config['ssh_port'])),
-                                     ssh_password=self.config['ssh_password'],
-                                     ssh_username=self.config['ssh_username'],
-                                     remote_bind_address=(self.config['host'], int(self.config['port'])))
-            ssh.start()
+            self.ssh = SSHTunnelForwarder((self.config['ssh_host'], int(self.config['ssh_port'])),
+                                          ssh_password=self.config['ssh_password'],
+                                          ssh_username=self.config['ssh_username'],
+                                          remote_bind_address=(self.config['host'], int(self.config['port'])))
+            self.ssh.start()
             host = '127.0.0.1'
-            port = ssh.local_bind_port
+            port = self.ssh.local_bind_port
         else:
-            host = self.config['ip']
+            host = self.config['host']
             port = int(self.config['port'])
 
         self.conn = pymysql.connect(host=host, port=port,
@@ -59,7 +59,7 @@ class MySQL(SQLInterface):
         values = list()
         for v in tmp:
             if type(v) == str:
-                values.append("'" + v + "'")
+                values.append("'%s'" % v)
             elif isnan(v):
                 values.append('null')
             else:
