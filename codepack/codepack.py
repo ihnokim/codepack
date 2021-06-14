@@ -29,9 +29,26 @@ class CodePack:
         self.init()
 
     def init(self):
-        self.arg_cache = dict()
+        self.init_arg_cache(None, lazy=False)
         self.output = None
         self.roots = self.get_roots(init=True)
+
+    def init_arg_cache(self, arg_dict, lazy=False):
+        if lazy:
+            q = Queue()
+            for id in self.arg_cache:
+                if self.arg_cache[id] != arg_dict[id]:
+                    q.put(id)
+
+                while not q.empty():
+                    id = q.get()
+                    self.arg_cache.pop(id, None)
+                    self.codes[id].get_ready()
+                    for c in self.codes[id].children.values():
+                        if id in c.delivery_service.get_senders().values():
+                            q.put(c.id)
+        else:
+            self.arg_cache = dict()
 
     def set_root(self, code):
         if not isinstance(code, AbstractCode):
@@ -91,7 +108,7 @@ class CodePack:
         senders = code.delivery_service.get_senders().values()
         redo = False
         for p in code.parents.values():
-            if p.status != Status.TERMINATED or arg_dict[p.id] != self.arg_cache[p.id]:
+            if p.status != Status.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
                 if p.id in senders:
                     redo = True
                 self.recursive_run(p, arg_dict)
@@ -101,20 +118,8 @@ class CodePack:
             if code.id == self.subscribe:
                 self.output = tmp
 
-    def __call__(self, arg_dict):
-        q = Queue()
-        for id in self.arg_cache:
-            if self.arg_cache[id] != arg_dict[id]:
-                q.put(id)
-
-        while not q.empty():
-            id = q.get()
-            self.arg_cache.pop(id, None)
-            self.codes[id].get_ready()
-            for c in self.codes[id].children.values():
-                if id in c.delivery_service.get_senders().values():
-                    q.put(c.id)
-
+    def __call__(self, arg_dict, lazy=False):
+        self.init_arg_cache(arg_dict, lazy)
         for leave in self.get_leaves():
             self.recursive_run(leave, arg_dict)
         return self.output
