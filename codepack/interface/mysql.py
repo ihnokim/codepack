@@ -97,7 +97,21 @@ class MySQL(SQLInterface):
             return self.query(q, commit=commit)
         else:
             return None
-    
+
+    def call(self, db, procedure, **kwargs):
+        q = self.make_call_query(db, procedure, **kwargs)
+        return self.query(q)
+
+    @staticmethod
+    def make_call_query(db, procedure, **kwargs):
+        q = 'call %s.%s' % (db, procedure)
+        tokens = list()
+        for k, v in kwargs.items():
+            tokens.append("@%s := '%s" % (k, v))
+        if len(tokens) > 0:
+            q += '(%s)' % ', '.join(tokens)
+        return q
+
     def close(self):
         if not self.closed:
             self.conn.close()
