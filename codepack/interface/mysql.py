@@ -1,7 +1,7 @@
 import pymysql
 from codepack.interface.abc import SQLInterface
+from codepack.interface import isnan
 from sshtunnel import SSHTunnelForwarder
-import numpy as np
 
 
 class MySQL(SQLInterface):
@@ -122,13 +122,3 @@ class MySQL(SQLInterface):
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-
-
-def isnan(value):
-    ret = False
-    try:
-        ret = np.isnan(value)
-    except Exception:
-        pass
-    finally:
-        return ret
