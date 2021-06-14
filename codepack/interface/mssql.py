@@ -1,10 +1,10 @@
-import pymysql
+import pymssql
 from codepack.interface.abc import SQLInterface
 from codepack.interface import isnan
 from sshtunnel import SSHTunnelForwarder
 
 
-class MySQL(SQLInterface):
+class MSSQL(SQLInterface):
     def __init__(self, config, **kwargs):
         super().__init__(config)
         self.config = None
@@ -27,15 +27,14 @@ class MySQL(SQLInterface):
             host = self.config['host']
             port = int(self.config['port'])
 
-        self.conn = pymysql.connect(host=host, port=port,
-                                    user=self.config['user'], passwd=self.config['passwd'],
-                                    cursorclass=pymysql.cursors.DictCursor, **kwargs)
+        self.conn = pymssql.connect(host=host, port=port, user=self.config['user'],
+                                    password=self.config['password'], charset=self.config['charset'], as_dict=True,
+                                    **kwargs)
         self.closed = False
         return self.conn
 
     def query(self, q, commit=False):
         ret = None
-
         try:
             cursor = self.conn.cursor()
             if type(q) == str:
@@ -43,7 +42,8 @@ class MySQL(SQLInterface):
             elif type(q) == list:
                 for qn in q:
                     cursor.execute(qn)
-            ret = cursor.fetchall()
+            if cursor.rowcount == -1:
+                ret = cursor.fetchall()
             cursor.close()
             if commit:
                 self.conn.commit()
@@ -51,9 +51,13 @@ class MySQL(SQLInterface):
             print(e)
             self.conn.rollback()
         return ret
+    
+    def insert(self, db, table, commit=False, **kwargs):
+        q = self.make_insert_query(db=db, table=table, **kwargs)
+        self.query(q, commit=commit)
 
     @staticmethod
-    def make_insert_query(db, table, update=True, **kwargs):
+    def make_insert_query(db, table, **kwargs):
         columns = kwargs.keys()
         tmp = [kwargs[c] for c in columns]
         values = list()
@@ -64,31 +68,39 @@ class MySQL(SQLInterface):
                 values.append('null')
             else:
                 values.append(str(v))
-        if update:
-            q = "replace"
-        else:
-            q = "insert"
-        q += " into %s.%s (%s) " % (db, table, ', '.join(columns))
+        q = "insert into %s.%s (%s) " % (db, table, ', '.join(columns))
         q += "values (%s)" % ", ".join(values)
         return q
 
-    def insert(self, db, table, update=True, commit=False, **kwargs):
-        q = self.make_insert_query(db=db, table=table, update=update, **kwargs)
-        self.query(q, commit=commit)
-
-    def insert_many(self, db, table, rows, update=True, commit=False):
+    def insert_many(self, db, table, rows, commit=False):
         qs = list()
         for row in rows:
-            qs.append(self.make_insert_query(db=db, table=table, update=update, **row))
+            qs.append(self.make_insert_query(db=db, table=table, **row))
         self.query(qs, commit=commit)
-    
-    def select(self, db, table, **kwargs):
+
+    def select(self, db, table, tx_isolation=None, **kwargs):
         q = "select * from %s.%s" % (db, table)
         if len(kwargs) > 0:
             q += " where "
             q += self.encode_sql(**kwargs)
+        if tx_isolation:
+            q += " with (%s)" % tx_isolation
         return self.query(q)
-    
+
+    def exec(self, db, procedure, **kwargs):
+        q = self.make_exec_query(db, procedure, **kwargs)
+        return self.query(q)
+
+    @staticmethod
+    def make_exec_query(db, procedure, **kwargs):
+        q = 'exec %s.%s' % (db, procedure)
+        tokens = list()
+        for k, v in kwargs.items():
+            tokens.append("@%s = '%s'" % (k, v))
+        if len(tokens) > 0:
+            q += ' ' + ', '.join(tokens)
+        return q
+
     def delete(self, db, table, commit=False, **kwargs):
         q = "delete from %s.%s" % (db, table)
         if len(kwargs) > 0:
@@ -98,20 +110,6 @@ class MySQL(SQLInterface):
         else:
             return None
 
-    def call(self, db, procedure, **kwargs):
-        q = self.make_call_query(db, procedure, **kwargs)
-        return self.query(q)
-
-    @staticmethod
-    def make_call_query(db, procedure, **kwargs):
-        q = 'call %s.%s' % (db, procedure)
-        tokens = list()
-        for k, v in kwargs.items():
-            tokens.append("@%s := '%s" % (k, v))
-        if len(tokens) > 0:
-            q += '(%s)' % ', '.join(tokens)
-        return q
-
     def close(self):
         if not self.closed:
             self.conn.close()
@@ -119,6 +117,6 @@ class MySQL(SQLInterface):
                 self.ssh.stop()
                 self.ssh = None
             self.closed = True
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
+
+    def __exit__(self, exc_type, exc_al, exc_tb):
         self.close()
