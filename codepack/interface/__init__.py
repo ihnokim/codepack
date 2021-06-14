@@ -1,5 +1,6 @@
 import codepack.interface.mongodb
 import codepack.interface.mysql
+import codepack.interface.mssql
 import numpy as np
 
 
@@ -15,5 +16,4 @@ def isnan(value):
 
 MongoDB = mongodb.MongoDB
 MySQL = mysql.MySQL
-
-
+MSSQL = mssql.MSSQL
