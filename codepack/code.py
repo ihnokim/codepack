@@ -80,7 +80,7 @@ class Code(AbstractCode):
         self.parents = dict()
         self.children = dict()
         self.delivery_service = DeliveryService()
-        for arg in inspect.getfullargspec(self.function).args:
+        for arg in self.get_args():
             self.delivery_service.request(arg)
         self.update_status(Status.NEW)
 
@@ -117,18 +117,21 @@ class Code(AbstractCode):
             raise TypeError(type(other))
         return other
 
+    def get_args(self):
+        return inspect.getfullargspec(self.function).args
+
     def get_info(self, status=True):
         ret = '%s(id: %s, function: %s, args: %s, receive: %s'
         if status:
             ret += ', status: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          inspect.getfullargspec(self.function).args,
+                          self.get_args(),
                           self.delivery_service.get_senders(),
                           self.status)
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          inspect.getfullargspec(self.function).args,
+                          self.get_args(),
                           self.delivery_service.get_senders())
 
     def __str__(self):
