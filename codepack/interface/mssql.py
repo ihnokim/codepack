@@ -1,6 +1,5 @@
 import pymssql
 from codepack.interface.abc import SQLInterface
-from codepack.interface import isnan
 from sshtunnel import SSHTunnelForwarder
 
 
@@ -64,7 +63,7 @@ class MSSQL(SQLInterface):
         for v in tmp:
             if type(v) == str:
                 values.append("'%s'" % v)
-            elif isnan(v):
+            elif MSSQL.isnan(v):
                 values.append('null')
             else:
                 values.append(str(v))

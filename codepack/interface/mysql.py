@@ -1,6 +1,5 @@
 import pymysql
 from codepack.interface.abc import SQLInterface
-from codepack.interface import isnan
 from sshtunnel import SSHTunnelForwarder
 
 
@@ -35,7 +34,6 @@ class MySQL(SQLInterface):
 
     def query(self, q, commit=False):
         ret = None
-
         try:
             cursor = self.conn.cursor()
             if type(q) == str:
@@ -60,7 +58,7 @@ class MySQL(SQLInterface):
         for v in tmp:
             if type(v) == str:
                 values.append("'%s'" % v)
-            elif isnan(v):
+            elif MySQL.isnan(v):
                 values.append('null')
             else:
                 values.append(str(v))

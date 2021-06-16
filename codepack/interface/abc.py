@@ -1,4 +1,5 @@
 import abc
+import numpy as np
 
 
 class Interface(metaclass=abc.ABCMeta):
@@ -20,6 +21,16 @@ class Interface(metaclass=abc.ABCMeta):
 
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):
+    @staticmethod
+    def isnan(value):
+        ret = False
+        try:
+            ret = np.isnan(value)
+        except Exception:
+            pass
+        finally:
+            return ret
+
     @staticmethod
     def _enclose(token, mark="'", apply=True):
         if apply:
