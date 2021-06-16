@@ -1,19 +1,10 @@
 import codepack.interface.mongodb
 import codepack.interface.mysql
 import codepack.interface.mssql
-import numpy as np
-
-
-def isnan(value):
-    ret = False
-    try:
-        ret = np.isnan(value)
-    except Exception:
-        pass
-    finally:
-        return ret
+import codepack.interface.dynamodb
 
 
 MongoDB = mongodb.MongoDB
 MySQL = mysql.MySQL
 MSSQL = mssql.MSSQL
+DynamoDB = dynamodb.DynamoDB

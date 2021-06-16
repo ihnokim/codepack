@@ -18,7 +18,7 @@ class DynamoDB(SQLInterface):
 
     def connect(self, config, **kwargs):
         self.config = config
-        return boto3.client(serice_name=config['service_name'],
+        return boto3.client(service_name=config['service_name'],
                             region_name=config['region_name'],
                             aws_access_key_id=config['aws_access_key_id'],
                             aws_secret_access_key=config['aws_secret_access_key'],
@@ -45,6 +45,7 @@ class DynamoDB(SQLInterface):
         start_key = None
         items = list()
         while not done:
+
             if start_key:
                 params['ExclusiveStartKey'] = start_key
             response = self.client.query(**params)
