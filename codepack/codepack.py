@@ -39,7 +39,6 @@ class CodePack:
             for id in self.arg_cache:
                 if self.arg_cache[id] != arg_dict[id]:
                     q.put(id)
-
                 while not q.empty():
                     id = q.get()
                     self.arg_cache.pop(id, None)
@@ -202,6 +201,22 @@ class CodePack:
                 ret += '|%s %s' % ('-' * h, n.get_info(status=False))
                 for c in n.children.values():
                     stack.append((c, h + 1))
+        return ret
+
+    def make_arg_dict(self):
+        ret = dict()
+        stack = list()
+        for root in self.roots:
+            stack.append(root)
+            while len(stack):
+                n = stack.pop(-1)
+                if n.id not in ret:
+                    ret[n.id] = dict()
+                for arg in n.get_args():
+                    if arg not in n.delivery_service.get_senders().keys():
+                        ret[n.id][arg] = None
+                for c in n.children.values():
+                    stack.append(c)
         return ret
 
     @staticmethod
