@@ -79,14 +79,25 @@ class MySQL(SQLInterface):
         for row in rows:
             qs.append(self.make_insert_query(db=db, table=table, update=update, **row))
         self.query(qs, commit=commit)
-    
-    def select(self, db, table, **kwargs):
-        q = "select * from %s.%s" % (db, table)
+
+    @staticmethod
+    def make_select_query(db, table, projection=None, **kwargs):
+        projection_token = '*'
+        if projection:
+            if type(projection) == list:
+                projection_token = ','.join(projection)
+            elif type(projection) == str:
+                projection_token = projection
+        q = "select %s from %s.%s" % (projection_token, db, table)
         if len(kwargs) > 0:
             q += " where "
-            q += self.encode_sql(**kwargs)
+            q += MySQL.encode_sql(**kwargs)
+        return q
+
+    def select(self, db, table, projection=None, **kwargs):
+        q = self.make_select_query(db=db, table=table, projection=projection, **kwargs)
         return self.query(q)
-    
+
     def delete(self, db, table, commit=False, **kwargs):
         q = "delete from %s.%s" % (db, table)
         if len(kwargs) > 0:
@@ -105,7 +116,7 @@ class MySQL(SQLInterface):
         q = 'call %s.%s' % (db, procedure)
         tokens = list()
         for k, v in kwargs.items():
-            tokens.append("@%s := '%s" % (k, v))
+            tokens.append("@%s := '%s'" % (k, v))
         if len(tokens) > 0:
             q += '(%s)' % ', '.join(tokens)
         return q

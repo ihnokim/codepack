@@ -77,13 +77,24 @@ class MSSQL(SQLInterface):
             qs.append(self.make_insert_query(db=db, table=table, **row))
         self.query(qs, commit=commit)
 
-    def select(self, db, table, tx_isolation=None, **kwargs):
-        q = "select * from %s.%s" % (db, table)
+    @staticmethod
+    def make_select_query(db, table, projection=None, tx_isolation=None, **kwargs):
+        projection_token = '*'
+        if projection:
+            if type(projection) == list:
+                projection_token = ','.join(projection)
+            elif type(projection) == str:
+                projection_token = projection
+        q = "select %s from %s.%s" % (projection_token, db, table)
         if len(kwargs) > 0:
             q += " where "
-            q += self.encode_sql(**kwargs)
+            q += MSSQL.encode_sql(**kwargs)
         if tx_isolation:
             q += " with (%s)" % tx_isolation
+        return q
+
+    def select(self, db, table, projection=None, tx_isolation=None, **kwargs):
+        q = self.make_select_query(db=db, table=table, projection=projection, tx_isolation=tx_isolation, **kwargs)
         return self.query(q)
 
     def exec(self, db, procedure, **kwargs):
