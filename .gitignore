@@ -1,4 +1,5 @@
 *.tar
 *__pycache__*
-.ipynb_checkpoints*
-.idea*
+*.ipynb_checkpoints*
+*.idea*
+*.ipynb
