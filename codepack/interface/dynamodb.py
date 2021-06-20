@@ -45,13 +45,13 @@ class DynamoDB(SQLInterface):
         start_key = None
         items = list()
         while not done:
-
             if start_key:
                 params['ExclusiveStartKey'] = start_key
             response = self.client.query(**params)
             items = [{k: preprocess(self.td.deserialize(v), *preprocess_args, **preprocess_kwargs) for k, v in item.items()}
                      for item in response.get('Items', list()) if dummy_column not in item]
             start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
         return items
 
     def select(self, table, columns=None, preprocess=None, preprocess_args=None, preprocess_kwargs=None, dummy_column='dummy', **kwargs):
@@ -63,7 +63,7 @@ class DynamoDB(SQLInterface):
                           dummy_column=dummy_column)
 
     def describe_table(self, table):
-        return self.client.describe(TableName=table)['Table']
+        return self.client.describe_table(TableName=table)['Table']
 
     @staticmethod
     def array_parser(s, sep='\x7f', dtype=str):
