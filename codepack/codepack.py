@@ -39,13 +39,13 @@ class CodePack:
             for id in self.arg_cache:
                 if self.arg_cache[id] != arg_dict[id]:
                     q.put(id)
-                while not q.empty():
-                    id = q.get()
-                    self.arg_cache.pop(id, None)
-                    self.codes[id].get_ready()
-                    for c in self.codes[id].children.values():
-                        if id in c.delivery_service.get_senders().values():
-                            q.put(c.id)
+            while not q.empty():
+                id = q.get()
+                self.arg_cache.pop(id, None)
+                self.codes[id].get_ready(return_deliveries=False)
+                for c in self.codes[id].children.values():
+                    if id in c.delivery_service.get_senders().values():
+                        q.put(c.id)
         else:
             self.arg_cache = dict()
 
@@ -95,7 +95,7 @@ class CodePack:
         while not q.empty():
             n = q.get()
             if init:
-                n.get_ready()
+                n.get_ready(return_deliveries=True)
                 self.codes[n.id] = n
             for p in n.parents.values():
                 q.put(p)

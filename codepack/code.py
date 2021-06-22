@@ -15,23 +15,18 @@ import ast
 class Code(AbstractCode):
     def __init__(self, function=None, source=None, id=None):
         super().__init__()
-
         self.status = None
-
         self.function = None
         self.source = None
         self.description = None
-
         self.parents = None
         self.children = None
         self.delivery_service = None
-
         self.set_function(function=function, source=source)
         if id is None:
             self.id = self.function.__name__
         else:
             self.id = id
-
         self.init()
 
     @staticmethod
@@ -40,7 +35,6 @@ class Code(AbstractCode):
         assert function.__name__ != '<lambda>', "Invalid function '<lambda>'."
         assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>."
         source = None
-
         for test in [inspect.getsource, dill.source.getsource]:
             try:
                 source = test(function)
@@ -48,7 +42,6 @@ class Code(AbstractCode):
                 pass
             if source is not None:
                 break
-
         return source
 
     @staticmethod
@@ -71,7 +64,6 @@ class Code(AbstractCode):
             self.function = self.get_function(source)
             self.source = source
         elif function:
-
             self.function = function
             self.source = self.get_source(self.function)
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
@@ -84,9 +76,10 @@ class Code(AbstractCode):
             self.delivery_service.request(arg)
         self.update_status(Status.NEW)
 
-    def get_ready(self):
+    def get_ready(self, return_deliveries=False):
         self.update_status(Status.READY)
-        self.delivery_service.return_deliveries()
+        if return_deliveries:
+            self.delivery_service.return_deliveries()
 
     @staticmethod
     def return_delivery(sender, delivery):
@@ -107,9 +100,8 @@ class Code(AbstractCode):
         if isinstance(other, self.__class__):
             self.children[other.id] = other
             other.parents[self.id] = self
-
             other.delivery_service.return_deliveries(sender=self.id)
-            self.get_ready()
+            self.get_ready(return_deliveries=True)
         elif isinstance(other, Iterable):
             for t in other:
                 self.__rshift__(t)
@@ -149,9 +141,7 @@ class Code(AbstractCode):
             for delivery in self.delivery_service:
                 if delivery.sender is not None and delivery.name not in kwargs:
                     kwargs[delivery.name] = delivery.item
-
             ret = self.function(*args, **kwargs)
-
             for c in self.children.values():
                 c.delivery_service.send_deliveries(sender=self.id, item=ret)
 
