@@ -42,8 +42,8 @@ class MongoDB(Interface):
         return self.__getitem__(item)
 
     def close(self):
+        self.client.close()
         if not self.closed:
-            self.client.close()
             if self.config['ssh_tunneling'] == 'enable' and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None

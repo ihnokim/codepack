@@ -4,7 +4,6 @@ from datetime import datetime
 
 
 class MongoDBJobStore(BaseMongoDBJobStore):
-
     def __init__(self, database='apscheduler',
                  collection='jobs',
                  client=None,
