@@ -45,6 +45,7 @@ class CodePack:
                 self.codes[id].get_ready(return_deliveries=False)
                 for c in self.codes[id].children.values():
                     if id in c.delivery_service.get_senders().values():
+                        c.delivery_service.return_deliveries(sender=id)
                         q.put(c.id)
         else:
             self.arg_cache = dict()
