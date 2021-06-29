@@ -1,9 +1,9 @@
 from apscheduler.jobstores.mongodb import *
-from apscheduler.jobstores.mongodb import MongoDBJobStore as BaseMongoDBJobStore
+from apscheduler.jobstores.mongodb import MongoDBJobStore as MongoDBJobStoreBase
 from datetime import datetime
 
 
-class MongoDBJobStore(BaseMongoDBJobStore):
+class MongoDBJobStore(MongoDBJobStoreBase):
     def __init__(self, database='apscheduler',
                  collection='jobs',
                  client=None,
