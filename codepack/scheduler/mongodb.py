@@ -3,21 +3,21 @@ from codepack.scheduler.jobstores.mongodb import MongoDBJobStore
 from codepack.interface import MongoDB
 
 
-class Scheduler:
-    def __init__(self, db=None, collection=None, config=None):
-        if config is not None:
+class MongoScheduler:
+    def __init__(self, db=None, collection=None, config=None, ssh_config=None, **kwargs):
+        if config:
             self.config = config
-            self.mc = MongoDB(config)
+            self.mongodb = MongoDB(config=config, ssh_config=ssh_config)
             self.db = db
             self.collection = collection
             jobstores = {
-                'default': MongoDBJobStore(database=self.db,
-                                           collection=self.collection,
-                                           client=self.mc.client)
+                'mongo': MongoDBJobStore(database=self.db,
+                                         collection=self.collection,
+                                         client=self.mongodb.client)
             }
-            self.scheduler = BackgroundScheduler(jobstores=jobstores)
+            self.scheduler = BackgroundScheduler(jobstores=jobstores, **kwargs)
         else:
-            self.scheduler = BackgroundScheduler()
+            self.scheduler = BackgroundScheduler(**kwargs)
         self.scheduler.start()
 
     def __del__(self):
@@ -28,7 +28,7 @@ class Scheduler:
 
     def shutdown(self):
         self.scheduler.shutdown()
-        self.mc.close()
+        self.mongodb.close()
 
     def add_job(self, func, id, trigger, **kwargs):
         return self.scheduler.add_job(func=func, id=id, trigger=trigger, **kwargs)

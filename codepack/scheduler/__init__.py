@@ -1,1 +1,1 @@
-from codepack.scheduler.scheduler import Scheduler
+from codepack.scheduler.mongodb import MongoScheduler
