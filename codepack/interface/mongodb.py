@@ -1,36 +1,18 @@
 from pymongo import MongoClient
 from codepack.interface.abc import Interface
-from sshtunnel import SSHTunnelForwarder
 
 
 class MongoDB(Interface):
-    def __init__(self, config, **kwargs):
-        super().__init__(config)
-        self.config = None
-        self.ssh = None
+    def __init__(self, config, ssh_config=None, **kwargs):
+        super().__init__()
         self.client = None
-        self.closed = True
-        self.connect(config, **kwargs)
+        self.connect(config=config, ssh_config=ssh_config, **kwargs)
 
-    def connect(self, config, **kwargs):
+    def connect(self, config, ssh_config=None, **kwargs):
         self.config = config
-        if self.config['ssh_tunneling'] == 'enable':
-            self.ssh = SSHTunnelForwarder((self.config['ssh_host'], int(self.config['ssh_port'])),
-                                          ssh_password=self.config['ssh_password'],
-                                          ssh_username=self.config['ssh_username'],
-                                          remote_bind_address=(self.config['host'], int(self.config['port'])))
-            self.ssh.start()
-            host = '127.0.0.1'
-            port = self.ssh.local_bind_port
-        else:
-            host = self.config['host']
-            port = int(self.config['port'])
-
-        self.client = MongoClient(host=host,
-                                  port=port,
-                                  username=self.config['username'],
-                                  password=self.config['password'],
-                                  **kwargs)
+        host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
+        _config = self.exclude_keys(self.config, keys=['host', 'port'])
+        self.client = MongoClient(host=host, port=port, **_config, **kwargs)
         self.closed = False
         return self.client
 
@@ -44,13 +26,7 @@ class MongoDB(Interface):
     def close(self):
         self.client.close()
         if not self.closed:
-            if self.config['ssh_tunneling'] == 'enable' and self.ssh is not None:
+            if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None
             self.closed = True
-
-    def __del__(self):
-        self.close()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()

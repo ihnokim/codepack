@@ -1,23 +1,49 @@
 import abc
 import numpy as np
+from sshtunnel import SSHTunnelForwarder
 
 
 class Interface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __init__(self, config, **kwargs):
-        """Initialize an instance from config."""
+    def __init__(self):
+        """Initialize an instance."""
+        self.config = None
+        self.ssh_config = None
+        self.ssh = None
+        self.closed = True
 
     @abc.abstractmethod
-    def connect(self, config, **kwargs):
+    def connect(self, config, ssh_config=None, **kwargs):
         """Connect to the server."""
 
     @abc.abstractmethod
     def close(self):
         """Close the connection to the server."""
 
-    @abc.abstractmethod
+    def __del__(self):
+        self.close()
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+
+    @staticmethod
+    def exclude_keys(d, keys):
+        return {k: v for k, v in d.items() if k not in keys}
+
+    def set_sshtunnel(self, host, port, ssh_config):
+        self.ssh_config = ssh_config
+        if self.ssh_config:
+            _ssh_config = self.exclude_keys(ssh_config, keys=['ssh_host', 'ssh_port'])
+            self.ssh = SSHTunnelForwarder((self.ssh_config['ssh_host'], int(self.ssh_config['ssh_port'])),
+                                          remote_bind_address=(host, int(port)),
+                                          **_ssh_config)
+            self.ssh.start()
+            _host = '127.0.0.1'
+            _port = self.ssh.local_bind_port
+        else:
+            _host = host
+            _port = port
+        return _host, int(_port)
 
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):

@@ -1,34 +1,19 @@
 import pymysql
 from codepack.interface.abc import SQLInterface
-from sshtunnel import SSHTunnelForwarder
 
 
 class MySQL(SQLInterface):
-    def __init__(self, config, **kwargs):
-        super().__init__(config)
-        self.config = None
-        self.ssh = None
+    def __init__(self, config, ssh_config=None, **kwargs):
+        super().__init__()
         self.conn = None
-        self.closed = True
-        self.connect(config, **kwargs)
+        self.connect(config=config, ssh_config=ssh_config, **kwargs)
 
-    def connect(self, config, **kwargs):
+    def connect(self, config, ssh_config=None, **kwargs):
         self.config = config
-        if self.config['ssh_tunneling'] == 'enable':
-            self.ssh = SSHTunnelForwarder((self.config['ssh_host'], int(self.config['ssh_port'])),
-                                          ssh_password=self.config['ssh_password'],
-                                          ssh_username=self.config['ssh_username'],
-                                          remote_bind_address=(self.config['host'], int(self.config['port'])))
-            self.ssh.start()
-            host = '127.0.0.1'
-            port = self.ssh.local_bind_port
-        else:
-            host = self.config['host']
-            port = int(self.config['port'])
-
+        host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
+        _config = self.exclude_keys(self.config, keys=['host', 'port'])
         self.conn = pymysql.connect(host=host, port=port,
-                                    user=self.config['user'], passwd=self.config['passwd'],
-                                    cursorclass=pymysql.cursors.DictCursor, **kwargs)
+                                    cursorclass=pymysql.cursors.DictCursor, **_config, **kwargs)
         self.closed = False
         return self.conn
 
@@ -124,10 +109,7 @@ class MySQL(SQLInterface):
     def close(self):
         if not self.closed:
             self.conn.close()
-            if self.config['ssh_tunneling'] == 'enable' and self.ssh is not None:
+            if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None
             self.closed = True
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()

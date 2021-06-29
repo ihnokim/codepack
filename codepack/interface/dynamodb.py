@@ -6,24 +6,18 @@ from boto3.dynamodb.types import TypeDeserializer
 
 class DynamoDB(SQLInterface):
     def __init__(self, config, **kwargs):
-        super().__init__(config)
-        self.config = None
+        super().__init__()
         self.client = None
         self.td = TypeDeserializer()
         try:
-            self.client = self.connect(config, **kwargs)
+            self.client = self.connect(config=config, **kwargs)
         except Exception as e:
             print(e)
             self.client = None
 
-    def connect(self, config, **kwargs):
+    def connect(self, config, ssh_config=None, **kwargs):
         self.config = config
-        return boto3.client(service_name=config['service_name'],
-                            region_name=config['region_name'],
-                            aws_access_key_id=config['aws_access_key_id'],
-                            aws_secret_access_key=config['aws_secret_access_key'],
-                            endpoint_url=config['endpoint_url'],
-                            config=Config(retries=dict(max_attempts=3)), **kwargs)
+        return boto3.client(config=Config(retries=dict(max_attempts=3)), **self.config, **kwargs)
 
     def list_tables(self, name):
         ret = list()
@@ -83,6 +77,3 @@ class DynamoDB(SQLInterface):
     @staticmethod
     def do_nothing(x):
         return x
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
