@@ -30,8 +30,8 @@ class MongoScheduler:
         self.scheduler.shutdown()
         self.mongodb.close()
 
-    def add_job(self, func, id, trigger, **kwargs):
-        return self.scheduler.add_job(func=func, id=id, trigger=trigger, **kwargs)
+    def add_job(self, func, id, trigger, jobstore='mongo', **kwargs):
+        return self.scheduler.add_job(func=func, id=id, trigger=trigger, jobstore=jobstore, **kwargs)
 
     def remove_job(self, id, **kwargs):
         return self.scheduler.remove_job(job_id=id, **kwargs)
