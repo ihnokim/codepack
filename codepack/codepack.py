@@ -226,16 +226,17 @@ class CodePack:
     def from_binary(b):
         return dill.loads(b)
 
-    def to_db(self, db, collection, config):
-        self.init()
-        mc = MongoDB(config)
-        mc[db][collection].insert_one(self.to_dict())
-        mc.close()
+    def to_db(self, db, collection, config, ssh_config=None, **kwargs):
+        # self.init()
+        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
+        mongodb[db][collection].insert_one(self.to_dict())
+        mongodb.close()
 
     @staticmethod
-    def from_db(id, db, collection, config):
-        mc = MongoDB(config)
-        d = mc[db][collection].find_one({'_id': id})
+    def from_db(id, db, collection, config, ssh_config=None, **kwargs):
+        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
+        d = mongodb[db][collection].find_one({'_id': id})
+        mongodb.close()
         if d is None:
             return d
         else:
