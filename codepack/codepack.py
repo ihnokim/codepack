@@ -118,7 +118,9 @@ class CodePack:
             if code.id == self.subscribe:
                 self.output = tmp
 
-    def __call__(self, arg_dict, lazy=False):
+    def __call__(self, arg_dict=None, lazy=False):
+        if not arg_dict:
+            arg_dict = self.make_arg_dict()
         self.init_arg_cache(arg_dict, lazy)
         for leave in self.get_leaves():
             self.recursive_run(leave, arg_dict)
