@@ -34,24 +34,24 @@ class MongoScheduler:
     def add_job(self, func, job_id, trigger, jobstore='mongo', **kwargs):
         return self.scheduler.add_job(func=func, id=job_id, trigger=trigger, jobstore=jobstore, **kwargs)
 
-    def add_codepack(self, codepack, trigger, job_id=None, arg_dict=None, lazy=False, jobstore='mongo', **kwargs):
+    def add_codepack(self, codepack, trigger, job_id=None, arg_dict=None, jobstore='mongo', **kwargs):
         if arg_dict is None:
             arg_dict = codepack.make_arg_dict()
         if job_id is None:
             job_id = codepack.id
-        ret = self.add_job(self.run_codepack, job_id=job_id, trigger=trigger, jobstore=jobstore,
-                           kwargs={'codepack': codepack, 'arg_dict': arg_dict, 'lazy': lazy}, **kwargs)
+        ret = self.add_job(self.run_codepack_dict, job_id=job_id, trigger=trigger, jobstore=jobstore,
+                           kwargs={'codepack_dict': codepack.to_dict(), 'arg_dict': arg_dict}, **kwargs)
         self.mongodb[self.db][self.collection].update_one({'_id': job_id},
                                                           {'$set': {'codepack': codepack.id, 'arg_dict': arg_dict}})
         return ret
 
-    def add_codepack_from_db(self, id, db, collection, trigger, config, ssh_config=None, job_id=None, arg_dict=None, lazy=False, jobstore='mongo', **kwargs):
+    def add_codepack_from_db(self, id, db, collection, trigger, config, ssh_config=None, job_id=None, arg_dict=None, jobstore='mongo', **kwargs):
         codepack = CodePack.from_db(id=id, db=db, collection=collection, config=config, ssh_config=ssh_config)
-        return self.add_codepack(codepack=codepack, trigger=trigger, job_id=job_id, arg_dict=arg_dict, lazy=lazy, jobstore=jobstore, **kwargs)
+        return self.add_codepack(codepack=codepack, trigger=trigger, job_id=job_id, arg_dict=arg_dict, jobstore=jobstore, **kwargs)
 
-    def remove_job(self, id, **kwargs):
-        return self.scheduler.remove_job(job_id=id, **kwargs)
+    def remove_job(self, job_id, **kwargs):
+        return self.scheduler.remove_job(job_id=job_id, **kwargs)
 
     @staticmethod
-    def run_codepack(codepack, arg_dict=None, lazy=False):
-        return codepack(arg_dict=arg_dict, lazy=lazy)
+    def run_codepack_dict(codepack_dict, arg_dict=None):
+        return CodePack.from_dict(codepack_dict)(arg_dict=arg_dict, lazy=False)
