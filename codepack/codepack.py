@@ -127,12 +127,22 @@ class CodePack:
         return self.output
 
     def to_file(self, filename):
+        '''
         self.init() # clone
         dill.dump(self, open(filename, 'wb'))
+        '''
+        with open(filename, 'w') as f:
+            f.write(self.to_json())
 
     @staticmethod
     def from_file(filename):
+        '''
         return dill.load(open(filename, 'rb'))
+        '''
+        ret = None
+        with open(filename, 'r') as f:
+            ret = CodePack.from_json(f.read())
+        return ret
 
     def to_binary(self):
         self.init() # clone

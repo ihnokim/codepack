@@ -157,14 +157,19 @@ class Code(AbstractCode):
         return tmp
 
     def to_file(self, filename):
+        '''
         # dill.dump(self, open(filename, 'wb'))
         s = self.id + '\n'
         s += self.source
         with open(filename, 'w') as f:
             f.write(s)
+        '''
+        with open(filename, 'w') as f:
+            f.write(self.to_json())
 
     @staticmethod
     def from_file(filename):
+        '''
         # return dill.load(open(filename, 'rb'))
         id = None
         source = str()
@@ -175,6 +180,11 @@ class Code(AbstractCode):
                 else:
                     source += l
         return Code(id=id, source=source)
+        '''
+        ret = None
+        with open(filename, 'r') as f:
+            ret = Code.from_json(f.read())
+        return ret
 
     def to_dict(self):
         d = dict()
