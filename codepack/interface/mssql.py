@@ -6,18 +6,27 @@ class MSSQL(SQLInterface):
     def __init__(self, config, ssh_config=None, **kwargs):
         super().__init__()
         self.conn = None
+        self.as_dict = None
         self.connect(config=config, ssh_config=ssh_config, **kwargs)
 
     def connect(self, config, ssh_config=None, **kwargs):
         self.config = config
         host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
-        self.conn = pymssql.connect(host=host, port=port, as_dict=True, **_config, **kwargs)
+        self.as_dict = False
+        if 'as_dict' in _config:
+            self.as_dict = self.eval_bool(_config['as_dict'])
+        if 'as_dict' in kwargs:
+            self.as_dict = self.eval_bool(kwargs['as_dict'])
+        _config['as_dict'] = self.as_dict
+        self.conn = pymssql.connect(host=host, port=port, **_config, **kwargs)
         self.closed = False
         return self.conn
 
     def query(self, q, commit=False):
-        ret = None
+        assert not self.closed, "connection is closed"
+        columns = None
+        rows = None
         try:
             cursor = self.conn.cursor()
             if type(q) == str:
@@ -26,15 +35,23 @@ class MSSQL(SQLInterface):
                 for qn in q:
                     cursor.execute(qn)
             if cursor.rowcount == -1:
-                ret = cursor.fetchall()
+                if cursor.description:
+                    columns = tuple(c[0] for c in cursor.description)
+                rows = cursor.fetchall()
             cursor.close()
             if commit:
                 self.conn.commit()
         except Exception as e:
-            print(e)
             self.conn.rollback()
-        return ret
-    
+            raise e
+        if self.as_dict:
+            return rows
+        else:
+            if columns:
+                return [columns] + list(rows)
+            else:
+                return None
+
     def insert(self, db, table, commit=False, **kwargs):
         q = self.make_insert_query(db=db, table=table, **kwargs)
         self.query(q, commit=commit)

@@ -45,6 +45,14 @@ class Interface(metaclass=abc.ABCMeta):
             _port = port
         return _host, int(_port)
 
+    @staticmethod
+    def eval_bool(source):
+        assert source in ['True', 'False', True, False], "'source' should be either 'True' or 'False'"
+        if type(source) == str:
+            return eval(source)
+        else:
+            return source
+
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):
     @staticmethod
