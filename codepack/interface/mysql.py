@@ -1,5 +1,6 @@
 import pymysql
 from codepack.interface.abc import SQLInterface
+import re
 
 
 class MySQL(SQLInterface):
@@ -12,28 +13,55 @@ class MySQL(SQLInterface):
         self.config = config
         host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
-        self.conn = pymysql.connect(host=host, port=port,
-                                    cursorclass=pymysql.cursors.DictCursor, **_config, **kwargs)
+        if 'cursorclass' in _config:
+            _config['cursorclass'] = self.eval_cursor_object(_config['cursorclass'])
+        self.conn = pymysql.connect(host=host, port=port, **_config, **kwargs)
         self.closed = False
         return self.conn
 
+    @staticmethod
+    def eval_cursor_object(cursorclass):
+        if type(cursorclass) == str:
+            pat = re.compile("\A(pymysql)[.]cursors[.][^.]*(Cursor)\Z")
+            assert pat.match(cursorclass), "'cursorclass' should be one of the cursor objects of pymysql"
+            return eval(cursorclass)
+        else:
+            return cursorclass
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
     def query(self, q, commit=False):
-        ret = None
+        assert not self.closed, "connection is closed"
+        columns = None
+        rows = None
         try:
             cursor = self.conn.cursor()
+            cursorclass = cursor.__class__
             if type(q) == str:
                 cursor.execute(q)
             elif type(q) == list:
                 for qn in q:
                     cursor.execute(qn)
-            ret = cursor.fetchall()
+            if cursor.description:
+                columns = tuple(c[0] for c in cursor.description)
+            rows = cursor.fetchall()
             cursor.close()
             if commit:
                 self.conn.commit()
         except Exception as e:
-            print(e)
             self.conn.rollback()
-        return ret
+            raise e
+        if cursorclass in [pymysql.cursors.DictCursor, pymysql.cursors.SSDictCursor]:
+            return rows
+        else:
+            if columns:
+                return [columns] + list(rows)
+            else:
+                return None
 
     @staticmethod
     def make_insert_query(db, table, update=True, **kwargs):
