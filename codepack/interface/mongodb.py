@@ -12,6 +12,8 @@ class MongoDB(Interface):
         self.config = config
         host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
+        if 'connect' in _config:
+            _config['connect'] = self.eval_bool(_config['connect'])
         self.client = MongoClient(host=host, port=port, **_config, **kwargs)
         self.closed = False
         return self.client
