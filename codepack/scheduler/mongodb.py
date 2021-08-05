@@ -11,12 +11,12 @@ class MongoScheduler:
             self.mongodb = MongoDB(config=config, ssh_config=ssh_config)
             self.db = db
             self.collection = collection
-            jobstores = {
+            self.jobstores = {
                 'mongo': MongoDBJobStore(database=self.db,
                                          collection=self.collection,
                                          client=self.mongodb.client)
             }
-            self.scheduler = BackgroundScheduler(jobstores=jobstores, **kwargs)
+            self.scheduler = BackgroundScheduler(jobstores=self.jobstores, **kwargs)
         else:
             self.scheduler = BackgroundScheduler(**kwargs)
         self.scheduler.start()
@@ -41,8 +41,9 @@ class MongoScheduler:
             job_id = codepack.id
         ret = self.add_job(self.run_codepack_dict, job_id=job_id, trigger=trigger, jobstore=jobstore,
                            kwargs={'codepack_dict': codepack.to_dict(), 'arg_dict': arg_dict}, **kwargs)
-        self.mongodb[self.db][self.collection].update_one({'_id': job_id},
-                                                          {'$set': {'codepack': codepack.id, 'arg_dict': arg_dict}})
+        if hasattr(self, 'mongodb'):
+            self.mongodb[self.db][self.collection].update_one({'_id': job_id},
+                                                              {'$set': {'codepack': codepack.id, 'arg_dict': arg_dict}})
         return ret
 
     def add_codepack_from_db(self, id, db, collection, trigger, config, ssh_config=None, job_id=None, arg_dict=None, jobstore='mongo', **kwargs):
