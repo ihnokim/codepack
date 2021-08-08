@@ -1,12 +1,5 @@
-import codepack.interface.mongodb
-import codepack.interface.mysql
-import codepack.interface.mssql
-import codepack.interface.dynamodb
-import codepack.interface.oracledb
-
-
-MongoDB = mongodb.MongoDB
-MySQL = mysql.MySQL
-MSSQL = mssql.MSSQL
-DynamoDB = dynamodb.DynamoDB
-OracleDB = oracledb.OracleDB
+from codepack.interface.mongodb import MongoDB
+from codepack.interface.mysql import MySQL
+from codepack.interface.mssql import MSSQL
+from codepack.interface.dynamodb import DynamoDB
+from codepack.interface.oracledb import OracleDB
