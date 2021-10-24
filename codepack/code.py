@@ -2,17 +2,14 @@ import inspect
 from copy import copy
 from collections.abc import Iterable, Callable
 import dill
-import bson
-import json
 from codepack.status import Status
 from codepack.delivery import Delivery, DeliveryService
-from codepack.interface import MongoDB
-from codepack.abc import AbstractCode
+from codepack.abc import CodeBase
 import re
 import ast
 
 
-class Code(AbstractCode):
+class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None):
         super().__init__()
         self.status = None
@@ -31,9 +28,10 @@ class Code(AbstractCode):
 
     @staticmethod
     def get_source(function):
-        assert isinstance(function, Callable), "'function' should be an instance of Callable."
-        assert function.__name__ != '<lambda>', "Invalid function '<lambda>'."
-        assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>."
+        assert isinstance(function, Callable), "'function' should be an instance of Callable"
+        assert function.__name__ != '<lambda>', "Invalid function '<lambda>'"
+        assert hasattr(function, '__code__'), "'function' should have an attribute '__code__'"
+        assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>"
         source = None
         for test in [inspect.getsource, dill.source.getsource]:
             try:
@@ -58,7 +56,7 @@ class Code(AbstractCode):
         return namespace[tree.body[0].name]
     
     def set_function(self, function=None, source=None):
-        assert function or source, "either 'function' or 'source' should not be None."
+        assert function or source, "either 'function' or 'source' should not be None"
         if source:
             source = source.strip()
             self.function = self.get_function(source)
@@ -167,8 +165,8 @@ class Code(AbstractCode):
         with open(filename, 'w') as f:
             f.write(self.to_json())
 
-    @staticmethod
-    def from_file(filename):
+    @classmethod
+    def from_file(cls, filename):
         '''
         # return dill.load(open(filename, 'rb'))
         id = None
@@ -183,7 +181,7 @@ class Code(AbstractCode):
         '''
         ret = None
         with open(filename, 'r') as f:
-            ret = Code.from_json(f.read())
+            ret = cls.from_json(f.read())
         return ret
 
     def to_dict(self):
@@ -193,39 +191,6 @@ class Code(AbstractCode):
         d['description'] = self.description
         return d
 
-    @staticmethod
-    def from_dict(d):
-        return Code(id=d['_id'], source=d['source'])
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
-
-    @staticmethod
-    def from_json(j):
-        d = json.loads(j)
-        return Code.from_dict(d)
-
-    def to_binary(self):
-        return bson.Binary(dill.dumps(self))
-
-    @staticmethod
-    def from_binary(b):
-        return dill.loads(b)
-
-    def to_db(self, db, collection, config, ssh_config=None, **kwargs):
-        # tmp = self.clone()
-        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
-        d = self.to_dict()
-        mongodb[db][collection].insert_one(d)
-        mongodb.close()
-
-    @staticmethod
-    def from_db(id, db, collection, config, ssh_config=None, **kwargs):
-        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
-        d = mongodb[db][collection].find_one({'_id': id})
-        mongodb.close()
-        if d is None:
-            return d
-        else:
-            # return Code.from_binary(ret['binary'])
-            return Code.from_dict(d)
+    @classmethod
+    def from_dict(cls, d):
+        return cls(id=d['_id'], source=d['source'])

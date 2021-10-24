@@ -1,25 +1,24 @@
 import dill
 import bson
-import json
-from codepack.abc import AbstractCode
+from codepack.abc import CodeBase, CodePackBase
 from codepack.status import Status
 from codepack import Code
 from queue import Queue
-from codepack.interface import MongoDB
 from copy import deepcopy
 from parse import compile as parser
 from ast import literal_eval
 
 
-class CodePack:
+class CodePack(CodePackBase):
     def __init__(self, id, code, subscribe=None):
+        super().__init__()
         self.id = id
         self.root = None
         self.roots = None
         self.output = None
         self.arg_cache = None
         self.set_root(code)
-        if isinstance(subscribe, AbstractCode):
+        if isinstance(subscribe, CodeBase):
             self.subscribe = subscribe.id
         elif isinstance(subscribe, str):
             self.subscribe = subscribe
@@ -51,7 +50,7 @@ class CodePack:
             self.arg_cache = dict()
 
     def set_root(self, code):
-        if not isinstance(code, AbstractCode):
+        if not isinstance(code, CodeBase):
             raise TypeError(type(code))
         self.root = code
 
@@ -134,8 +133,8 @@ class CodePack:
         with open(filename, 'w') as f:
             f.write(self.to_json())
 
-    @staticmethod
-    def from_file(filename):
+    @classmethod
+    def from_file(cls, filename):
         '''
         return dill.load(open(filename, 'rb'))
         '''
@@ -156,8 +155,8 @@ class CodePack:
         d['source'] = {id: code.source for id, code in self.codes.items()}
         return d
 
-    @staticmethod
-    def from_dict(d):
+    @classmethod
+    def from_dict(cls, d):
         p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive})')
         root = None
         stack = list()
@@ -188,15 +187,7 @@ class CodePack:
             n, h = stack.pop(-1)
             if len(stack) > 0:
                 stack[-1][0] >> n
-        return CodePack(d['_id'], code=root, subscribe=d['subscribe'])
-
-    def to_json(self):
-        return json.dumps(self.to_dict())
-
-    @staticmethod
-    def from_json(j):
-        d = json.loads(j)
-        return CodePack.from_dict(d)
+        return cls(d['_id'], code=root, subscribe=d['subscribe'])
 
     def get_structure(self):
         ret = str()
@@ -231,23 +222,3 @@ class CodePack:
                 for c in n.children.values():
                     stack.append(c)
         return ret
-
-    @staticmethod
-    def from_binary(b):
-        return dill.loads(b)
-
-    def to_db(self, db, collection, config, ssh_config=None, **kwargs):
-        # self.init()
-        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
-        mongodb[db][collection].insert_one(self.to_dict())
-        mongodb.close()
-
-    @staticmethod
-    def from_db(id, db, collection, config, ssh_config=None, **kwargs):
-        mongodb = MongoDB(config=config, ssh_config=ssh_config, **kwargs)
-        d = mongodb[db][collection].find_one({'_id': id})
-        mongodb.close()
-        if d is None:
-            return d
-        else:
-            return CodePack.from_dict(d)
