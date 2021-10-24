@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Status(Enum):
+class State(Enum):
     NEW = 1
     READY = 2
     WAITING = 3

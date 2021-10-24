@@ -2,7 +2,7 @@ import inspect
 from copy import copy
 from collections.abc import Iterable, Callable
 import dill
-from codepack.status import Status
+from codepack.state import State
 from codepack.delivery import Delivery, DeliveryService
 from codepack.abc import CodeBase
 import re
@@ -72,10 +72,10 @@ class Code(CodeBase):
         self.delivery_service = DeliveryService()
         for arg in self.get_args():
             self.delivery_service.request(arg)
-        self.update_status(Status.NEW)
+        self.update_status(State.NEW)
 
     def get_ready(self, return_deliveries=False):
-        self.update_status(Status.READY)
+        self.update_status(State.READY)
         if return_deliveries:
             self.delivery_service.return_deliveries()
 
@@ -134,7 +134,7 @@ class Code(CodeBase):
         self.status = status
 
     def __call__(self, *args, **kwargs):
-        self.update_status(Status.RUNNING)
+        self.update_status(State.RUNNING)
         try:
             for delivery in self.delivery_service:
                 if delivery.sender is not None and delivery.name not in kwargs:
@@ -143,9 +143,9 @@ class Code(CodeBase):
             for c in self.children.values():
                 c.delivery_service.send_deliveries(sender=self.id, item=ret)
 
-            self.update_status(Status.TERMINATED)
+            self.update_status(State.TERMINATED)
         except Exception as e:
-            self.update_status(Status.READY)
+            self.update_status(State.READY)
             raise Exception(e)
         return ret
 

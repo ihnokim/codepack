@@ -1,7 +1,7 @@
 import dill
 import bson
 from codepack.abc import CodeBase, CodePackBase
-from codepack.status import Status
+from codepack.state import State
 from codepack import Code
 from queue import Queue
 from copy import deepcopy
@@ -107,7 +107,7 @@ class CodePack(CodePackBase):
         senders = code.delivery_service.get_senders().values()
         redo = False
         for p in code.parents.values():
-            if p.status != Status.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
+            if p.status != State.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
                 if p.id in senders:
                     redo = True
                 self.recursive_run(p, arg_dict)
