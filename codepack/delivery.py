@@ -1,4 +1,4 @@
-from codepack.abc import AbstractCode
+from codepack.abc import CodeBase
 from collections.abc import Iterable
 
 
@@ -16,7 +16,7 @@ class Delivery:
         if isinstance(sender, str):
             self.sender = sender
             self.item = None
-        elif isinstance(sender, AbstractCode):
+        elif isinstance(sender, CodeBase):
             self.sender = sender.id
             self.item = None
         else:
