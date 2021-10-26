@@ -5,8 +5,9 @@ from codepack.abc import MongoDBService
 
 
 class MongoScheduler(MongoDBService):
-    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        super().__init__(db=db, collection=collection, config=config, ssh_config=ssh_config, mongodb=mongodb)
+    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, offline=False, **kwargs):
+        super().__init__(db=db, collection=collection,
+                         config=config, ssh_config=ssh_config, mongodb=mongodb, offline=offline)
         if self.mongodb:
             self.jobstores = {
                 'mongo': MongoDBJobStore(database=self.db,

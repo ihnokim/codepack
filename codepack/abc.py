@@ -102,15 +102,16 @@ class CodePackBase(Storable, metaclass=abc.ABCMeta):
 
 
 class MongoDBService:
-    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        mongodb, db, collection = self.get_mongodb(db=db, collection=collection,
-                                                   config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
+    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, offline=False, **kwargs):
+        if not offline:
+            mongodb, db, collection = self.get_mongodb(db=db, collection=collection,
+                                                       config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
         self.mongodb = mongodb
         self.db = db
         self.collection = collection
 
     @classmethod
-    def get_mongodb(cls, section, config_filepath=None, conn_config=None, ssh_config=None,
+    def get_mongodb(cls, section=None, config_filepath=None, conn_config=None, ssh_config=None,
                     db=None, collection=None, mongodb=None, **kwargs):
         conn_config, db, collection = Storable.get_db_info(section=section, config_filepath=config_filepath,
                                                            conn_config=conn_config, db=db, collection=collection)

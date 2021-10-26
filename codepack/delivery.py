@@ -33,8 +33,10 @@ class Delivery:
 
 
 class DeliveryService(Iterable, MongoDBService):
-    def __init__(self, deliveries=None, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        super().__init__(db=db, collection=collection, config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
+    def __init__(self, deliveries=None, db=None, collection=None,
+                 config=None, ssh_config=None, mongodb=None, offline=False, **kwargs):
+        super().__init__(db=db, collection=collection,
+                         config=config, ssh_config=ssh_config, mongodb=mongodb, offline=offline, **kwargs)
         if deliveries is None:
             self.deliveries = dict()
         elif isinstance(deliveries, dict):

@@ -5,13 +5,36 @@ import dill
 from codepack.state import State
 from codepack.delivery import Delivery, DeliveryService
 from codepack.abc import CodeBase
+from codepack.utils import get_config
+import os
 import re
 import ast
 
 
 class Code(CodeBase):
-    def __init__(self, function=None, source=None, id=None):
+    def __init__(self, function=None, source=None, id=None,
+                 mongodb=None,
+                 cache_db=None, cache_collection=None,
+                 state_db=None, state_collection=None, config_filepath=None):
         super().__init__()
+        self.mongodb = mongodb
+        self.cache_db = cache_db
+        self.cache_collection = cache_collection
+        self.state_db = state_db
+        self.state_collection = state_collection
+        if self.mongodb:
+            if not config_filepath:
+                config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
+            if config_filepath:
+                tmp_config = dict()
+                for section in ['cache', 'state']:
+                    tmp_config[section] = get_config(config_filepath, section=section)
+                    for key in ['db', 'collection']:
+                        attr = section + '_' + key
+                        if not getattr(self, attr):
+                            setattr(self, attr, tmp_config[section][key])
+            else:
+                raise ValueError("'config_filepath' is None")
         self.state = None
         self.function = None
         self.source = None
@@ -19,6 +42,7 @@ class Code(CodeBase):
         self.parents = None
         self.children = None
         self.delivery_service = None
+        self.state_manager = None
         self.set_function(function=function, source=source)
         if id is None:
             self.id = self.function.__name__
@@ -69,7 +93,10 @@ class Code(CodeBase):
     def init(self):
         self.parents = dict()
         self.children = dict()
-        self.delivery_service = DeliveryService()
+        offline = False if self.mongodb else True
+        self.delivery_service = DeliveryService(mongodb=self.mongodb,
+                                                db=self.cache_db, collection=self.cache_collection, offline=offline)
+        # self.state_manager = StateManager()
         for arg in self.get_args():
             self.delivery_service.request(arg)
         self.update_state(State.NEW)
