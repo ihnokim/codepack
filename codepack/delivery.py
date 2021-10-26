@@ -1,4 +1,4 @@
-from codepack.abc import CodeBase
+from codepack.abc import CodeBase, MongoDBService
 from collections.abc import Iterable
 
 
@@ -32,8 +32,9 @@ class Delivery:
         return self.__str__()
 
 
-class DeliveryService(Iterable):
-    def __init__(self, deliveries=None):
+class DeliveryService(Iterable, MongoDBService):
+    def __init__(self, deliveries=None, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
+        super().__init__(db=db, collection=collection, config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
         if deliveries is None:
             self.deliveries = dict()
         elif isinstance(deliveries, dict):
