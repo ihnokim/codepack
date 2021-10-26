@@ -107,7 +107,7 @@ class CodePack(CodePackBase):
         senders = code.delivery_service.get_senders().values()
         redo = False
         for p in code.parents.values():
-            if p.status != State.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
+            if p.get_state() != State.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
                 if p.id in senders:
                     redo = True
                 self.recursive_run(p, arg_dict)
@@ -202,7 +202,7 @@ class CodePack(CodePackBase):
                     ret += '\n'
                 else:
                     first_token = False
-                ret += '|%s %s' % ('-' * h, n.get_info(status=False))
+                ret += '|%s %s' % ('-' * h, n.get_info(state=False))
                 for c in n.children.values():
                     stack.append((c, h + 1))
         return ret

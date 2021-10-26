@@ -12,7 +12,7 @@ import ast
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None):
         super().__init__()
-        self.status = None
+        self.state = None
         self.function = None
         self.source = None
         self.description = None
@@ -72,10 +72,10 @@ class Code(CodeBase):
         self.delivery_service = DeliveryService()
         for arg in self.get_args():
             self.delivery_service.request(arg)
-        self.update_status(State.NEW)
+        self.update_state(State.NEW)
 
     def get_ready(self, return_deliveries=False):
-        self.update_status(State.READY)
+        self.update_state(State.READY)
         if return_deliveries:
             self.delivery_service.return_deliveries()
 
@@ -110,14 +110,14 @@ class Code(CodeBase):
     def get_args(self):
         return inspect.getfullargspec(self.function).args
 
-    def get_info(self, status=True):
+    def get_info(self, state=True):
         ret = '%s(id: %s, function: %s, args: %s, receive: %s'
-        if status:
-            ret += ', status: %s)'
+        if state:
+            ret += ', state: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.get_args(),
                           self.delivery_service.get_senders(),
-                          self.status)
+                          self.state)
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
@@ -125,16 +125,19 @@ class Code(CodeBase):
                           self.delivery_service.get_senders())
 
     def __str__(self):
-        return self.get_info(status=True)
+        return self.get_info(state=True)
 
     def __repr__(self):
         return self.__str__()
 
-    def update_status(self, status):
-        self.status = status
+    def update_state(self, state):
+        self.state = state
+
+    def get_state(self):
+        return self.state
 
     def __call__(self, *args, **kwargs):
-        self.update_status(State.RUNNING)
+        self.update_state(State.RUNNING)
         try:
             for delivery in self.delivery_service:
                 if delivery.sender is not None and delivery.name not in kwargs:
@@ -143,9 +146,9 @@ class Code(CodeBase):
             for c in self.children.values():
                 c.delivery_service.send_deliveries(sender=self.id, item=ret)
 
-            self.update_status(State.TERMINATED)
+            self.update_state(State.TERMINATED)
         except Exception as e:
-            self.update_status(State.READY)
+            self.update_state(State.READY)
             raise Exception(e)
         return ret
 
