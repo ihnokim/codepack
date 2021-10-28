@@ -14,27 +14,37 @@ import ast
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None,
                  mongodb=None,
+                 store_db=None, store_collection=None,
                  cache_db=None, cache_collection=None,
                  state_db=None, state_collection=None, config_filepath=None):
         super().__init__()
         self.mongodb = mongodb
+        self.store_db = store_db
+        self.store_collection = store_collection
         self.cache_db = cache_db
         self.cache_collection = cache_collection
         self.state_db = state_db
         self.state_collection = state_collection
+        self.online = False
         if self.mongodb:
+            self.online = True
             if not config_filepath:
                 config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
             if config_filepath:
                 tmp_config = dict()
-                for section in ['cache', 'state']:
-                    tmp_config[section] = get_config(config_filepath, section=section)
+                for section in ['store', 'cache', 'state']:
+                    _section = 'code' if section == 'store' else section
+                    tmp_config[section] = get_config(config_filepath, section=_section)
                     for key in ['db', 'collection']:
                         attr = section + '_' + key
                         if not getattr(self, attr):
                             setattr(self, attr, tmp_config[section][key])
             else:
-                raise ValueError("'config_filepath' is None")
+                for section in ['store', 'cache', 'state']:
+                    for key in ['db', 'collection']:
+                        attr = section + '_' + key
+                        if not getattr(self, attr):
+                            raise AssertionError(self._config_assertion_error_message(attr))
         self.state = None
         self.function = None
         self.source = None
@@ -93,9 +103,8 @@ class Code(CodeBase):
     def init(self):
         self.parents = dict()
         self.children = dict()
-        offline = False if self.mongodb else True
         self.delivery_service = DeliveryService(mongodb=self.mongodb,
-                                                db=self.cache_db, collection=self.cache_collection, offline=offline)
+                                                db=self.cache_db, collection=self.cache_collection, online=self.online)
         # self.state_manager = StateManager()
         for arg in self.get_args():
             self.delivery_service.request(arg)
@@ -194,3 +203,13 @@ class Code(CodeBase):
     @classmethod
     def from_dict(cls, d):
         return cls(id=d['_id'], source=d['source'])
+
+    def to_db(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
+        if not config and not mongodb:
+            if self.mongodb:
+                mongodb = self.mongodb
+        if not db:
+            db = self.store_db
+        if not collection:
+            collection = self.store_collection
+        super().to_db(db=db, collection=collection, config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)

@@ -39,45 +39,60 @@ class Storable(metaclass=abc.ABCMeta):
         return ret
 
     def to_db(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        # tmp = self.clone()
-        mongodb, db, collection = MongoDBService.get_mongodb(section=self.__class__.__name__.lower(),
-                                                             conn_config=config,
-                                                             ssh_config=ssh_config,
-                                                             db=db, collection=collection,
-                                                             mongodb=mongodb, **kwargs)
+        mongodb, db, collection, new_connection = MongoDBService.get_mongodb(section=self.__class__.__name__.lower(),
+                                                                             conn_config=config,
+                                                                             ssh_config=ssh_config,
+                                                                             db=db, collection=collection,
+                                                                             mongodb=mongodb, **kwargs)
         d = self.to_dict()
-        mongodb[db][collection].insert_one(d)
-        mongodb.close()
+        try:
+            mongodb[db][collection].insert_one(d)
+        finally:
+            if new_connection:
+                mongodb.close()
 
     @classmethod
     def from_db(cls, id, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        mongodb, db, collection = MongoDBService.get_mongodb(section=cls.__name__.lower(),
-                                                             conn_config=config,
-                                                             ssh_config=ssh_config,
-                                                             db=db, collection=collection,
-                                                             mongodb=mongodb, **kwargs)
-        d = mongodb[db][collection].find_one({'_id': id})
-        mongodb.close()
+        mongodb, db, collection, new_connection = MongoDBService.get_mongodb(section=cls.__name__.lower(),
+                                                                             conn_config=config,
+                                                                             ssh_config=ssh_config,
+                                                                             db=db, collection=collection,
+                                                                             mongodb=mongodb, **kwargs)
+        try:
+            d = mongodb[db][collection].find_one({'_id': id})
+        finally:
+            if new_connection:
+                mongodb.close()
         if d is None:
             return d
         else:
             return cls.from_dict(d)
 
     @classmethod
+    def _config_assertion_error_message(cls, x):
+        return "'%s' should be given as an argument or defined in a configuration file in 'config_filepath' " \
+               "or os.environ['CODEPACK_CONFIG_FILEPATH']" % x
+
+    @classmethod
     def get_db_info(cls, section=None, config_filepath=None, conn_config=None, db=None, collection=None):
         if not config_filepath:
             config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
         if config_filepath:
-            config = get_config(config_filepath, section=section)
-            if not conn_config:
-                if config['source'] not in ['mongodb']:
-                    raise NotImplementedError("'%s' is unknown data source")
-                conn_config_filepath = get_config(config_filepath, section='conn')['filepath']
-                conn_config = get_config(conn_config_filepath, section=config['source'])
-            if not db:
-                db = config['db']
-            if not collection:
-                collection = config['collection']
+            if not conn_config or not db or not collection:
+                config = get_config(config_filepath, section=section)
+                if not conn_config:
+                    if config['source'] not in ['mongodb']:
+                        raise NotImplementedError("'%s' is unknown data source")
+                    conn_config_filepath = get_config(config_filepath, section='conn')['filepath']
+                    conn_config = get_config(conn_config_filepath, section=config['source'])
+                if not db:
+                    db = config['db']
+                if not collection:
+                    collection = config['collection']
+        else:
+            for k, v in {'db': db, 'collection': collection}.items():
+                if not v:
+                    raise AssertionError(cls._config_assertion_error_message(k))
         return conn_config, db, collection
 
     @abc.abstractmethod
@@ -103,19 +118,31 @@ class CodePackBase(Storable, metaclass=abc.ABCMeta):
 
 
 class MongoDBService:
-    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, offline=False, **kwargs):
-        if not offline:
-            mongodb, db, collection = self.get_mongodb(db=db, collection=collection,
-                                                       config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
+    def __init__(self, section=None, config_filepath=None, db=None, collection=None, conn_config=None, ssh_config=None,
+                 mongodb=None, online=False, **kwargs):
+        new_connection = False
+        self.online = online
+        if self.online:
+            mongodb, db, collection, new_connection = self.get_mongodb(section=section, config_filepath=config_filepath,
+                                                                       db=db, collection=collection,
+                                                                       conn_config=conn_config, ssh_config=ssh_config,
+                                                                       mongodb=mongodb, **kwargs)
         self.mongodb = mongodb
         self.db = db
         self.collection = collection
+        self.new_connection = new_connection
 
     @classmethod
     def get_mongodb(cls, section=None, config_filepath=None, conn_config=None, ssh_config=None,
                     db=None, collection=None, mongodb=None, **kwargs):
-        conn_config, db, collection = Storable.get_db_info(section=section, config_filepath=config_filepath,
-                                                           conn_config=conn_config, db=db, collection=collection)
-        if conn_config and not mongodb:
-            mongodb = MongoDB(config=conn_config, ssh_config=ssh_config, **kwargs)
-        return mongodb, db, collection
+        new_connection = False
+        if not mongodb:
+            conn_config, db, collection = Storable.get_db_info(section=section, config_filepath=config_filepath,
+                                                               conn_config=conn_config, db=db, collection=collection)
+            if conn_config:
+                mongodb = MongoDB(config=conn_config, ssh_config=ssh_config, **kwargs)
+                new_connection = True
+        else:
+            _, db, collection = Storable.get_db_info(section=section, config_filepath=config_filepath,
+                                                     conn_config=mongodb.config, db=db, collection=collection)
+        return mongodb, db, collection, new_connection
