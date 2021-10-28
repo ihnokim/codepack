@@ -184,36 +184,6 @@ class Code(CodeBase):
         tmp.init()
         return tmp
 
-    def to_file(self, filename):
-        '''
-        # dill.dump(self, open(filename, 'wb'))
-        s = self.id + '\n'
-        s += self.source
-        with open(filename, 'w') as f:
-            f.write(s)
-        '''
-        with open(filename, 'w') as f:
-            f.write(self.to_json())
-
-    @classmethod
-    def from_file(cls, filename):
-        '''
-        # return dill.load(open(filename, 'rb'))
-        id = None
-        source = str()
-        with open(filename, 'r') as f:
-            for i, l in enumerate(f.readlines()):
-                if i == 0:
-                    id = l.replace('\n', '')
-                else:
-                    source += l
-        return Code(id=id, source=source)
-        '''
-        ret = None
-        with open(filename, 'r') as f:
-            ret = cls.from_json(f.read())
-        return ret
-
     def to_dict(self):
         d = dict()
         d['_id'] = self.id

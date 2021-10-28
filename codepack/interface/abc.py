@@ -6,7 +6,7 @@ from sshtunnel import SSHTunnelForwarder
 class Interface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self):
-        """Initialize an instance."""
+        """initialize an instance"""
         self.config = None
         self.ssh_config = None
         self.ssh = None
@@ -14,11 +14,11 @@ class Interface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def connect(self, config, ssh_config=None, **kwargs):
-        """Connect to the server."""
+        """connect to the server"""
 
     @abc.abstractmethod
     def close(self):
-        """Close the connection to the server."""
+        """close the connection to the server"""
 
     def __del__(self):
         self.close()

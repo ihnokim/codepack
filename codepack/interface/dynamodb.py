@@ -75,5 +75,5 @@ class DynamoDB(SQLInterface):
         pass
 
     @staticmethod
-    def do_nothing(x):
+    def do_nothing(x, *args, **kwargs):
         return x

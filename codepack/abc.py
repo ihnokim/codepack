@@ -10,7 +10,7 @@ from codepack.utils import get_config
 class Storable(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self):
-        """Initialize an instance."""
+        """initialize an instance"""
         self.id = None
 
     def to_json(self):
@@ -27,6 +27,16 @@ class Storable(metaclass=abc.ABCMeta):
     @classmethod
     def from_binary(cls, b):
         return dill.loads(b)
+
+    def to_file(self, filename):
+        with open(filename, 'w') as f:
+            f.write(self.to_json())
+
+    @classmethod
+    def from_file(cls, filename):
+        with open(filename, 'r') as f:
+            ret = cls.from_json(f.read())
+        return ret
 
     def to_db(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
         # tmp = self.clone()
@@ -69,15 +79,6 @@ class Storable(metaclass=abc.ABCMeta):
             if not collection:
                 collection = config['collection']
         return conn_config, db, collection
-
-    @abc.abstractmethod
-    def to_file(self, filename):
-        pass
-
-    @classmethod
-    @abc.abstractmethod
-    def from_file(cls, filename):
-        pass
 
     @abc.abstractmethod
     def to_dict(self):

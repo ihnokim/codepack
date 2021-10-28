@@ -1,5 +1,3 @@
-import dill
-import bson
 from codepack.abc import CodeBase, CodePackBase
 from codepack.state import State
 from codepack import Code
@@ -124,28 +122,6 @@ class CodePack(CodePackBase):
         for leave in self.get_leaves():
             self.recursive_run(leave, arg_dict)
         return self.output
-
-    def to_file(self, filename):
-        '''
-        self.init() # clone
-        dill.dump(self, open(filename, 'wb'))
-        '''
-        with open(filename, 'w') as f:
-            f.write(self.to_json())
-
-    @classmethod
-    def from_file(cls, filename):
-        '''
-        return dill.load(open(filename, 'rb'))
-        '''
-        ret = None
-        with open(filename, 'r') as f:
-            ret = CodePack.from_json(f.read())
-        return ret
-
-    def to_binary(self):
-        self.init() # clone
-        return bson.Binary(dill.dumps(self))
 
     def to_dict(self):
         d = dict()
