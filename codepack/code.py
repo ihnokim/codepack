@@ -18,6 +18,36 @@ class Code(CodeBase):
                  cache_db=None, cache_collection=None,
                  state_db=None, state_collection=None, config_filepath=None):
         super().__init__()
+        self.mongodb = None
+        self.store_db = None
+        self.store_collection = None
+        self.cache_db = None
+        self.cache_collection = None
+        self.state_db = None
+        self.state_collection = None
+        self.config_filepath = None
+        self.state = None
+        self.function = None
+        self.source = None
+        self.description = None
+        self.parents = None
+        self.children = None
+        self.delivery_service = None
+        self.state_manager = None
+        self.online = None
+        self.link_to_mongodb(mongodb, store_db=store_db, store_collection=store_collection,
+                             cache_db=cache_db, cache_collection=cache_collection,
+                             state_db=state_db, state_collection=state_collection, config_filepath=config_filepath)
+        self.set_function(function=function, source=source)
+        if id is None:
+            self.id = self.function.__name__
+        else:
+            self.id = id
+        self.init()
+
+    def link_to_mongodb(self, mongodb, store_db=None, store_collection=None, cache_db=None, cache_collection=None,
+                        state_db=None, state_collection=None, config_filepath=None):
+        self.online = False
         self.mongodb = mongodb
         self.store_db = store_db
         self.store_collection = store_collection
@@ -25,16 +55,16 @@ class Code(CodeBase):
         self.cache_collection = cache_collection
         self.state_db = state_db
         self.state_collection = state_collection
-        self.online = False
+        self.config_filepath = config_filepath
         if self.mongodb:
             self.online = True
-            if not config_filepath:
-                config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
-            if config_filepath:
+            if not self.config_filepath:
+                self.config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
+            if self.config_filepath:
                 tmp_config = dict()
                 for section in ['store', 'cache', 'state']:
                     _section = 'code' if section == 'store' else section
-                    tmp_config[section] = get_config(config_filepath, section=_section)
+                    tmp_config[section] = get_config(self.config_filepath, section=_section)
                     for key in ['db', 'collection']:
                         attr = section + '_' + key
                         if not getattr(self, attr):
@@ -45,20 +75,6 @@ class Code(CodeBase):
                         attr = section + '_' + key
                         if not getattr(self, attr):
                             raise AssertionError(self._config_assertion_error_message(attr))
-        self.state = None
-        self.function = None
-        self.source = None
-        self.description = None
-        self.parents = None
-        self.children = None
-        self.delivery_service = None
-        self.state_manager = None
-        self.set_function(function=function, source=source)
-        if id is None:
-            self.id = self.function.__name__
-        else:
-            self.id = id
-        self.init()
 
     @staticmethod
     def get_source(function):
@@ -181,7 +197,6 @@ class Code(CodeBase):
             ret = self.function(*args, **kwargs)
             for c in self.children.values():
                 c.delivery_service.send_deliveries(sender=self.id, item=ret)
-
             self.update_state(State.TERMINATED)
         except Exception as e:
             self.update_state(State.READY)
