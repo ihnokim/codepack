@@ -39,13 +39,26 @@ class CodePack(CodePackBase):
             while not q.empty():
                 id = q.get()
                 self.arg_cache.pop(id, None)
-                self.codes[id].get_ready(return_deliveries=False)
                 for c in self.codes[id].children.values():
-                    if id in c.delivery_service.get_senders().values():
-                        c.delivery_service.return_deliveries(sender=id)
-                        q.put(c.id)
+                    q.put(c.id)
         else:
             self.arg_cache = dict()
+
+    def make_arg_dict(self):
+        ret = dict()
+        stack = list()
+        for root in self.roots:
+            stack.append(root)
+            while len(stack):
+                n = stack.pop(-1)
+                if n.id not in ret:
+                    ret[n.id] = dict()
+                for arg, value in n.get_args().items():
+                    if arg not in n.delivery_service.get_senders().keys():
+                        ret[n.id][arg] = value
+                for c in n.children.values():
+                    stack.append(c)
+        return ret
 
     def set_root(self, code):
         if not isinstance(code, CodeBase):
@@ -53,7 +66,7 @@ class CodePack(CodePackBase):
         self.root = code
 
     def __str__(self):
-        ret = 'CodePack(id: %s, subscribe: %s)\n' % (self.id, self.subscribe)
+        ret = '%s(id: %s, subscribe: %s)\n' % (self.__class__.__name__, self.id, self.subscribe)
         stack = list()
         hierarchy = 0
         first_token = True
@@ -93,7 +106,7 @@ class CodePack(CodePackBase):
         while not q.empty():
             n = q.get()
             if init:
-                n.get_ready(return_deliveries=True)
+                n.get_ready()
                 self.codes[n.id] = n
             for p in n.parents.values():
                 q.put(p)
@@ -106,22 +119,26 @@ class CodePack(CodePackBase):
         redo = False
         for p in code.parents.values():
             if p.get_state() != State.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
-                if p.id in senders:
-                    redo = True
+                redo = True if p.id in senders else False
                 self.recursive_run(p, arg_dict)
-        if code.id not in self.arg_cache or arg_dict[code.id] != self.arg_cache[code.id] or redo:
+        if redo or code.id not in self.arg_cache or arg_dict[code.id] != self.arg_cache[code.id]:
             self.arg_cache[code.id] = deepcopy(arg_dict[code.id])
-            tmp = code(**arg_dict[code.id])
-            if code.id == self.subscribe:
-                self.output = tmp
+            code(**arg_dict[code.id])
 
     def __call__(self, arg_dict=None, lazy=False):
+        ret = None
         if not arg_dict:
             arg_dict = self.make_arg_dict()
         self.init_arg_cache(arg_dict, lazy)
         for leave in self.get_leaves():
             self.recursive_run(leave, arg_dict)
-        return self.output
+        if self.subscribe:
+            c = self.codes[self.subscribe]
+            if c.online:
+                ret = c.delivery_service.receive(c.serial_number)
+            else:
+                ret = c.delivery_service.tmp_storage
+        return ret
 
     def to_dict(self):
         d = dict()
@@ -181,20 +198,4 @@ class CodePack(CodePackBase):
                 ret += '|%s %s' % ('-' * h, n.get_info(state=False))
                 for c in n.children.values():
                     stack.append((c, h + 1))
-        return ret
-
-    def make_arg_dict(self):
-        ret = dict()
-        stack = list()
-        for root in self.roots:
-            stack.append(root)
-            while len(stack):
-                n = stack.pop(-1)
-                if n.id not in ret:
-                    ret[n.id] = dict()
-                for arg in n.get_args():
-                    if arg not in n.delivery_service.get_senders().keys():
-                        ret[n.id][arg] = None
-                for c in n.children.values():
-                    stack.append(c)
         return ret

@@ -1,29 +1,24 @@
 from codepack.abc import CodeBase, MongoDBService
 from collections.abc import Iterable
+from datetime import datetime
+import json
 
 
-class Delivery:
-    def __init__(self, name=None, item=None, sender=None):
+class Order:
+    def __init__(self, name):
         self.name = name
-        self.item = item
-        self.sender = sender
+        self.invoice_number = None
+        self.sender = None
 
     def cancel(self):
-        self.item = None
         self.sender = None
 
     def __lshift__(self, sender):
-        if isinstance(sender, str):
-            self.sender = sender
-            self.item = None
-        elif isinstance(sender, CodeBase):
+        if isinstance(sender, CodeBase):
+            self.invoice_number = sender.serial_number
             self.sender = sender.id
-            self.item = None
         else:
             raise TypeError(type(sender))
-
-    def send(self, item):
-        self.item = item
 
     def __str__(self):
         return '%s(name: %s, sender: %s)' % (self.__class__.__name__, self.name, self.sender)
@@ -43,6 +38,7 @@ class DeliveryService(Iterable, MongoDBService):
             self.deliveries = deliveries
         else:
             raise TypeError(type(deliveries))
+        self.tmp_storage = None
 
     def __iter__(self):
         return iter(self.deliveries.values())
@@ -68,24 +64,28 @@ class DeliveryService(Iterable, MongoDBService):
     def items(self):
         return self.deliveries.items()
 
-    def cancel_deliveries(self, sender=None):
-        for delivery in self:
-            if sender is None or delivery.sender == sender:
-                delivery.cancel()
+    def send(self, sender, item=None):
+        if self.online:
+            if not isinstance(item, str):
+                item = json.dumps(item)
+            d = {'sender': sender.id,
+                 'item': item, 'arrival_time': datetime.now()}
+            self.mongodb[self.db][self.collection].update_one({'_id': sender.serial_number}, {'$set': d}, upsert=True)
+        else:
+            self.tmp_storage = item
 
-    def send_deliveries(self, sender=None, item=None):
-        for delivery in self:
-            if sender is None or delivery.sender == sender:
-                delivery.send(item)
+    def receive(self, invoice_number):
+        if self.online:
+            ret = self.mongodb[self.db][self.collection].find_one({'_id': invoice_number})
+            return json.loads(ret['item'])
+        else:
+            raise ConnectionError("cannot find DB client")
 
-    def return_deliveries(self, sender=None):
-        self.send_deliveries(sender=sender, item=None)
-
-    def inquire(self, name):
+    def get_order(self, name):
         return self.__getitem__(name)
 
-    def request(self, name, sender=None):
-        self.__setitem__(name, Delivery(name=name, sender=sender))
+    def order(self, name):
+        self.__setitem__(name, Order(name=name))
 
     def get_senders(self):
         return {k: v.sender for k, v in self.items() if v.sender is not None}

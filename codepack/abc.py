@@ -107,8 +107,9 @@ class Storable(metaclass=abc.ABCMeta):
 
 class CodeBase(Storable, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __init__(self):
+    def __init__(self, serial_number=None):
         super().__init__()
+        self.serial_number = serial_number if serial_number else id(self)
 
 
 class CodePackBase(Storable, metaclass=abc.ABCMeta):

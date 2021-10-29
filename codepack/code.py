@@ -3,12 +3,13 @@ from copy import copy
 from collections.abc import Iterable, Callable
 import dill
 from codepack.state import State
-from codepack.delivery import Delivery, DeliveryService
+from codepack.delivery_service import DeliveryService
 from codepack.abc import CodeBase
 from codepack.utils import get_config
 import os
 import re
 import ast
+from collections import OrderedDict
 
 
 class Code(CodeBase):
@@ -16,8 +17,8 @@ class Code(CodeBase):
                  mongodb=None,
                  store_db=None, store_collection=None,
                  cache_db=None, cache_collection=None,
-                 state_db=None, state_collection=None, config_filepath=None):
-        super().__init__()
+                 state_db=None, state_collection=None, config_filepath=None, serial_number=None):
+        super().__init__(serial_number=serial_number)
         self.mongodb = None
         self.store_db = None
         self.store_collection = None
@@ -32,6 +33,7 @@ class Code(CodeBase):
         self.description = None
         self.parents = None
         self.children = None
+        self.order_list = None
         self.delivery_service = None
         self.state_manager = None
         self.online = False
@@ -126,36 +128,23 @@ class Code(CodeBase):
                                                 db=self.cache_db, collection=self.cache_collection,
                                                 online=self.online)
         # self.state_manager = StateManager()
-        for arg in self.get_args():
-            self.delivery_service.request(arg)
         self.update_state(State.NEW)
 
-    def get_ready(self, return_deliveries=False):
+    def get_ready(self):
         self.update_state(State.READY)
-        if return_deliveries:
-            self.delivery_service.return_deliveries()
-
-    @staticmethod
-    def return_delivery(sender, delivery):
-        if isinstance(delivery, Iterable):
-            for d in delivery:
-                if d.sender == sender:
-                    d.send(None)
-        elif isinstance(delivery, Delivery):
-            if delivery.sender == sender:
-                delivery.send(None)
-        else:
-            raise TypeError(type(delivery))
 
     def receive(self, arg):
-        return self.delivery_service.inquire(arg)
+        self.delivery_service.order(name=arg)
+        return self.delivery_service.get_order(name=arg)
 
     def __rshift__(self, other):
         if isinstance(other, self.__class__):
             self.children[other.id] = other
             other.parents[self.id] = self
-            other.delivery_service.return_deliveries(sender=self.id)
-            self.get_ready(return_deliveries=True)
+            for order in other.delivery_service:
+                if order.sender == self.id:
+                    order.invoice_number = self.serial_number
+            self.get_ready()
         elif isinstance(other, Iterable):
             for t in other:
                 self.__rshift__(t)
@@ -164,20 +153,40 @@ class Code(CodeBase):
         return other
 
     def get_args(self):
-        return inspect.getfullargspec(self.function).args
+        ret = OrderedDict()
+        argspec = inspect.getfullargspec(self.function)
+        args = argspec.args
+        defaults = dict(zip(args[-len(argspec.defaults):], argspec.defaults)) if argspec.defaults else dict()
+        for arg in args:
+            if arg in defaults:
+                ret[arg] = defaults[arg]
+            else:
+                ret[arg] = None
+        return ret
+
+    def print_args(self):
+        ret = '('
+        for i, (arg, value) in enumerate(self.get_args().items()):
+            if i:
+                ret += ', '
+            ret += arg
+            if value:
+                ret += '=%s' % value
+        ret += ')'
+        return ret
 
     def get_info(self, state=True):
         ret = '%s(id: %s, function: %s, args: %s, receive: %s'
         if state:
             ret += ', state: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.get_args(),
+                          self.print_args(),
                           self.delivery_service.get_senders(),
                           self.state)
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.get_args(),
+                          self.print_args(),
                           self.delivery_service.get_senders())
 
     def __str__(self):
@@ -195,12 +204,18 @@ class Code(CodeBase):
     def __call__(self, *args, **kwargs):
         self.update_state(State.RUNNING)
         try:
-            for delivery in self.delivery_service:
-                if delivery.sender is not None and delivery.name not in kwargs:
-                    kwargs[delivery.name] = delivery.item
+            for order in self.delivery_service:
+                if order.sender is not None and order.name not in kwargs:
+                    assert order.sender in self.parents.keys(), "cannot find the sender '%s'" % order.sender
+                    assert self.parents[order.sender].serial_number == order.invoice_number,\
+                        "linkage between '%s' and '%s' is corrupted" % (self.parents[order.sender].id, self.id)
+                    if self.parents[order.sender].online:
+                        item = self.delivery_service.receive(order.invoice_number)
+                    else:
+                        item = self.parents[order.sender].delivery_service.tmp_storage
+                    kwargs[order.name] = item
             ret = self.function(*args, **kwargs)
-            for c in self.children.values():
-                c.delivery_service.send_deliveries(sender=self.id, item=ret)
+            self.delivery_service.send(sender=self, item=ret)
             self.update_state(State.TERMINATED)
         except Exception as e:
             self.update_state(State.READY)
