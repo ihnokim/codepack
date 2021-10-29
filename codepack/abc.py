@@ -120,6 +120,19 @@ class CodePackBase(Storable, metaclass=abc.ABCMeta):
 class MongoDBService:
     def __init__(self, section=None, config_filepath=None, db=None, collection=None, conn_config=None, ssh_config=None,
                  mongodb=None, online=False, **kwargs):
+        self.mongodb= None
+        self.db = None
+        self.collection = None
+        self.new_connection = None
+        self.online = False
+        self.link_to_mongodb(section=section, config_filepath=config_filepath,
+                             db=db, collection=collection,
+                             conn_config=conn_config, ssh_config=ssh_config,
+                             mongodb=mongodb, online=online, **kwargs)
+
+    def link_to_mongodb(self, section=None, config_filepath=None, db=None, collection=None,
+                        conn_config=None, ssh_config=None,
+                        mongodb=None, online=False, **kwargs):
         new_connection = False
         self.online = online
         if self.online:

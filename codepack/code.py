@@ -34,7 +34,7 @@ class Code(CodeBase):
         self.children = None
         self.delivery_service = None
         self.state_manager = None
-        self.online = None
+        self.online = False
         self.link_to_mongodb(mongodb, store_db=store_db, store_collection=store_collection,
                              cache_db=cache_db, cache_collection=cache_collection,
                              state_db=state_db, state_collection=state_collection, config_filepath=config_filepath)
@@ -75,6 +75,9 @@ class Code(CodeBase):
                         attr = section + '_' + key
                         if not getattr(self, attr):
                             raise AssertionError(self._config_assertion_error_message(attr))
+        if self.delivery_service:
+            self.delivery_service.link_to_mongodb(mongodb=mongodb, db=self.cache_db, collection=self.cache_collection,
+                                                  online=self.online)
 
     @staticmethod
     def get_source(function):
@@ -120,7 +123,8 @@ class Code(CodeBase):
         self.parents = dict()
         self.children = dict()
         self.delivery_service = DeliveryService(mongodb=self.mongodb,
-                                                db=self.cache_db, collection=self.cache_collection, online=self.online)
+                                                db=self.cache_db, collection=self.cache_collection,
+                                                online=self.online)
         # self.state_manager = StateManager()
         for arg in self.get_args():
             self.delivery_service.request(arg)
