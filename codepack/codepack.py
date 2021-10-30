@@ -13,7 +13,6 @@ class CodePack(CodePackBase):
         self.id = id
         self.root = None
         self.roots = None
-        self.output = None
         self.arg_cache = None
         self.set_root(code)
         if isinstance(subscribe, CodeBase):
@@ -23,15 +22,15 @@ class CodePack(CodePackBase):
         else:
             self.subscribe = None
         self.codes = dict()
-        self.init()
+        self.init(arg_dict=None, lazy=False)
 
-    def init(self):
-        self.init_arg_cache(None, lazy=False)
-        self.output = None
-        self.roots = self.get_roots(init=True)
+    def init(self, arg_dict=None, lazy=False):
+        self.init_arg_cache(arg_dict, lazy=lazy)
+        if not lazy:
+            self.roots = self.get_roots(init=True)
 
     def init_arg_cache(self, arg_dict, lazy=False):
-        if lazy:
+        if arg_dict and lazy:
             q = Queue()
             for id in self.arg_cache:
                 if self.arg_cache[id] != arg_dict[id]:
@@ -100,36 +99,49 @@ class CodePack(CodePackBase):
 
     def get_roots(self, init=False):
         roots = set()
+        touched = set()
         q = Queue()
         for leave in self.get_leaves():
             q.put(leave)
+            touched.add(leave.id)
         while not q.empty():
             n = q.get()
             if init:
-                n.get_ready()
-                self.codes[n.id] = n
+                if n.get_state() != State.NEW:
+                    n.update_state(State.NEW)
+                if n.id not in self.codes:
+                    self.codes[n.id] = n
             for p in n.parents.values():
-                q.put(p)
+                if p.id not in touched:
+                    q.put(p)
+                    touched.add(p.id)
             if len(n.parents) == 0:
                 roots.add(n)
         return roots
 
     def recursive_run(self, code, arg_dict):
+        state = code.get_state()
         senders = code.delivery_service.get_senders().values()
-        redo = False
+        redo = True if state != State.TERMINATED else False
         for p in code.parents.values():
-            if p.get_state() != State.TERMINATED or p.id not in self.arg_cache or arg_dict[p.id] != self.arg_cache[p.id]:
+            if p.get_state() != State.TERMINATED or \
+                    p.id not in self.arg_cache or \
+                    arg_dict[p.id] != self.arg_cache[p.id]:
                 redo = True if p.id in senders else False
+                code.update_state(State.WAITING)
                 self.recursive_run(p, arg_dict)
-        if redo or code.id not in self.arg_cache or arg_dict[code.id] != self.arg_cache[code.id]:
+        if redo or \
+                code.id not in self.arg_cache or \
+                arg_dict[code.id] != self.arg_cache[code.id]:
             self.arg_cache[code.id] = deepcopy(arg_dict[code.id])
+            code.update_state(State.READY)
             code(**arg_dict[code.id])
 
     def __call__(self, arg_dict=None, lazy=False):
         ret = None
         if not arg_dict:
             arg_dict = self.make_arg_dict()
-        self.init_arg_cache(arg_dict, lazy)
+        self.init(arg_dict=arg_dict if lazy else None, lazy=lazy)
         for leave in self.get_leaves():
             self.recursive_run(leave, arg_dict)
         if self.subscribe:
