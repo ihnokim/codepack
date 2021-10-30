@@ -4,6 +4,7 @@ from collections.abc import Iterable, Callable
 import dill
 from codepack.state import State
 from codepack.delivery_service import DeliveryService
+from codepack.state_manager import StateManager
 from codepack.abc import CodeBase
 from codepack.utils import get_config
 import os
@@ -127,11 +128,9 @@ class Code(CodeBase):
         self.delivery_service = DeliveryService(mongodb=self.mongodb,
                                                 db=self.cache_db, collection=self.cache_collection,
                                                 online=self.online)
-        # self.state_manager = StateManager()
+        self.state_manager = StateManager(mongodb=self.mongodb, db=self.state_db, collection=self.state_collection,
+                                          online=self.online)
         self.update_state(State.NEW)
-
-    def get_ready(self):
-        self.update_state(State.READY)
 
     def receive(self, arg):
         self.delivery_service.order(name=arg)
@@ -144,7 +143,6 @@ class Code(CodeBase):
             for order in other.delivery_service:
                 if order.sender == self.id:
                     order.invoice_number = self.serial_number
-            self.get_ready()
         elif isinstance(other, Iterable):
             for t in other:
                 self.__rshift__(t)
@@ -182,7 +180,7 @@ class Code(CodeBase):
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.print_args(),
                           self.delivery_service.get_senders(),
-                          self.state)
+                          self.get_state())
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
@@ -196,10 +194,10 @@ class Code(CodeBase):
         return self.__str__()
 
     def update_state(self, state):
-        self.state = state
+        self.state_manager.update(self, state)
 
     def get_state(self):
-        return self.state
+        return self.state_manager.get(self)
 
     def __call__(self, *args, **kwargs):
         self.update_state(State.RUNNING)
@@ -218,7 +216,7 @@ class Code(CodeBase):
             self.delivery_service.send(sender=self, item=ret)
             self.update_state(State.TERMINATED)
         except Exception as e:
-            self.update_state(State.READY)
+            self.update_state(State.ERROR)
             raise Exception(e)
         return ret
 
