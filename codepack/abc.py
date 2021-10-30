@@ -5,6 +5,7 @@ import dill
 import os
 from codepack.interface import MongoDB
 from codepack.utils import get_config
+from datetime import datetime
 
 
 class Storable(metaclass=abc.ABCMeta):
@@ -109,7 +110,10 @@ class CodeBase(Storable, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self, serial_number=None):
         super().__init__()
-        self.serial_number = serial_number if serial_number else id(self)
+        self.serial_number = serial_number if serial_number else self.generate_serial_number()
+
+    def generate_serial_number(self):
+        return (str(id(self)) + str(datetime.now().timestamp())).replace('.', '')
 
 
 class CodePackBase(Storable, metaclass=abc.ABCMeta):
