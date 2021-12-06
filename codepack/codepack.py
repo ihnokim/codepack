@@ -1,5 +1,4 @@
 from codepack.abc import CodeBase, CodePackBase
-from codepack.state import State
 from codepack import Code
 from queue import Queue
 from copy import deepcopy
@@ -9,8 +8,7 @@ from ast import literal_eval
 
 class CodePack(CodePackBase):
     def __init__(self, id, code, subscribe=None):
-        super().__init__()
-        self.id = id
+        super().__init__(id=id)
         self.root = None
         self.roots = None
         self.arg_cache = None
@@ -53,7 +51,7 @@ class CodePack(CodePackBase):
                 if n.id not in ret:
                     ret[n.id] = dict()
                 for arg, value in n.get_args().items():
-                    if arg not in n.delivery_service.get_senders().keys():
+                    if arg not in n.check_dependent_args().keys():
                         ret[n.id][arg] = value
                 for c in n.children.values():
                     stack.append(c)
@@ -107,8 +105,8 @@ class CodePack(CodePackBase):
         while not q.empty():
             n = q.get()
             if init:
-                if n.get_state() != State.NEW:
-                    n.update_state(State.NEW)
+                if n.get_state() != 'NEW':
+                    n.update_state('NEW')
                 if n.id not in self.codes:
                     self.codes[n.id] = n
             for p in n.parents.values():
@@ -121,20 +119,20 @@ class CodePack(CodePackBase):
 
     def recursive_run(self, code, arg_dict):
         state = code.get_state()
-        senders = code.delivery_service.get_senders().values()
-        redo = True if state != State.TERMINATED else False
+        senders = code.check_dependent_args().values()
+        redo = True if state != 'TERMINATED' else False
         for p in code.parents.values():
-            if p.get_state() != State.TERMINATED or \
+            if p.get_state() != 'TERMINATED' or \
                     p.id not in self.arg_cache or \
                     arg_dict[p.id] != self.arg_cache[p.id]:
                 redo = True if p.id in senders else False
-                code.update_state(State.WAITING)
+                code.update_state('WAITING')
                 self.recursive_run(p, arg_dict)
         if redo or \
                 code.id not in self.arg_cache or \
                 arg_dict[code.id] != self.arg_cache[code.id]:
             self.arg_cache[code.id] = deepcopy(arg_dict[code.id])
-            code.update_state(State.READY)
+            code.update_state('READY')
             code(**arg_dict[code.id])
 
     def __call__(self, arg_dict=None, lazy=False):
@@ -146,13 +144,10 @@ class CodePack(CodePackBase):
             self.recursive_run(leave, arg_dict)
         if self.subscribe:
             c = self.codes[self.subscribe]
-            if c.online:
-                ret = c.delivery_service.receive(c.serial_number)
-            else:
-                ret = c.delivery_service.tmp_storage
+            ret = c.get_result(serial_number=c.serial_number)
         return ret
 
-    def to_dict(self):
+    def to_dict(self, *args, **kwargs):
         d = dict()
         d['_id'] = self.id
         d['subscribe'] = self.subscribe
@@ -161,7 +156,7 @@ class CodePack(CodePackBase):
         return d
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, *args, **kwargs):
         p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive})')
         root = None
         stack = list()
