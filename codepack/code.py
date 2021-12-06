@@ -1,86 +1,45 @@
 import inspect
-from copy import copy
 from collections.abc import Iterable, Callable
 import dill
-from codepack.state import State
-from codepack.delivery_service import DeliveryService
-from codepack.state_manager import StateManager
+from codepack.service import get_default_delivery_service, get_default_state_manager, get_default_code_storage_service
 from codepack.abc import CodeBase
-from codepack.utils import get_config
-import os
 import re
 import ast
 from collections import OrderedDict
+from datetime import datetime
+from codepack.dependency import Dependency
 
 
 class Code(CodeBase):
-    def __init__(self, function=None, source=None, id=None,
-                 mongodb=None,
-                 store_db=None, store_collection=None,
-                 cache_db=None, cache_collection=None,
-                 state_db=None, state_collection=None, config_filepath=None, serial_number=None):
-        super().__init__(serial_number=serial_number)
-        self.mongodb = None
-        self.store_db = None
-        self.store_collection = None
-        self.cache_db = None
-        self.cache_collection = None
-        self.state_db = None
-        self.state_collection = None
-        self.config_filepath = None
-        self.state = None
+    def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
+                 config_path=None, delivery_service=None, state_manager=None, storage_service=None):
+        super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
         self.description = None
         self.parents = None
         self.children = None
-        self.order_list = None
-        self.delivery_service = None
-        self.state_manager = None
-        self.online = False
-        self.link_to_mongodb(mongodb, store_db=store_db, store_collection=store_collection,
-                             cache_db=cache_db, cache_collection=cache_collection,
-                             state_db=state_db, state_collection=state_collection, config_filepath=config_filepath)
+        self.dependency = None
+        self.config_path = None
+        self.service = None
         self.set_function(function=function, source=source)
         if id is None:
             self.id = self.function.__name__
-        else:
-            self.id = id
-        self.init()
+        self.init(dependency=dependency, config_path=config_path,
+                  delivery_service=delivery_service, state_manager=state_manager, storage_service=storage_service)
 
-    def link_to_mongodb(self, mongodb, store_db=None, store_collection=None, cache_db=None, cache_collection=None,
-                        state_db=None, state_collection=None, config_filepath=None):
-        self.online = False
-        self.mongodb = mongodb
-        self.store_db = store_db
-        self.store_collection = store_collection
-        self.cache_db = cache_db
-        self.cache_collection = cache_collection
-        self.state_db = state_db
-        self.state_collection = state_collection
-        self.config_filepath = config_filepath
-        if self.mongodb:
-            self.online = True
-            if not self.config_filepath:
-                self.config_filepath = os.environ.get('CODEPACK_CONFIG_FILEPATH', None)
-            if self.config_filepath:
-                tmp_config = dict()
-                for section in ['store', 'cache', 'state']:
-                    _section = 'code' if section == 'store' else section
-                    tmp_config[section] = get_config(self.config_filepath, section=_section)
-                    for key in ['db', 'collection']:
-                        attr = section + '_' + key
-                        if not getattr(self, attr):
-                            setattr(self, attr, tmp_config[section][key])
-            else:
-                for section in ['store', 'cache', 'state']:
-                    for key in ['db', 'collection']:
-                        attr = section + '_' + key
-                        if not getattr(self, attr):
-                            raise AssertionError(self._config_assertion_error_message(attr))
-        if self.delivery_service:
-            self.delivery_service.link_to_mongodb(mongodb=mongodb, db=self.cache_db, collection=self.cache_collection,
-                                                  online=self.online)
+    def init(self, dependency=None, config_path=None,
+             delivery_service=None, state_manager=None, storage_service=None):
+        self.parents = dict()
+        self.children = dict()
+        self.dependency = dict()
+        self.service = dict()
+        if dependency:
+            self.add_dependency(dependency=dependency)
+        self.service['delivery_service'] = delivery_service if delivery_service else get_default_delivery_service(config_path=config_path)
+        self.service['state_manager'] = state_manager if state_manager else get_default_state_manager(config_path=config_path)
+        self.service['storage_service'] = storage_service if storage_service else get_default_code_storage_service(obj=self.__class__, config_path=config_path)
+        self.update_state('NEW')
 
     @staticmethod
     def get_source(function):
@@ -92,8 +51,8 @@ class Code(CodeBase):
         for test in [inspect.getsource, dill.source.getsource]:
             try:
                 source = test(function)
-            except Exception:
-                pass
+            except Exception:  # pragma: no cover
+                pass  # pragma: no cover
             if source is not None:
                 break
         return source
@@ -122,32 +81,30 @@ class Code(CodeBase):
             self.source = self.get_source(self.function)
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
-    def init(self):
-        self.parents = dict()
-        self.children = dict()
-        self.delivery_service = DeliveryService(mongodb=self.mongodb,
-                                                db=self.cache_db, collection=self.cache_collection,
-                                                online=self.online)
-        self.state_manager = StateManager(mongodb=self.mongodb, db=self.state_db, collection=self.state_collection,
-                                          online=self.online)
-        self.update_state(State.NEW)
-
-    def receive(self, arg):
-        self.delivery_service.order(name=arg)
-        return self.delivery_service.get_order(name=arg)
-
     def __rshift__(self, other):
         if isinstance(other, self.__class__):
             self.children[other.id] = other
             other.parents[self.id] = self
-            for order in other.delivery_service:
-                if order.sender == self.id:
-                    order.invoice_number = self.serial_number
+            if self.serial_number not in other.dependency:
+                other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
         elif isinstance(other, Iterable):
             for t in other:
                 self.__rshift__(t)
         else:
-            raise TypeError(type(other))
+            raise TypeError(type(other))  # pragma: no cover
+        return other
+
+    def __floordiv__(self, other):
+        if isinstance(other, self.__class__):
+            other.parents.pop(self.id, None)
+            self.children.pop(other.id, None)
+            if self.serial_number in other.dependency:
+                other.remove_dependency(self.serial_number)
+        elif isinstance(other, Iterable):
+            for t in other:
+                self.__floordiv__(t)
+        else:
+            raise TypeError(type(other))  # pragma: no cover
         return other
 
     def get_args(self):
@@ -179,13 +136,13 @@ class Code(CodeBase):
             ret += ', state: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.print_args(),
-                          self.delivery_service.get_senders(),
+                          self.check_dependent_args(),
                           self.get_state())
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.print_args(),
-                          self.delivery_service.get_senders())
+                          self.check_dependent_args())
 
     def __str__(self):
         return self.get_info(state=True)
@@ -193,39 +150,96 @@ class Code(CodeBase):
     def __repr__(self):
         return self.__str__()
 
-    def update_state(self, state):
-        self.state_manager.update(self, state)
+    def update_state(self, state, update_time=None):
+        self.service['state_manager'].set(id=self.id, serial_number=self.serial_number, state=state,
+                                          update_time=update_time, dependency=self.dependency)
 
     def get_state(self):
-        return self.state_manager.get(self)
+        return self.service['state_manager'].get(serial_number=self.serial_number)
 
-    def __call__(self, *args, **kwargs):
-        self.update_state(State.RUNNING)
-        try:
-            for order in self.delivery_service:
-                if order.sender is not None and order.name not in kwargs:
-                    assert order.sender in self.parents.keys(), "cannot find the sender '%s'" % order.sender
-                    assert self.parents[order.sender].serial_number == order.invoice_number,\
-                        "linkage between '%s' and '%s' is corrupted" % (self.parents[order.sender].id, self.id)
-                    if self.parents[order.sender].online:
-                        item = self.delivery_service.receive(order.invoice_number)
-                    else:
-                        item = self.parents[order.sender].delivery_service.tmp_storage
-                    kwargs[order.name] = item
-            ret = self.function(*args, **kwargs)
-            self.delivery_service.send(sender=self, item=ret)
-            self.update_state(State.TERMINATED)
-        except Exception as e:
-            self.update_state(State.ERROR)
-            raise Exception(e)
+    def send_result(self, item, send_time=None):
+        self.service['delivery_service'].send(sender=self.id, invoice_number=self.serial_number, item=item, send_time=send_time)
+
+    def get_result(self, serial_number):
+        return self.service['delivery_service'].receive(invoice_number=serial_number)
+
+    def save(self, *args, **kwargs):
+        self.service['storage_service'].save(self, *args, **kwargs)
+
+    def receive(self, arg):
+        self.assert_arg(arg)
+        return Dependency(code=self, arg=arg)
+
+    def assert_arg(self, arg):
+        if arg and arg not in self.get_args():
+            raise AssertionError("'%s' is not an argument of %s" % (arg, self.function))
+
+    def check_dependent_args(self):
+        ret = dict()
+        for dependency in self.dependency.values():
+            if dependency.arg:
+                ret[dependency.arg] = dependency.id
         return ret
 
-    def clone(self):
-        tmp = copy(self)
-        tmp.init()
-        return tmp
+    def add_dependency(self, dependency):
+        if isinstance(dependency, Dependency):
+            self.assert_arg(dependency.arg)
+            self.dependency[dependency.serial_number] = dependency
+        elif isinstance(dependency, dict):
+            self.assert_arg(dependency['arg'])
+            self.dependency[dependency['serial_number']] = Dependency.from_dict(d=dependency)
+            self.dependency[dependency['serial_number']].bind(self)
+        elif isinstance(dependency, Iterable):
+            for d in dependency:
+                self.add_dependency(d)
+        else:
+            raise TypeError(type(dependency))  # pragma: no cover
 
-    def to_dict(self):
+    def remove_dependency(self, serial_number):
+        self.dependency.pop(serial_number, None)
+
+    def check_dependency(self):
+        state_serial_numbers = list(self.dependency.keys())
+        states = self.service['state_manager'].check(serial_number=state_serial_numbers)
+        if len(state_serial_numbers) != len(states):
+            return False
+        state_dict = dict()
+        for state in states:
+            state_dict[state['_id']] = state
+            if state['state'] != 'TERMINATED':
+                self.update_state('WAITING')
+                return False
+        order_invoice_numbers = [k for k, v in self.dependency.items() if v.arg]
+        caches = self.service['delivery_service'].check(invoice_number=order_invoice_numbers)
+        if len(order_invoice_numbers) != len(caches):
+            return False
+        for cache in caches:
+            if cache['send_time'] != state_dict[cache['_id']]['update_time']:
+                self.update_state('WAITING')
+                return False
+        return True
+
+    def __call__(self, *args, **kwargs):
+        try:
+            self.update_state('READY')
+            if self.check_dependency():
+                for dependency in self.dependency.values():
+                    if dependency.arg and dependency.arg not in kwargs:
+                        kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
+                self.update_state('RUNNING')
+                ret = self.function(*args, **kwargs)
+                now = datetime.now().timestamp()
+                self.send_result(item=ret, send_time=now)
+                self.update_state('TERMINATED', update_time=now)
+                return ret
+            else:
+                self.update_state('WAITING')
+                return None
+        except Exception as e:
+            self.update_state('ERROR')
+            raise e
+
+    def to_dict(self, *args, **kwargs):
         d = dict()
         d['_id'] = self.id
         d['source'] = self.source
@@ -233,15 +247,5 @@ class Code(CodeBase):
         return d
 
     @classmethod
-    def from_dict(cls, d):
-        return cls(id=d['_id'], source=d['source'])
-
-    def to_db(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, **kwargs):
-        if not config and not mongodb:
-            if self.mongodb:
-                mongodb = self.mongodb
-        if not db:
-            db = self.store_db
-        if not collection:
-            collection = self.store_collection
-        super().to_db(db=db, collection=collection, config=config, ssh_config=ssh_config, mongodb=mongodb, **kwargs)
+    def from_dict(cls, d, *args, **kwargs):
+        return cls(id=d['_id'], source=d['source'], *args, **kwargs)
