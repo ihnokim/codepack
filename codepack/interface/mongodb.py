@@ -23,6 +23,7 @@ class MongoDB(Interface):
         return self.client[item]
 
     def __getattr__(self, item):
+        assert not self.closed, "connection is closed"
         return self.__getitem__(item)
 
     def close(self):
