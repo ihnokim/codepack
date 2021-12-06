@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from codepack.scheduler.jobstores.mongodb import MongoDBJobStore
 from codepack import CodePack
-from codepack.abc import MongoDBService
+from codepack.service import MongoDBService
 
 
 class MongoScheduler(MongoDBService):
