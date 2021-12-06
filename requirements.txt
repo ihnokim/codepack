@@ -8,3 +8,5 @@ boto3==1.19.6
 cx-Oracle==8.2.1
 parse==1.19.0
 APScheduler==3.8.1
+pytest==6.2.5
+coverage==6.1.1
