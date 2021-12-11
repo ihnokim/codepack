@@ -32,14 +32,27 @@ class Code(CodeBase):
              delivery_service=None, state_manager=None, storage_service=None):
         self.parents = dict()
         self.children = dict()
+        self.init_dependency(dependency=dependency)
+        self.init_service(delivery_service=delivery_service,
+                          state_manager=state_manager,
+                          storage_service=storage_service,
+                          config_path=config_path)
+        self.update_state('NEW')
+
+    def init_dependency(self, dependency=None):
         self.dependency = dict()
-        self.service = dict()
         if dependency:
             self.add_dependency(dependency=dependency)
-        self.service['delivery_service'] = delivery_service if delivery_service else get_default_delivery_service(config_path=config_path)
-        self.service['state_manager'] = state_manager if state_manager else get_default_state_manager(config_path=config_path)
-        self.service['storage_service'] = storage_service if storage_service else get_default_code_storage_service(obj=self.__class__, config_path=config_path)
-        self.update_state('NEW')
+
+    def init_service(self, delivery_service=None, state_manager=None, storage_service=None, config_path=None):
+        self.service = dict()
+        self.service['delivery_service'] =\
+            delivery_service if delivery_service else get_default_delivery_service(config_path=config_path)
+        self.service['state_manager'] =\
+            state_manager if state_manager else get_default_state_manager(config_path=config_path)
+        self.service['storage_service'] =\
+            storage_service if storage_service else get_default_code_storage_service(obj=self.__class__,
+                                                                                     config_path=config_path)
 
     @staticmethod
     def get_source(function):
