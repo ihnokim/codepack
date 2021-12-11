@@ -81,12 +81,21 @@ class Code(CodeBase):
             self.source = self.get_source(self.function)
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
+    def link(self, other):
+        self.children[other.id] = other
+        other.parents[self.id] = self
+        if self.serial_number not in other.dependency:
+            other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
+
+    def unlink(self, other):
+        other.parents.pop(self.id, None)
+        self.children.pop(other.id, None)
+        if self.serial_number in other.dependency:
+            other.remove_dependency(self.serial_number)
+
     def __rshift__(self, other):
         if isinstance(other, self.__class__):
-            self.children[other.id] = other
-            other.parents[self.id] = self
-            if self.serial_number not in other.dependency:
-                other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
+            self.link(other)
         elif isinstance(other, Iterable):
             for t in other:
                 self.__rshift__(t)
@@ -96,10 +105,7 @@ class Code(CodeBase):
 
     def __floordiv__(self, other):
         if isinstance(other, self.__class__):
-            other.parents.pop(self.id, None)
-            self.children.pop(other.id, None)
-            if self.serial_number in other.dependency:
-                other.remove_dependency(self.serial_number)
+            self.unlink(other)
         elif isinstance(other, Iterable):
             for t in other:
                 self.__floordiv__(t)
@@ -136,13 +142,13 @@ class Code(CodeBase):
             ret += ', state: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.print_args(),
-                          self.check_dependent_args(),
+                          self.get_dependent_args(),
                           self.get_state())
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
                           self.print_args(),
-                          self.check_dependent_args())
+                          self.get_dependent_args())
 
     def __str__(self):
         return self.get_info(state=True)
@@ -174,7 +180,7 @@ class Code(CodeBase):
         if arg and arg not in self.get_args():
             raise AssertionError("'%s' is not an argument of %s" % (arg, self.function))
 
-    def check_dependent_args(self):
+    def get_dependent_args(self):
         ret = dict()
         for dependency in self.dependency.values():
             if dependency.arg:
@@ -198,25 +204,47 @@ class Code(CodeBase):
     def remove_dependency(self, serial_number):
         self.dependency.pop(serial_number, None)
 
-    def check_dependency(self):
-        state_serial_numbers = list(self.dependency.keys())
-        states = self.service['state_manager'].check(serial_number=state_serial_numbers)
-        if len(state_serial_numbers) != len(states):
-            return False
-        state_dict = dict()
+    def get_dependency_state_info(self):
+        ret = dict()
+        states = self.service['state_manager'].check(serial_number=list(self.dependency.keys()))
         for state in states:
-            state_dict[state['_id']] = state
-            if state['state'] != 'TERMINATED':
-                self.update_state('WAITING')
-                return False
-        order_invoice_numbers = [k for k, v in self.dependency.items() if v.arg]
-        caches = self.service['delivery_service'].check(invoice_number=order_invoice_numbers)
-        if len(order_invoice_numbers) != len(caches):
-            return False
+            ret[state['_id']] = state
+        return ret
+
+    def get_dependency_cache_info(self):
+        ret = dict()
+        caches = self.service['delivery_service'].check(invoice_number=[k for k, v in self.dependency.items() if v.arg])
         for cache in caches:
-            if cache['send_time'] != state_dict[cache['_id']]['update_time']:
-                self.update_state('WAITING')
+            ret[cache['_id']] = cache
+        return ret
+
+    def check_dependency_termination(self, states):
+        if len(self.dependency) != len(states):
+            return False
+        for state in states.values():
+            if state['state'] != 'TERMINATED':
                 return False
+        return True
+
+    def validate_dependency_result(self, states, caches):
+        if len([k for k, v in self.dependency.items() if v.arg]) != len(caches):
+            return False
+        for cache in caches.values():
+            if cache['_id'] not in states:
+                return False
+            elif 'send_time' not in cache or 'update_time' not in states[cache['_id']]:
+                return False
+            elif cache['send_time'] != states[cache['_id']]['update_time']:
+                return False
+        return True
+
+    def check_dependency(self):
+        states = self.get_dependency_state_info()
+        if not self.check_dependency_termination(states=states):
+            return False
+        caches = self.get_dependency_cache_info()
+        if not self.validate_dependency_result(states=states, caches=caches):
+            return False
         return True
 
     def __call__(self, *args, **kwargs):

@@ -59,7 +59,7 @@ def test_add_dependency(default_os_env):
     assert '1234' in code.dependency and '5678' in code.dependency
     assert code.dependency['5678'].arg == 'a'
     assert not code.dependency['1234'].arg
-    tmp = code.check_dependent_args()
+    tmp = code.get_dependent_args()
     assert len(tmp) == 1 and 'a' in tmp
 
 

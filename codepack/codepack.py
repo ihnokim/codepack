@@ -51,7 +51,7 @@ class CodePack(CodePackBase):
                 if n.id not in ret:
                     ret[n.id] = dict()
                 for arg, value in n.get_args().items():
-                    if arg not in n.check_dependent_args().keys():
+                    if arg not in n.get_dependent_args().keys():
                         ret[n.id][arg] = value
                 for c in n.children.values():
                     stack.append(c)
@@ -119,7 +119,7 @@ class CodePack(CodePackBase):
 
     def recursive_run(self, code, arg_dict):
         state = code.get_state()
-        senders = code.check_dependent_args().values()
+        senders = code.get_dependent_args().values()
         redo = True if state != 'TERMINATED' else False
         for p in code.parents.values():
             if p.get_state() != 'TERMINATED' or \
