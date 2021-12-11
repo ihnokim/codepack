@@ -1,9 +1,10 @@
 import abc
 import numpy as np
 from sshtunnel import SSHTunnelForwarder
+from codepack.utils import Singleton
 
 
-class Interface(metaclass=abc.ABCMeta):
+class Interface(Singleton, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self):
         """initialize an instance"""
@@ -19,12 +20,6 @@ class Interface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def close(self):
         """close the connection to the server"""
-
-    def __del__(self):
-        self.close()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
 
     @staticmethod
     def exclude_keys(d, keys):
