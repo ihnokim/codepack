@@ -1,6 +1,6 @@
 from codepack.service.abc import StateManager
 from codepack.service.mongodb_service import MongoDBService
-from codepack.service.state import State, StateCode
+from codepack.utils.state import State, StateCode
 from collections.abc import Iterable
 from codepack.utils import Singleton
 import os

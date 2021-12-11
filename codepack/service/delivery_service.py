@@ -1,6 +1,6 @@
 from codepack.service.mongodb_service import MongoDBService
 from codepack.service.abc import DeliveryService
-from codepack.service.order import Order
+from codepack.utils.order import Order
 from collections.abc import Iterable
 from codepack.utils import Singleton
 from datetime import datetime

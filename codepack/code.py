@@ -7,7 +7,7 @@ import re
 import ast
 from collections import OrderedDict
 from datetime import datetime
-from codepack.dependency import Dependency
+from codepack.utils.dependency import Dependency
 
 
 class Code(CodeBase):
