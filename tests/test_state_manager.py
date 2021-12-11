@@ -1,5 +1,5 @@
 from codepack.service import MemoryStateManager, FileStateManager, MongoStateManager
-from codepack.service.state import State, StateCode
+from codepack.utils.state import State, StateCode
 import os
 
 

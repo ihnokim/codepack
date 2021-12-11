@@ -1,5 +1,5 @@
 from codepack.service import MemoryDeliveryService, FileDeliveryService, MongoDeliveryService
-from codepack.service.order import Order
+from codepack.utils.order import Order
 import os
 
 
