@@ -1,8 +1,7 @@
 import abc
-from codepack.utils import Singleton
 
 
-class Service(Singleton, metaclass=abc.ABCMeta):
+class Service(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def check(self, *args, **kwargs):
         """check if exists"""

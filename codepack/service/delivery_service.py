@@ -2,12 +2,13 @@ from codepack.service.mongodb_service import MongoDBService
 from codepack.service.abc import DeliveryService
 from codepack.service.order import Order
 from collections.abc import Iterable
+from codepack.utils import Singleton
 from datetime import datetime
 import json
 import os
 
 
-class MemoryDeliveryService(DeliveryService):
+class MemoryDeliveryService(DeliveryService, Singleton):
     def __init__(self):
         super().__init__()
         if not hasattr(self, 'deliveries'):

@@ -1,10 +1,11 @@
 from codepack.service.abc import StorageService
 from codepack.service.mongodb_service import MongoDBService
 from collections.abc import Iterable
+from codepack.utils import Singleton
 import os
 
 
-class MemoryStorageService(StorageService):
+class MemoryStorageService(StorageService, Singleton):
     def __init__(self, obj=None):
         super().__init__()
         if not hasattr(self, 'storage'):
