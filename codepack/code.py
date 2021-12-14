@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Iterable, Callable
 import dill
-from codepack.service import get_default_delivery_service, get_default_state_manager, get_default_code_storage_service
+from codepack.service import DefaultServicePack
 from codepack.abc import CodeBase
 import re
 import ast
@@ -47,12 +47,12 @@ class Code(CodeBase):
     def init_service(self, delivery_service=None, state_manager=None, storage_service=None, config_path=None):
         self.service = dict()
         self.service['delivery_service'] =\
-            delivery_service if delivery_service else get_default_delivery_service(config_path=config_path)
+            delivery_service if delivery_service else DefaultServicePack.get_default_delivery_service(config_path=config_path)
         self.service['state_manager'] =\
-            state_manager if state_manager else get_default_state_manager(config_path=config_path)
+            state_manager if state_manager else DefaultServicePack.get_default_state_manager(config_path=config_path)
         self.service['storage_service'] =\
-            storage_service if storage_service else get_default_code_storage_service(obj=self.__class__,
-                                                                                     config_path=config_path)
+            storage_service if storage_service else DefaultServicePack.get_default_code_storage_service(obj=self.__class__,
+                                                                                                        config_path=config_path)
 
     @staticmethod
     def get_source(function):
