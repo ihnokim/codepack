@@ -1,13 +1,10 @@
 import abc
 import numpy as np
 from sshtunnel import SSHTunnelForwarder
-from codepack.utils import Singleton
 
 
-class Interface(Singleton, metaclass=abc.ABCMeta):
-    @abc.abstractmethod
+class Interface(metaclass=abc.ABCMeta):
     def __init__(self):
-        """initialize an instance"""
         self.config = None
         self.ssh_config = None
         self.ssh = None
