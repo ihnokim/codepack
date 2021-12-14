@@ -86,10 +86,10 @@ def test_file_state_manager_check():
     assert len(check) == 2
 
 
-def test_mongo_state_manager_check(mongodb):
+def test_mongo_state_manager_check(fake_mongodb):
     db = 'test'
     collection = 'state'
-    msm = MongoStateManager(mongodb=mongodb, db=db, collection=collection)
+    msm = MongoStateManager(mongodb=fake_mongodb, db=db, collection=collection)
     code_id = 'test'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
@@ -139,15 +139,15 @@ def test_file_state_manager():
     assert not check2, "'remove' failed"
 
 
-def test_mongo_state_manager(mongodb):
+def test_mongo_state_manager(fake_mongodb):
     db = 'test'
     collection = 'state'
-    msm = MongoStateManager(mongodb=mongodb, db=db, collection=collection)
+    msm = MongoStateManager(mongodb=fake_mongodb, db=db, collection=collection)
     code_id = 'test'
     serial_number = '1234'
     state = 'RUNNING'
     msm.set(id=code_id, serial_number=serial_number, state=state)
-    assert mongodb[db][collection].find_one({'_id': serial_number}), "'send' failed"
+    assert fake_mongodb[db][collection].find_one({'_id': serial_number}), "'send' failed"
     check = msm.check(serial_number=serial_number)
     get = msm.get(serial_number=serial_number)
     assert check['id'] == code_id and check['_id'] == serial_number, "'check' failed"
