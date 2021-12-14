@@ -30,14 +30,17 @@ class Code(CodeBase):
 
     def init(self, dependency=None, config_path=None,
              delivery_service=None, state_manager=None, storage_service=None):
-        self.parents = dict()
-        self.children = dict()
+        self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.init_service(delivery_service=delivery_service,
                           state_manager=state_manager,
                           storage_service=storage_service,
                           config_path=config_path)
         self.update_state('NEW')
+
+    def init_linkage(self):
+        self.parents = dict()
+        self.children = dict()
 
     def init_dependency(self, dependency=None):
         self.dependency = dict()
