@@ -58,10 +58,10 @@ def test_file_delivery_service_check():
     assert len(check) == 2
 
 
-def test_mongo_delivery_service_check(mongodb):
+def test_mongo_delivery_service_check(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(mongodb=mongodb, db=db, collection=collection)
+    mds = MongoDeliveryService(mongodb=fake_mongodb, db=db, collection=collection)
     sender = 'sender'
     invoice_number = '1234'
     invoice_numbers = ['123', '456', '789']
@@ -111,15 +111,15 @@ def test_file_delivery_service():
     assert not check2, "'cancel' error"
 
 
-def test_mongo_delivery_service(mongodb):
+def test_mongo_delivery_service(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(mongodb=mongodb, db=db, collection=collection)
+    mds = MongoDeliveryService(mongodb=fake_mongodb, db=db, collection=collection)
     sender = 'sender'
     invoice_number = '1234'
     item = 'Hello, World!'
     mds.send(sender=sender, invoice_number=invoice_number, item=item)
-    assert mongodb[db][collection].find_one({'_id': invoice_number}), "'send' failed"
+    assert fake_mongodb[db][collection].find_one({'_id': invoice_number}), "'send' failed"
     check = mds.check(invoice_number=invoice_number)
     receive = mds.receive(invoice_number=invoice_number)
     assert check['sender'] == sender and check['_id'] == invoice_number, "'check' failed"

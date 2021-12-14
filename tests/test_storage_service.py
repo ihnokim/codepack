@@ -55,10 +55,10 @@ def test_file_storage_service_check(default_os_env):
     assert len(check) == 2
 
 
-def test_mongo_storage_service_check(default_os_env, mongodb):
+def test_mongo_storage_service_check(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'codes'
-    mss = MongoStorageService(obj=Code, mongodb=mongodb, db=db, collection=collection)
+    mss = MongoStorageService(obj=Code, mongodb=fake_mongodb, db=db, collection=collection)
     code1 = Code(hello, id='hello1', storage_service=mss)
     code2 = Code(hello, id='hello2', storage_service=mss)
     code3 = Code(hello, id='hello3', storage_service=mss)

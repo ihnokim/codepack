@@ -33,24 +33,24 @@ def test_to_dict(default_os_env):
     assert code.id == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
 
 
-def test_to_db_and_from_db(default_os_env, mongodb):
+def test_to_db_and_from_db(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'codes'
     test_id = 'add2'
     try:
         code1 = Code(add2)
         assert test_id == code1.id
-        code1.to_db(mongodb=mongodb, db=db, collection=collection)
-        assert mongodb[db][collection].find_one({'_id': code1.id})
-        code2 = Code.from_db(id=code1.id, mongodb=mongodb, db=db, collection=collection)
+        code1.to_db(mongodb=fake_mongodb, db=db, collection=collection)
+        assert fake_mongodb[db][collection].find_one({'_id': code1.id})
+        code2 = Code.from_db(id=code1.id, mongodb=fake_mongodb, db=db, collection=collection)
         assert code1.id == code2.id
         assert code1.function.__name__ == code2.function.__name__
         assert code1.description == code2.description
         assert code1.serial_number != code2.serial_number
         assert code1(1, 3) == code2(1, 3)
     finally:
-        if mongodb[db][collection].count_documents({'_id': test_id}) > 0:
-            mongodb[db][collection].delete_one({'_id': test_id})
+        if fake_mongodb[db][collection].count_documents({'_id': test_id}) > 0:
+            fake_mongodb[db][collection].delete_one({'_id': test_id})
 
 
 def test_add_dependency(default_os_env):
