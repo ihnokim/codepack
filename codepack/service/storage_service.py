@@ -97,7 +97,7 @@ class MongoStorageService(StorageService, MongoDBService):
 
     def load(self, id, obj=None, db=None, collection=None):
         if obj is None:
-            self.obj = obj
+            obj = self.obj
         return obj.from_db(id=id, mongodb=self.mongodb,
                            db=db if db else self.db, collection=collection if collection else self.collection)
 
