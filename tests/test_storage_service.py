@@ -112,6 +112,8 @@ def test_file_storage_service(default_os_env):
     assert code1.id == code3.id
     assert code1.source.strip() == code3.source.strip()
     assert code1("CodePack") == code3("CodePack")
+    fss.remove(code3.id)
+    assert not os.path.isfile(fss.get_path(id=code1.id, path=filepath))
 
 
 def test_mongo_storage_service(default_os_env, fake_mongodb):
@@ -129,3 +131,5 @@ def test_mongo_storage_service(default_os_env, fake_mongodb):
     assert code1.id == code3.id
     assert code1.source.strip() == code3.source.strip()
     assert code1("CodePack") == code3("CodePack")
+    mss.remove(code3.id)
+    assert mss.mongodb[db][collection].count_documents({'_id': code1.id}) == 0
