@@ -172,9 +172,9 @@ class Code(CodeBase):
     def __repr__(self):
         return self.__str__()
 
-    def update_state(self, state, update_time=None):
+    def update_state(self, state, update_time=None, args=None, kwargs=None):
         self.service['state_manager'].set(id=self.id, serial_number=self.serial_number, state=state,
-                                          update_time=update_time, dependency=self.dependency)
+                                          update_time=update_time, args=args, kwargs=kwargs, dependency=self.dependency)
 
     def get_state(self):
         return self.service['state_manager'].get(serial_number=self.serial_number)
@@ -277,7 +277,7 @@ class Code(CodeBase):
                 self.update_state('TERMINATED', update_time=now)
                 return ret
             else:
-                self.update_state('WAITING')
+                self.update_state('WAITING', args=args, kwargs=kwargs)
                 return None
         except Exception as e:
             self.update_state('ERROR')

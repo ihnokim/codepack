@@ -23,7 +23,7 @@ class DeliveryService(Service, metaclass=abc.ABCMeta):
 
 class StateManager(Service, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def set(self, id, serial_number, state, update_time=None, dependency=None):
+    def set(self, id, serial_number, state, update_time=None, args=None, kwargs=None, dependency=None):
         """set state"""
 
     @abc.abstractmethod

@@ -15,9 +15,9 @@ class MemoryStateManager(StateManager, Singleton):
     def init(self):
         self.states = dict()
 
-    def set(self, id, serial_number, state, update_time=None, dependency=None):
+    def set(self, id, serial_number, state, update_time=None, args=None, kwargs=None, dependency=None):
         self.states[serial_number] = State(id=id, serial_number=serial_number,
-                                           state=state, update_time=update_time, dependency=dependency)
+                                           state=state, update_time=update_time, args=args, kwargs=kwargs, dependency=dependency)
 
     def get(self, serial_number):
         ret = StateCode.UNKNOWN
@@ -51,8 +51,8 @@ class FileStateManager(StateManager):
         super().__init__()
         self.path = path
 
-    def set(self, id, serial_number, state, update_time=None, dependency=None, path=None):
-        State(id=id, serial_number=serial_number, state=state, update_time=update_time, dependency=dependency)\
+    def set(self, id, serial_number, state, update_time=None, args=None, kwargs=None, dependency=None, path=None):
+        State(id=id, serial_number=serial_number, state=state, update_time=update_time, args=args, kwargs=kwargs, dependency=dependency)\
               .to_file(path=State.get_path(serial_number=serial_number, path=path if path else self.path))
 
     def get(self, serial_number, path=None):
@@ -90,8 +90,8 @@ class MongoStateManager(StateManager, MongoDBService):
                                 mongodb=mongodb, *args, **kwargs)
         StateManager.__init__(self)
 
-    def set(self, id, serial_number, state=None, update_time=None, dependency=None, db=None, collection=None):
-        tmp = State(id=id, serial_number=serial_number, state=state, update_time=update_time, dependency=dependency).to_dict()
+    def set(self, id, serial_number, state=None, update_time=None, args=None, kwargs=None, dependency=None, db=None, collection=None):
+        tmp = State(id=id, serial_number=serial_number, state=state, update_time=update_time, args=args, kwargs=kwargs, dependency=dependency).to_dict()
         _id = tmp.pop('_id')
         self.mongodb[db if db else self.db][collection if collection else self.collection]\
             .update_one({'_id': _id}, {'$set': tmp}, upsert=True)
