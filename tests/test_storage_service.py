@@ -33,8 +33,8 @@ def test_memory_storage_service_check(default_os_env):
     assert len(check) == 2
 
 
-def test_file_storage_service_check(default_os_env):
-    fss = FileStorageService(obj=Code, path='tmp/storage_service/')
+def test_file_storage_service_check(default_os_env, testdir_storage_service):
+    fss = FileStorageService(obj=Code, path=testdir_storage_service)
     code1 = Code(hello, id='hello1', storage_service=fss)
     code2 = Code(hello, id='hello2', storage_service=fss)
     code3 = Code(hello, id='hello3', storage_service=fss)
@@ -98,8 +98,8 @@ def test_memory_storage_service(default_os_env):
     assert len(mss.storage) == 0
 
 
-def test_file_storage_service(default_os_env):
-    filepath = 'tmp/storage_service/'
+def test_file_storage_service(default_os_env, testdir_storage_service):
+    filepath = testdir_storage_service
     fss = FileStorageService(obj=Code, path=filepath)
     assert fss.path == filepath
     code1 = Code(hello, storage_service=fss)

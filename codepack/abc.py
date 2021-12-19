@@ -32,7 +32,7 @@ class Storable(metaclass=abc.ABCMeta):
         return dill.loads(b)
 
     def to_file(self, path):
-        with open(path, 'w') as f:
+        with open(path, 'w+') as f:
             f.write(self.to_json())
 
     @classmethod

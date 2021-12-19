@@ -61,21 +61,13 @@ def test_memory_state_manager_check():
     assert len(check) == 2
 
 
-def test_file_state_manager_check():
-    fsm = FileStateManager('tmp/state_manager/')
+def test_file_state_manager_check(testdir_state_manager):
+    fsm = FileStateManager(path=testdir_state_manager)
     code_id = 'test'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
-    try:
-        fsm.remove(serial_number=serial_number)
-    except Exception:
-        pass
-    for s in serial_numbers:
-        try:
-            fsm.remove(serial_number=s)
-        except Exception:
-            continue
     state = 'RUNNING'
+    assert os.path.isdir(testdir_state_manager)
     fsm.set(id=code_id, serial_number=serial_number, state=state)
     assert isinstance(fsm.check(serial_number=serial_number), dict)
     fsm.remove(serial_number=serial_number)
@@ -123,8 +115,8 @@ def test_memory_state_manager():
     assert not check2, "'remove' failed"
 
 
-def test_file_state_manager():
-    fsm = FileStateManager(path='tmp/state_manager/')
+def test_file_state_manager(testdir_state_manager):
+    fsm = FileStateManager(path=testdir_state_manager)
     code_id = 'test'
     serial_number = '1234'
     state = 'RUNNING'

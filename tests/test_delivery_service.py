@@ -33,8 +33,8 @@ def test_memory_delivery_service_check():
     assert len(check) == 2
 
 
-def test_file_delivery_service_check():
-    fds = FileDeliveryService(path='tmp/delivery_service/')
+def test_file_delivery_service_check(testdir_delivery_service):
+    fds = FileDeliveryService(path=testdir_delivery_service)
     sender = 'sender'
     invoice_number = '1234'
     invoice_numbers = ['123', '456', '789']
@@ -95,8 +95,8 @@ def test_memory_delivery_service():
     assert not check2, "'cancel' failed"
 
 
-def test_file_delivery_service():
-    fds = FileDeliveryService(path='tmp/delivery_service/')
+def test_file_delivery_service(testdir_delivery_service):
+    fds = FileDeliveryService(path=testdir_delivery_service)
     sender = 'sender'
     invoice_number = '1234'
     item = 'Hello, World!'

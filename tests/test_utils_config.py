@@ -182,11 +182,11 @@ def test_default_mongodb_code_storage_service_with_os_env(default_services):
             mss.mongodb.close()
 
 
-def test_if_default_services_have_single_instance_for_each_service(default_services):
+def test_if_default_services_have_single_instance_for_each_service(default_services, testdir_state_manager):
     os.environ['CODEPACK_CACHE_SOURCE'] = 'MEMORY'
 
     os.environ['CODEPACK_STATE_SOURCE'] = 'FILE'
-    os.environ['CODEPACK_STATE_PATH'] = 'tmp/state_manager/'
+    os.environ['CODEPACK_STATE_PATH'] = testdir_state_manager
 
     os.environ['CODEPACK_CODE_SOURCE'] = 'MONGODB'
     os.environ['CODEPACK_CODE_DB'] = 'test'
