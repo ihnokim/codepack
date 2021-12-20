@@ -34,6 +34,10 @@ class StateManager(Service, metaclass=abc.ABCMeta):
     def remove(self, serial_number):
         """remove state"""
 
+    @abc.abstractmethod
+    def search(self, state):
+        """search by state"""
+
 
 class StorageService(Service, metaclass=abc.ABCMeta):
     @abc.abstractmethod

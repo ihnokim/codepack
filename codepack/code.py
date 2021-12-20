@@ -12,7 +12,7 @@ from codepack.utils.dependency import Dependency
 
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, state_manager=None, storage_service=None):
+                 config_path=None, delivery_service=None, state_manager=None, storage_service=None, init_state='NEW'):
         super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
@@ -26,17 +26,18 @@ class Code(CodeBase):
         if id is None:
             self.id = self.function.__name__
         self.init(dependency=dependency, config_path=config_path,
-                  delivery_service=delivery_service, state_manager=state_manager, storage_service=storage_service)
+                  delivery_service=delivery_service, state_manager=state_manager, storage_service=storage_service,
+                  init_state=init_state)
 
     def init(self, dependency=None, config_path=None,
-             delivery_service=None, state_manager=None, storage_service=None):
+             delivery_service=None, state_manager=None, storage_service=None, init_state='NEW'):
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.init_service(delivery_service=delivery_service,
                           state_manager=state_manager,
                           storage_service=storage_service,
                           config_path=config_path)
-        self.update_state('NEW')
+        self.update_state(init_state)
 
     def init_linkage(self):
         self.parents = dict()

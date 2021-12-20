@@ -4,6 +4,7 @@ from codepack.utils.state import State, StateCode
 from collections.abc import Iterable
 from codepack.utils import Singleton
 import os
+from glob import glob
 
 
 class MemoryStateManager(StateManager, Singleton):
@@ -20,11 +21,21 @@ class MemoryStateManager(StateManager, Singleton):
                                            state=state, update_time=update_time, args=args, kwargs=kwargs, dependency=dependency)
 
     def get(self, serial_number):
-        ret = StateCode.UNKNOWN
-        try:
-            ret = self.states[serial_number].state
-        finally:
+        if isinstance(serial_number, str):
+            ret = StateCode.UNKNOWN
+            try:
+                ret = self.states[serial_number].state
+            finally:
+                return ret
+        elif isinstance(serial_number, Iterable):
+            ret = list()
+            for s in serial_number:
+                tmp = self.get(s)
+                if tmp:
+                    ret.append(tmp)
             return ret
+        else:
+            raise TypeError(type(serial_number))  # pragma: no cover
 
     def check(self, serial_number):
         if isinstance(serial_number, str):
@@ -45,6 +56,9 @@ class MemoryStateManager(StateManager, Singleton):
     def remove(self, serial_number):
         self.states.pop(serial_number, None)
 
+    def search(self, state):
+        return [s.to_dict() for s in self.states.values() if s.state == state]
+
 
 class FileStateManager(StateManager):
     def __init__(self, path='./'):
@@ -56,11 +70,21 @@ class FileStateManager(StateManager):
               .to_file(path=State.get_path(serial_number=serial_number, path=path if path else self.path))
 
     def get(self, serial_number, path=None):
-        ret = StateCode.UNKNOWN
-        try:
-            ret = State.from_file(path=State.get_path(serial_number=serial_number, path=path if path else self.path)).get()
-        finally:
+        if isinstance(serial_number, str):
+            ret = StateCode.UNKNOWN
+            try:
+                ret = State.from_file(path=State.get_path(serial_number=serial_number, path=path if path else self.path)).get()
+            finally:
+                return ret
+        elif isinstance(serial_number, Iterable):
+            ret = list()
+            for s in serial_number:
+                tmp = self.get(s)
+                if tmp:
+                    ret.append(tmp)
             return ret
+        else:
+            raise TypeError(type(serial_number))  # pragma: no cover
 
     def check(self, serial_number, path=None):
         if isinstance(serial_number, str):
@@ -82,6 +106,15 @@ class FileStateManager(StateManager):
     def remove(self, serial_number, path=None):
         os.remove(State.get_path(serial_number=serial_number, path=path if path else self.path))
 
+    def search(self, state, path=None):
+        ret = list()
+        dirname = path if path else self.path
+        for filename in glob(dirname + '*.json'):
+            d = State.from_file(path=filename).to_dict()
+            if d['state'] == state:
+                ret.append(d)
+        return ret
+
 
 class MongoStateManager(StateManager, MongoDBService):
     def __init__(self, db=None, collection=None,
@@ -97,9 +130,16 @@ class MongoStateManager(StateManager, MongoDBService):
             .update_one({'_id': _id}, {'$set': tmp}, upsert=True)
 
     def get(self, serial_number, db=None, collection=None):
-        tmp = self.mongodb[db if db else self.db][collection if collection else self.collection]\
-            .find_one({'_id': serial_number})
-        return State.from_dict(tmp).state if tmp else StateCode.UNKNOWN
+        if isinstance(serial_number, str):
+            tmp = self.mongodb[db if db else self.db][collection if collection else self.collection]\
+                .find_one({'_id': serial_number})
+            return State.from_dict(tmp).state if tmp else StateCode.UNKNOWN
+        elif isinstance(serial_number, Iterable):
+            tmp = {x['_id']: x['state'] for x in self.mongodb[db if db else self.db][collection if collection else self.collection]
+                .find({'_id': {'$in': list(serial_number)}}, projection={'state': 1})}
+            return [tmp[s] for s in serial_number]
+        else:
+            raise TypeError(type(serial_number))  # pragma: no cover
 
     def check(self, serial_number, db=None, collection=None):
         if isinstance(serial_number, str):
@@ -114,3 +154,6 @@ class MongoStateManager(StateManager, MongoDBService):
     def remove(self, serial_number, db=None, collection=None):
         self.mongodb[db if db else self.db][collection if collection else self.collection]\
             .delete_one({'_id': serial_number})
+
+    def search(self, state, db=None, collection=None):
+        return list(self.mongodb[db if db else self.db][collection if collection else self.collection].find({'state': state}))

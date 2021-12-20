@@ -1,6 +1,7 @@
 from codepack.abc import Storable
 from enum import Enum
 from datetime import datetime
+from codepack.utils.dependency import Dependency
 
 
 class StateCode(Enum):
@@ -67,7 +68,12 @@ class State(Storable):
     def set_dependency(self, dependency=None):
         if dependency:
             for k, v in dependency.items():
-                self.dependency[k] = v.to_dict()
+                if isinstance(v, Dependency):
+                    self.dependency[k] = v.to_dict()
+                elif isinstance(v, dict):
+                    self.dependency[k] = v
+                else:
+                    raise TypeError(type(v))  # pragma: no cover
 
     def get(self):
         return self.state
