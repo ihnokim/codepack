@@ -73,6 +73,7 @@ def test_mongo_state_manager_check(fake_mongodb):
 
 def test_memory_state_manager():
     msm = MemoryStateManager()
+    msm.init()
     code_id = 'test'
     serial_number = '1234'
     state = 'RUNNING'
@@ -119,3 +120,57 @@ def test_mongo_state_manager(fake_mongodb):
     msm.remove(serial_number=serial_number)
     check2 = msm.check(serial_number=serial_number)
     assert not check2, "'remove' failed"
+
+
+def test_memory_state_manager_multiple_get_and_search():
+    msm = MemoryStateManager()
+    msm.init()
+    code_ids = ['test1', 'test2']
+    serial_numbers = ['123', '456']
+    state = 'WAITING'
+    msm.set(id=code_ids[0], serial_number=serial_numbers[0], state=state)
+    msm.set(id=code_ids[1], serial_number=serial_numbers[1], state=state)
+    states = msm.get(serial_numbers)
+    search_result = msm.search('WAITING')
+    assert len(states) == 2
+    assert len(search_result) == len(serial_numbers)
+    for s in states:
+        assert s == 'WAITING'
+    for i in range(len(search_result)):
+        assert search_result[i]['_id'] == serial_numbers[i]
+
+
+def test_file_state_manager_multiple_get_and_search(testdir_state_manager):
+    fsm = FileStateManager(path=testdir_state_manager)
+    code_ids = ['test1', 'test2']
+    serial_numbers = ['123', '456']
+    state = 'WAITING'
+    fsm.set(id=code_ids[0], serial_number=serial_numbers[0], state=state)
+    fsm.set(id=code_ids[1], serial_number=serial_numbers[1], state=state)
+    states = fsm.get(serial_numbers)
+    search_result = fsm.search('WAITING')
+    assert len(states) == 2
+    assert len(search_result) == len(serial_numbers)
+    for s in states:
+        assert s == 'WAITING'
+    for i in range(len(search_result)):
+        assert search_result[i]['_id'] == serial_numbers[i]
+
+
+def test_mongo_state_manager_multiple_get_and_search(fake_mongodb):
+    db = 'test'
+    collection = 'state'
+    msm = MongoStateManager(mongodb=fake_mongodb, db=db, collection=collection)
+    code_ids = ['test1', 'test2']
+    serial_numbers = ['123', '456']
+    state = 'WAITING'
+    msm.set(id=code_ids[0], serial_number=serial_numbers[0], state=state)
+    msm.set(id=code_ids[1], serial_number=serial_numbers[1], state=state)
+    states = msm.get(serial_numbers)
+    search_result = msm.search('WAITING')
+    assert len(states) == 2
+    assert len(search_result) == len(serial_numbers)
+    for s in states:
+        assert s == 'WAITING'
+    for i in range(len(search_result)):
+        assert search_result[i]['_id'] == serial_numbers[i]

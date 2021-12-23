@@ -81,6 +81,7 @@ def test_mongo_delivery_service_check(fake_mongodb):
 
 def test_memory_delivery_service():
     mds = MemoryDeliveryService()
+    mds.init()
     sender = 'sender'
     invoice_number = '1234'
     item = 'Hello, World!'
