@@ -16,6 +16,9 @@ class StateCode(Enum):
     def __str__(self):
         return self.name  # pragma: no cover
 
+    def __repr__(self):
+        return self.__str__()  # pragma: no cover
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.name == other.name
@@ -94,3 +97,9 @@ class State(Storable):
             return self.state == other.state
         else:
             return self.state == other
+
+    def __str__(self):
+        return self.state.__str__()  # pragma: no cover
+
+    def __repr__(self):
+        return self.__str__()  # pragma: no cover
