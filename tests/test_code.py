@@ -9,6 +9,22 @@ def test_assert_arg(default_os_env):
         code1.assert_arg('c')
 
 
+def test_print_args(default_os_env):
+    code1 = Code(add3)
+    assert code1.print_args() == '(a, b, c=2)'
+
+
+def test_print_info(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    code1 >> code2
+    code2.receive('b') << code1
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}, state: UNKNOWN)"
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {})"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'})"
+
+
 def test_get_function_from_source(default_os_env):
     source = """def plus1(x):\n  return x + 1"""
     code = Code(source=source)
@@ -136,3 +152,13 @@ def test_default_arg(default_os_env):
     code1 // code2
     ret = code2(a=1, b=3)
     assert ret == 6 and code2.get_state() == 'TERMINATED'
+
+
+def test_load_code_from_storage_service_with_id(default_os_env):
+    code1 = Code(add2)
+    code1.save()
+    code2 = Code(id='add2', serial_number='1234')
+    assert code1.source == code2.source
+    assert code1(1, 2) == code2(1, 2)
+    assert code1.serial_number != code2.serial_number
+    assert code2.serial_number == '1234'

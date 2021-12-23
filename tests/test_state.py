@@ -31,6 +31,13 @@ def test_state_dict():
     assert state1.state == state2.state
 
 
+def test_code_new(default_os_env):
+    code1 = Code(add2)
+    assert code1.get_state() == 'UNKNOWN'
+    code2 = Code(add3, state='NEW')
+    assert code2.get_state() == 'NEW'
+
+
 def test_code_waiting(default_os_env):
     code1 = Code(add2)
     code2 = Code(add3)

@@ -12,7 +12,7 @@ from codepack.utils.dependency import Dependency
 
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, state_manager=None, storage_service=None, init_state='NEW'):
+                 config_path=None, delivery_service=None, state_manager=None, storage_service=None, state=None):
         super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
@@ -22,22 +22,16 @@ class Code(CodeBase):
         self.dependency = None
         self.config_path = None
         self.service = None
-        self.set_function(function=function, source=source)
-        if id is None:
-            self.id = self.function.__name__
-        self.init(dependency=dependency, config_path=config_path,
-                  delivery_service=delivery_service, state_manager=state_manager, storage_service=storage_service,
-                  init_state=init_state)
-
-    def init(self, dependency=None, config_path=None,
-             delivery_service=None, state_manager=None, storage_service=None, init_state='NEW'):
-        self.init_linkage()
-        self.init_dependency(dependency=dependency)
         self.init_service(delivery_service=delivery_service,
                           state_manager=state_manager,
                           storage_service=storage_service,
                           config_path=config_path)
-        self.update_state(init_state)
+        self.set_function(function=function, source=source)
+        if id is None:
+            self.id = self.function.__name__
+        self.init_linkage()
+        self.init_dependency(dependency=dependency)
+        self.update_state(state)
 
     def init_linkage(self):
         self.parents = dict()
@@ -88,7 +82,6 @@ class Code(CodeBase):
         return namespace[tree.body[0].name]
     
     def set_function(self, function=None, source=None):
-        assert function or source, "either 'function' or 'source' should not be None"
         if source:
             source = source.strip()
             self.function = self.get_function(source)
@@ -96,6 +89,12 @@ class Code(CodeBase):
         elif function:
             self.function = function
             self.source = self.get_source(self.function)
+        elif self.id:
+            tmp = self.service['storage_service'].load(id=self.id)
+            self.function = self.get_function(tmp.source)
+            self.source = tmp.source
+        else:
+            raise AssertionError("either 'function' or 'source' should not be None")
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
     def link(self, other):
@@ -168,14 +167,15 @@ class Code(CodeBase):
                           self.get_dependent_args())
 
     def __str__(self):
-        return self.get_info(state=True)
+        return self.get_info(state=True)  # pragma: no cover
 
     def __repr__(self):
-        return self.__str__()
+        return self.__str__()  # pragma: no cover
 
     def update_state(self, state, update_time=None, args=None, kwargs=None):
-        self.service['state_manager'].set(id=self.id, serial_number=self.serial_number, state=state,
-                                          update_time=update_time, args=args, kwargs=kwargs, dependency=self.dependency)
+        if state:
+            self.service['state_manager'].set(id=self.id, serial_number=self.serial_number, state=state,
+                                              update_time=update_time, args=args, kwargs=kwargs, dependency=self.dependency)
 
     def get_state(self):
         return self.service['state_manager'].get(serial_number=self.serial_number)
