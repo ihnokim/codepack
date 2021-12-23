@@ -183,7 +183,8 @@ class Code(CodeBase):
     def send_result(self, item, send_time=None):
         self.service['delivery_service'].send(sender=self.id, invoice_number=self.serial_number, item=item, send_time=send_time)
 
-    def get_result(self, serial_number):
+    def get_result(self, serial_number=None):
+        serial_number = serial_number if serial_number else self.serial_number
         return self.service['delivery_service'].receive(invoice_number=serial_number)
 
     def save(self, *args, **kwargs):
