@@ -1,8 +1,7 @@
 name: Test
-
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
 jobs:
   test:
@@ -10,9 +9,8 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7]
+        python-version: [3.6, 3.7, 3.8, 3.9]
       fail-fast: false
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
