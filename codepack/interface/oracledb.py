@@ -10,15 +10,13 @@ def make_named_row(names, *args):
 
 
 class OracleDB(SQLInterface):
-    def __init__(self, config, ssh_config=None, **kwargs):
-        super().__init__()
-        self.conn = None
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config)
         self.as_dict = None
-        self.connect(config=config, ssh_config=ssh_config, **kwargs)
+        self.connect(*args, **kwargs)
 
-    def connect(self, config, ssh_config=None, **kwargs):
-        self.config = config
-        host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
+    def connect(self, *args, **kwargs):
+        host, port = self.bind(host=self.config['host'], port=self.config['port'])
         exclude_keys = ['host', 'port']
         if 'service_name' in self.config:
             exclude_keys += ['service_name']
@@ -33,16 +31,16 @@ class OracleDB(SQLInterface):
             self.as_dict = self.eval_bool(kwargs['as_dict'])
             kwargs = self.exclude_keys(kwargs, keys=['as_dict'])
         _config = self.exclude_keys(self.config, keys=exclude_keys)
-        self.conn = cx_Oracle.connect(dsn=dsn, **_config, **kwargs)
+        self.session = cx_Oracle.connect(dsn=dsn, *args, **_config, **kwargs)
         self.closed = False
-        return self.conn
+        return self.session
 
     def query(self, q, commit=False):
         assert not self.closed, "connection is closed"
         columns = None
         rows = None
         try:
-            cursor = self.conn.cursor()
+            cursor = self.session.cursor()
             if type(q) == str:
                 cursor.execute(q)
             elif type(q) == list:
@@ -55,9 +53,9 @@ class OracleDB(SQLInterface):
             rows = cursor.fetchall()
             cursor.close()
             if commit:
-                self.conn.commit()
+                self.session.commit()
         except Exception as e:
-            self.conn.rollback()
+            self.session.rollback()
             raise e
         if self.as_dict:
             return rows
@@ -69,7 +67,7 @@ class OracleDB(SQLInterface):
 
     def close(self):
         if not self.closed:
-            self.conn.close()
+            self.session.close()
             if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None

@@ -3,15 +3,13 @@ from codepack.interface.abc import SQLInterface
 
 
 class MSSQL(SQLInterface):
-    def __init__(self, config, ssh_config=None, **kwargs):
-        super().__init__()
-        self.conn = None
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config)
         self.as_dict = None
-        self.connect(config=config, ssh_config=ssh_config, **kwargs)
+        self.connect(*args, **kwargs)
 
-    def connect(self, config, ssh_config=None, **kwargs):
-        self.config = config
-        host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
+    def connect(self, *args, **kwargs):
+        host, port = self.bind(host=self.config['host'], port=self.config['port'])
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
         self.as_dict = False
         if 'as_dict' in _config:
@@ -19,16 +17,16 @@ class MSSQL(SQLInterface):
         if 'as_dict' in kwargs:
             self.as_dict = self.eval_bool(kwargs['as_dict'])
         _config['as_dict'] = self.as_dict
-        self.conn = pymssql.connect(host=host, port=port, **_config, **kwargs)
+        self.session = pymssql.connect(host=host, port=port, *args, **_config, **kwargs)
         self.closed = False
-        return self.conn
+        return self.session
 
     def query(self, q, commit=False):
         assert not self.closed, "connection is closed"
         columns = None
         rows = None
         try:
-            cursor = self.conn.cursor()
+            cursor = self.session.cursor()
             if type(q) == str:
                 cursor.execute(q)
             elif type(q) == list:
@@ -40,9 +38,9 @@ class MSSQL(SQLInterface):
                 rows = cursor.fetchall()
             cursor.close()
             if commit:
-                self.conn.commit()
+                self.session.commit()
         except Exception as e:
-            self.conn.rollback()
+            self.session.rollback()
             raise e
         if self.as_dict:
             return rows
@@ -123,7 +121,7 @@ class MSSQL(SQLInterface):
 
     def close(self):
         if not self.closed:
-            self.conn.close()
+            self.session.close()
             if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None

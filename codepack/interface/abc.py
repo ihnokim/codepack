@@ -1,17 +1,34 @@
 import abc
 import numpy as np
 from sshtunnel import SSHTunnelForwarder
+from codepack.utils.config import get_config
+from copy import deepcopy
 
 
 class Interface(metaclass=abc.ABCMeta):
-    def __init__(self):
+    def __init__(self, config):
         self.config = None
         self.ssh_config = None
         self.ssh = None
+        self.session = None
         self.closed = True
+        self.init_config(config)
+
+    def init_config(self, config):
+        _config = deepcopy(config)
+        if 'sshtunnel' in _config:
+            _ssh_config = _config.pop('sshtunnel')
+            if isinstance(_ssh_config, str):
+                config_path, section = _ssh_config.split(':')
+                self.ssh_config = get_config(filename=config_path, section=section)
+            elif isinstance(_ssh_config, dict):
+                self.ssh_config = _ssh_config
+            else:
+                raise TypeError(type(_ssh_config))
+        self.config = _config
 
     @abc.abstractmethod
-    def connect(self, config, ssh_config=None, **kwargs):
+    def connect(self, *args, **kwargs):
         """connect to the server"""
 
     @abc.abstractmethod
@@ -22,10 +39,9 @@ class Interface(metaclass=abc.ABCMeta):
     def exclude_keys(d, keys):
         return {k: v for k, v in d.items() if k not in keys}
 
-    def set_sshtunnel(self, host, port, ssh_config):
-        self.ssh_config = ssh_config
+    def bind(self, host, port):
         if self.ssh_config:
-            _ssh_config = self.exclude_keys(ssh_config, keys=['ssh_host', 'ssh_port'])
+            _ssh_config = self.exclude_keys(self.ssh_config, keys=['ssh_host', 'ssh_port'])
             self.ssh = SSHTunnelForwarder((self.ssh_config['ssh_host'], int(self.ssh_config['ssh_port'])),
                                           remote_bind_address=(host, int(port)),
                                           **_ssh_config)
