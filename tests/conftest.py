@@ -37,7 +37,7 @@ def default_os_env():
 @pytest.fixture(scope='function', autouse=False)
 def fake_mongodb():
     mongodb = MongoDB({'host': 'unknown', 'port': '0'})
-    mongodb.client = mongomock.MongoClient()
+    mongodb.session = mongomock.MongoClient()
     yield mongodb
     mongodb.close()
 

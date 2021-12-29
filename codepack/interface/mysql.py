@@ -4,20 +4,18 @@ import re
 
 
 class MySQL(SQLInterface):
-    def __init__(self, config, ssh_config=None, **kwargs):
-        super().__init__()
-        self.conn = None
-        self.connect(config=config, ssh_config=ssh_config, **kwargs)
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config)
+        self.connect(*args, **kwargs)
 
-    def connect(self, config, ssh_config=None, **kwargs):
-        self.config = config
-        host, port = self.set_sshtunnel(host=self.config['host'], port=self.config['port'], ssh_config=ssh_config)
+    def connect(self, *args, **kwargs):
+        host, port = self.bind(host=self.config['host'], port=self.config['port'])
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
         if 'cursorclass' in _config:
             _config['cursorclass'] = self.eval_cursor_object(_config['cursorclass'])
-        self.conn = pymysql.connect(host=host, port=port, **_config, **kwargs)
+        self.session = pymysql.connect(host=host, port=port, *args, **_config, **kwargs)
         self.closed = False
-        return self.conn
+        return self.session
 
     @staticmethod
     def eval_cursor_object(cursorclass):
@@ -29,17 +27,17 @@ class MySQL(SQLInterface):
             return cursorclass
 
     def commit(self):
-        self.conn.commit()
+        self.session.commit()
 
     def rollback(self):
-        self.conn.rollback()
+        self.session.rollback()
 
     def query(self, q, commit=False):
         assert not self.closed, "connection is closed"
         columns = None
         rows = None
         try:
-            cursor = self.conn.cursor()
+            cursor = self.session.cursor()
             cursorclass = cursor.__class__
             if type(q) == str:
                 cursor.execute(q)
@@ -51,9 +49,9 @@ class MySQL(SQLInterface):
             rows = cursor.fetchall()
             cursor.close()
             if commit:
-                self.conn.commit()
+                self.session.commit()
         except Exception as e:
-            self.conn.rollback()
+            self.session.rollback()
             raise e
         if cursorclass in [pymysql.cursors.DictCursor, pymysql.cursors.SSDictCursor]:
             return rows
@@ -136,7 +134,7 @@ class MySQL(SQLInterface):
 
     def close(self):
         if not self.closed:
-            self.conn.close()
+            self.session.close()
             if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None
