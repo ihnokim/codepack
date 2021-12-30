@@ -10,7 +10,6 @@ def test_state_eq():
     assert state1 == 'WAITING'
     assert state1 == StateCode.WAITING
     assert state1 == 3
-    assert state1 == state1.to_dict()
     assert state1 == State.get_state_code(3)
     state2.set('WAITING')
     assert state1 == state2
@@ -18,8 +17,6 @@ def test_state_eq():
     assert state_code == StateCode.WAITING
     assert state_code == 3
     assert state_code == State.get_state_code(3)
-    assert state_code == state1
-    assert state_code == state1.to_dict()
 
 
 def test_state_dict():
