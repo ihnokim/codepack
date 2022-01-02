@@ -288,7 +288,7 @@ class Code(CodeBase):
                 self.update_state('ERROR', args=args, kwargs=kwargs)
                 return None
             else:
-                raise NotImplementedError(dependency_state)
+                raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
             self.update_state('ERROR')
             raise e

@@ -1,6 +1,7 @@
 from codepack import Code
 from tests import *
 import pytest
+from datetime import datetime
 
 
 def test_assert_arg(default_os_env):
@@ -79,7 +80,7 @@ def test_add_dependency(default_os_env):
     assert len(tmp) == 1 and 'a' in tmp
 
 
-def test_check_dependency1(default_os_env):
+def test_check_dependency_linkage(default_os_env):
     code1 = Code(add2)
     code2 = Code(print_x)
     code3 = Code(add3)
@@ -106,7 +107,7 @@ def test_check_dependency1(default_os_env):
     assert len(code2.parents) == 0 and len(code3.parents) == 0
 
 
-def test_check_dependency2(default_os_env):
+def test_check_dependency_state(default_os_env):
     code1 = Code(add2)
     code2 = Code(mul2)
     code3 = Code(add3)
@@ -134,6 +135,57 @@ def test_check_dependency2(default_os_env):
     assert ret == 16 and code3.get_state() == 'TERMINATED'
     ret = code3(a=1, b=5)
     assert ret == 8 and code3.get_state() == 'TERMINATED'
+
+
+def test_dependency_error_propagation(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code1 >> code3
+    code2 >> code3
+    assert code3.get_state() == 'UNKNOWN'
+    with pytest.raises(TypeError):
+        code1()
+    assert code1.get_state() == 'ERROR'
+    ret = code3(1, 2, 3)
+    assert ret is None
+    assert code3.get_state() == 'ERROR'
+
+
+def test_validate_dependency_result(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code1 >> code3
+    code2 >> code3
+    code3.receive('b') << code1
+    code3.receive('c') << code2
+    code1(1, 2)
+    code2(3, 4)
+    code2.service['delivery_service'].cancel(code2.serial_number)
+    ret = code3(a=3)
+    assert ret is None
+    assert code3.get_state() == 'WAITING'
+    code2(3, 4)
+    code2.send_result(item=1, send_time=datetime.now().timestamp() + 1)
+    ret = code3(a=3)
+    assert ret is None
+    assert code3.get_state() == 'WAITING'
+    code2(3, 4)
+    states = code3.get_dependency_state_info()
+    caches = code3.get_dependency_cache_info()
+    assert len(states) == 2
+    assert len(caches) == 2
+    code2_state_info = states.pop(code2.serial_number)
+    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
+    update_time = code2_state_info.pop('update_time')
+    states[code2.serial_number] = code2_state_info
+    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
+    states[code2.serial_number]['update_time'] = update_time
+    send_time = caches[code2.serial_number].pop('send_time')
+    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
+    caches[code2.serial_number]['send_time'] = send_time
+    assert code3.validate_dependency_result(states=states, caches=caches) == 'READY'
 
 
 def test_default_arg(default_os_env):
