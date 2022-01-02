@@ -3,6 +3,7 @@ from codepack.interface import MongoDB
 import os
 import mongomock
 from codepack.service import DefaultServicePack
+from codepack import Code, CodePack
 from shutil import rmtree
 from glob import glob
 
@@ -30,6 +31,10 @@ def empty_dir(directory):
 @pytest.fixture(scope='function', autouse=False)
 def default_os_env():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
+    DefaultServicePack.get_default_delivery_service().init()
+    DefaultServicePack.get_default_state_manager().init()
+    DefaultServicePack.get_default_code_storage_service(obj=Code).init()
+    DefaultServicePack.get_default_codepack_storage_service(obj=CodePack).init()
     yield
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 

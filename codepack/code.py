@@ -8,6 +8,7 @@ import ast
 from collections import OrderedDict
 from datetime import datetime
 from codepack.utils.dependency import Dependency
+from codepack.utils.dependency_state import DependencyState
 
 
 class Code(CodeBase):
@@ -167,7 +168,7 @@ class Code(CodeBase):
                           self.get_dependent_args())
 
     def __str__(self):
-        return self.get_info(state=True)  # pragma: no cover
+        return self.get_info(state=False)  # pragma: no cover
 
     def __repr__(self):
         return self.__str__()  # pragma: no cover
@@ -236,39 +237,41 @@ class Code(CodeBase):
             ret[cache['_id']] = cache
         return ret
 
-    def check_dependency_termination(self, states):
-        if len(self.dependency) != len(states):
-            return False
+    def check_dependency_state(self, states):
         for state in states.values():
-            if state['state'] != 'TERMINATED':
-                return False
-        return True
+            if state['state'] == 'ERROR':
+                return DependencyState.ERROR
+            elif state['state'] != 'TERMINATED':
+                return DependencyState.NOT_READY
+        if len(self.dependency) != len(states):
+            return DependencyState.NOT_READY
+        return DependencyState.READY
 
     def validate_dependency_result(self, states, caches):
         if len([k for k, v in self.dependency.items() if v.arg]) != len(caches):
-            return False
+            return DependencyState.NOT_READY
         for cache in caches.values():
             if cache['_id'] not in states:
-                return False
+                return DependencyState.NOT_READY
             elif 'send_time' not in cache or 'update_time' not in states[cache['_id']]:
-                return False
+                return DependencyState.NOT_READY
             elif cache['send_time'] != states[cache['_id']]['update_time']:
-                return False
-        return True
+                return DependencyState.NOT_READY
+        return DependencyState.READY
 
     def check_dependency(self):
         states = self.get_dependency_state_info()
-        if not self.check_dependency_termination(states=states):
-            return False
+        dependency_state = self.check_dependency_state(states=states)
+        if dependency_state != 'READY':
+            return dependency_state
         caches = self.get_dependency_cache_info()
-        if not self.validate_dependency_result(states=states, caches=caches):
-            return False
-        return True
+        return self.validate_dependency_result(states=states, caches=caches)
 
     def __call__(self, *args, **kwargs):
         try:
-            self.update_state('READY')
-            if self.check_dependency():
+            dependency_state = self.check_dependency()
+            print(dependency_state)
+            if dependency_state == 'READY':
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
                         kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
@@ -278,9 +281,14 @@ class Code(CodeBase):
                 self.send_result(item=ret, send_time=now)
                 self.update_state('TERMINATED', update_time=now)
                 return ret
-            else:
+            elif dependency_state == 'NOT_READY':
                 self.update_state('WAITING', args=args, kwargs=kwargs)
                 return None
+            elif dependency_state == 'ERROR':
+                self.update_state('ERROR', args=args, kwargs=kwargs)
+                return None
+            else:
+                raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
             self.update_state('ERROR')
             raise e

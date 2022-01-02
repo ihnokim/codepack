@@ -1,37 +1,7 @@
 from codepack.abc import Storable
-from enum import Enum
 from datetime import datetime
 from codepack.utils.dependency import Dependency
-
-
-class StateCode(Enum):
-    UNKNOWN = 0
-    NEW = 1
-    READY = 2
-    WAITING = 3
-    RUNNING = 4
-    TERMINATED = 5
-    ERROR = 6
-
-    def __str__(self):
-        return self.name  # pragma: no cover
-
-    def __repr__(self):
-        return self.__str__()  # pragma: no cover
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self.name == other.name
-        elif isinstance(other, str):
-            return self.name == other
-        elif isinstance(other, State):
-            return self == other.state
-        elif isinstance(other, dict):
-            return self == StateCode[other['state']]
-        elif isinstance(other, int):
-            return self.name == StateCode(other).name
-        else:
-            return False  # pragma: no cover
+from codepack.utils.state_code import StateCode
 
 
 class State(Storable):
