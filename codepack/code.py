@@ -270,7 +270,6 @@ class Code(CodeBase):
     def __call__(self, *args, **kwargs):
         try:
             dependency_state = self.check_dependency()
-            print(dependency_state)
             if dependency_state == 'READY':
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
