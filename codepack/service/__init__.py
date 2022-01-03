@@ -1,6 +1,7 @@
 from codepack.service.delivery_service import MemoryDeliveryService, FileDeliveryService, MongoDeliveryService
 from codepack.service.state_manager import MemoryStateManager, FileStateManager, MongoStateManager
 from codepack.service.storage_service import MemoryStorageService, FileStorageService, MongoStorageService
+from codepack.service.snapshot_service import MemorySnapshotService
 from codepack.service.mongodb_service import MongoDBService
 from enum import Enum
 from codepack.utils import Singleton
@@ -63,8 +64,8 @@ class DefaultServicePack(Singleton):
     def get_default_codepack_storage_service(cls, obj, config_path=None, *args, **kwargs):
         if not cls.codepack_storage_service:
             config = get_default_service_config(section='codepack', config_path=config_path)
-            cls.code_storage_service = get_storage_service(obj=obj, *args, **config, **kwargs)
-        return cls.code_storage_service
+            cls.codepack_storage_service = get_storage_service(obj=obj, *args, **config, **kwargs)
+        return cls.codepack_storage_service
 
 
 def get_delivery_service(source, *args, **kwargs):

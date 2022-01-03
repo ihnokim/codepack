@@ -1,6 +1,8 @@
 from codepack.service import MemorySnapshotService
+from codepack.utils.snapshot import Snapshot
 from codepack.utils.snapshot import CodeSnapshot
 from codepack import Code
+from datetime import datetime
 from tests import *
 
 
@@ -58,3 +60,22 @@ def test_memory_snapshot_service_search_and_remove(default_os_env):
     assert len(search_result[0].keys()) == 2
     assert search_result[0]['state'] == 'WAITING'
     assert search_result[0]['serial_number'] == code2.serial_number
+    mss.remove(snapshot2.serial_number)
+    loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'])
+    assert len(loaded) == 1
+    search_result = mss.search(key='state', value='WAITING', projection={'state'})
+    assert len(search_result) == 0
+
+
+def test_memory_snapshot_service_update():
+    mss = MemorySnapshotService()
+    mss.init()
+    timestamp = datetime.now().timestamp()
+    snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
+    snapshot2 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
+    mss.save(snapshot=snapshot1)
+    tmp_id = id(mss.memory[snapshot1.serial_number])
+    mss.save(snapshot=snapshot2)
+    assert len(mss.memory) == 1
+    assert tmp_id == id(mss.memory[snapshot2.serial_number])
+    assert mss.memory[snapshot1.serial_number].timestamp == timestamp + 1

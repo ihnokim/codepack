@@ -16,7 +16,12 @@ class MemorySnapshotService(SnapshotService, Singleton):
 
     def save(self, snapshot):
         if isinstance(snapshot, Snapshot):
-            self.memory[snapshot.serial_number] = snapshot
+            loaded = self.load(snapshot.serial_number)
+            if loaded:
+                for key in snapshot.diff(loaded).keys():
+                    self.memory[snapshot.serial_number][key] = snapshot[key]
+            else:
+                self.memory[snapshot.serial_number] = snapshot
         else:
             raise TypeError(type(snapshot))
 

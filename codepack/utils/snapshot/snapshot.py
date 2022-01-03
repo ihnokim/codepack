@@ -29,6 +29,8 @@ class Snapshot(Storable):
     def diff(self, snapshot):
         ret = dict()
         if isinstance(snapshot, self.__class__):
+            return self.diff(snapshot=snapshot.to_dict())
+        elif isinstance(snapshot, dict):
             for k, v in snapshot.items():
                 if k not in self.attr:
                     ret[k] = v
