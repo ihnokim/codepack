@@ -25,3 +25,14 @@ class StateCode(Enum):
             return self.name == StateCode(other).name
         else:
             return False  # pragma: no cover
+
+    @classmethod
+    def get(cls, state):
+        if isinstance(state, cls):
+            return state
+        elif isinstance(state, str):
+            return cls[state]
+        elif isinstance(state, int):
+            return cls(state)
+        else:
+            return cls.UNKNOWN  # pragma: no cover

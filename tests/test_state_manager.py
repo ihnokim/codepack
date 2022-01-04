@@ -136,8 +136,8 @@ def test_memory_state_manager_multiple_get_and_search():
     assert len(search_result) == len(serial_numbers)
     for s in states:
         assert s == 'WAITING'
-    for i in range(len(search_result)):
-        assert search_result[i]['_id'] == serial_numbers[i]
+    for sr in search_result:
+        assert sr['_id'] in serial_numbers
 
 
 def test_file_state_manager_multiple_get_and_search(testdir_state_manager):
@@ -153,8 +153,8 @@ def test_file_state_manager_multiple_get_and_search(testdir_state_manager):
     assert len(search_result) == len(serial_numbers)
     for s in states:
         assert s == 'WAITING'
-    for i in range(len(search_result)):
-        assert search_result[i]['_id'] == serial_numbers[i]
+    for sr in search_result:
+        assert sr['_id'] in serial_numbers
 
 
 def test_mongo_state_manager_multiple_get_and_search(fake_mongodb):
@@ -172,5 +172,5 @@ def test_mongo_state_manager_multiple_get_and_search(fake_mongodb):
     assert len(search_result) == len(serial_numbers)
     for s in states:
         assert s == 'WAITING'
-    for i in range(len(search_result)):
-        assert search_result[i]['_id'] == serial_numbers[i]
+    for sr in search_result:
+        assert sr['_id'] in serial_numbers
