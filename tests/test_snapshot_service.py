@@ -6,19 +6,8 @@ from datetime import datetime
 from tests import *
 
 
-def test_singleton_memory_snapshot_service():
-    mss1 = MemorySnapshotService()
-    mss1.init()
-    snapshot = CodeSnapshot()
-    mss1.save(snapshot=snapshot)
-    mss2 = MemorySnapshotService()
-    assert mss1 == mss2
-    assert len(mss2.memory) == 1
-    assert mss2.load(serial_number=snapshot.serial_number) == snapshot.to_dict()
-
-
 def test_memory_snapshot_service_save_and_load(default_os_env):
-    mss = MemorySnapshotService()
+    mss = MemorySnapshotService(obj=CodeSnapshot)
     mss.init()
     code = Code(add2)
     snapshot = CodeSnapshot(code)
@@ -34,7 +23,7 @@ def test_memory_snapshot_service_save_and_load(default_os_env):
 
 
 def test_memory_snapshot_service_search_and_remove(default_os_env):
-    mss = MemorySnapshotService()
+    mss = MemorySnapshotService(obj=CodeSnapshot)
     mss.init()
     code1 = Code(add2)
     code2 = Code(add3)
@@ -68,7 +57,7 @@ def test_memory_snapshot_service_search_and_remove(default_os_env):
 
 
 def test_memory_snapshot_service_update():
-    mss = MemorySnapshotService()
+    mss = MemorySnapshotService(obj=Snapshot)
     mss.init()
     timestamp = datetime.now().timestamp()
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
