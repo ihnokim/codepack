@@ -1,5 +1,5 @@
 from codepack.storage import MemoryStorage
-from codepack.service.abc import SnapshotService
+from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
 
 
