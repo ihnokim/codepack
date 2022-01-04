@@ -22,7 +22,7 @@ class State(Storable):
                 'args': self.args, 'kwargs': self.kwargs, 'dependency': self.dependency}
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         return cls(id=d['id'], serial_number=d['_id'], state=StateCode[d['state']], update_time=d.get('update_time', None),
                    args=d.get('args', None), kwargs=d.get('kwargs', None), dependency=d.get('dependency', None))
 

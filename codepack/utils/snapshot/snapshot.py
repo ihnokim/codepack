@@ -48,9 +48,9 @@ class Snapshot(Storable):
         return ret
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         attr = deepcopy(d)
-        return cls(*args, **attr, **kwargs)
+        return cls(**attr)
 
     def __iter__(self):
         return self.attr.__iter__()

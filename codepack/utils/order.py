@@ -28,5 +28,5 @@ class Order(Storable):
                 'send_time': self.send_time, 'item': json.dumps(self.item)}
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         return cls(sender=d['sender'], invoice_number=d['_id'], item=json.loads(d['item']), send_time=d.get('send_time', None))
