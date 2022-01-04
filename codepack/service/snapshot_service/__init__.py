@@ -1,2 +1,3 @@
 from codepack.service.snapshot_service.snapshot_service import SnapshotService
 from codepack.service.snapshot_service.memory_snapshot_service import MemorySnapshotService
+from codepack.service.snapshot_service.file_snapshot_service import FileSnapshotService

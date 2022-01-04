@@ -1,7 +1,7 @@
 from codepack.service.delivery_service import MemoryDeliveryService, FileDeliveryService, MongoDeliveryService
 from codepack.service.state_manager import MemoryStateManager, FileStateManager, MongoStateManager
 from codepack.service.storage_service import MemoryStorageService, FileStorageService, MongoStorageService
-from codepack.service.snapshot_service import MemorySnapshotService
+from codepack.service.snapshot_service import MemorySnapshotService, FileSnapshotService
 from codepack.service.mongodb_service import MongoDBService
 # from codepack.service.service import Service
 from enum import Enum

@@ -18,6 +18,8 @@ class Snapshot(Storable):
     def __setitem__(self, key, value):
         if key in ['id', 'serial_number']:
             self.__setattr__(key, value)
+        if key == 'state':
+            value = StateCode.get(value)
         self.attr[key] = value
 
     def __getitem__(self, item):
@@ -41,7 +43,9 @@ class Snapshot(Storable):
         return ret
 
     def to_dict(self, *args, **kwargs):
-        return deepcopy(self.attr)
+        ret = deepcopy(self.attr)
+        ret['state'] = ret['state'].name
+        return ret
 
     @classmethod
     def from_dict(cls, d, *args, **kwargs):
