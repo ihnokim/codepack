@@ -7,7 +7,6 @@ from glob import glob
 
 class FileSnapshotService(SnapshotService, FileStorage):
     def __init__(self, obj=None, path='./'):
-        SnapshotService.__init__(self, )
         FileStorage.__init__(self, obj=obj, path=path)
 
     def save(self, snapshot):

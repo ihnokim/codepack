@@ -31,25 +31,27 @@ class Snapshot(Storable):
     def diff(self, snapshot):
         ret = dict()
         if isinstance(snapshot, self.__class__):
-            return self.diff(snapshot=snapshot.to_dict())
-        elif isinstance(snapshot, dict):
             for k, v in snapshot.items():
                 if k not in self.attr:
                     ret[k] = v
                 elif v != self.__getitem__(k):
                     ret[k] = v
+        elif isinstance(snapshot, dict):
+            return self.diff(self.__class__.from_dict(snapshot))
         else:
             raise TypeError(type(snapshot))  # pragma: no cover
         return ret
 
-    def to_dict(self, *args, **kwargs):
+    def to_dict(self):
         ret = deepcopy(self.attr)
         ret['state'] = ret['state'].name
+        ret['_id'] = ret['serial_number']
         return ret
 
     @classmethod
     def from_dict(cls, d):
         attr = deepcopy(d)
+        attr.pop('_id', None)
         return cls(**attr)
 
     def __iter__(self):

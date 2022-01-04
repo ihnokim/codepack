@@ -5,7 +5,6 @@ from collections.abc import Iterable
 
 class MemorySnapshotService(SnapshotService, MemoryStorage):
     def __init__(self, obj=None):
-        SnapshotService.__init__(self)
         MemoryStorage.__init__(self, obj=obj)
 
     def save(self, snapshot):

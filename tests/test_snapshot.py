@@ -7,12 +7,15 @@ from datetime import datetime
 
 def test_snapshot_to_dict_and_from_dict():
     snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9)
-    snapshot2 = Snapshot.from_dict(snapshot1.to_dict())
+    snapshot_dict1 = snapshot1.to_dict()
+    snapshot2 = Snapshot.from_dict(snapshot_dict1)
     assert snapshot1.id == snapshot2.id
     assert snapshot1.serial_number == snapshot2.serial_number
     assert snapshot1.timestamp == snapshot2.timestamp
     assert snapshot1.custom_value == snapshot2.custom_value
     assert snapshot2.custom_value == 9
+    assert '_id' in snapshot_dict1
+    assert '_id' not in snapshot2.attr
 
 
 def test_snapshot_diff():
