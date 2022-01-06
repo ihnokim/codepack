@@ -7,9 +7,8 @@ from bson import json_util
 
 
 class Storable(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
     def __init__(self, id=None, serial_number=None):
-        """initialize an instance"""
+        """initialize instance"""
         self.id = id
         self.serial_number = serial_number if serial_number else self.generate_serial_number()
 
@@ -54,22 +53,33 @@ class Storable(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def to_dict(self):
-        """save to dict"""
+        """convert to dict"""
 
     @classmethod
     @abc.abstractmethod
     def from_dict(cls, d):
-        """load from dict"""
+        """create instance from dict"""
 
     @classmethod
     def get_path(cls, serial_number, path='./'):
         return '%s%s.json' % (path, serial_number)
 
 
-class CodeBase(Storable, metaclass=abc.ABCMeta):
+class Snapshotable(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def to_snapshot(self, *args, **kwargs):
+        """convert to snapshot"""
+
+    @classmethod
+    @abc.abstractmethod
+    def from_snapshot(cls, snapshot):
+        """create instance from snapshot"""
+
+
+class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self, id=None, serial_number=None):
-        super().__init__(id=id, serial_number=serial_number)
+        Storable.__init__(self, id=id, serial_number=serial_number)
 
 
 class CodePackBase(Storable, metaclass=abc.ABCMeta):
