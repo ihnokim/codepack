@@ -3,11 +3,11 @@ from codepack.service import DefaultServicePack
 
 
 class Engine(metaclass=abc.ABCMeta):
-    def __init__(self, callback, interval=1, config_path=None, state_manager=None):
-        """initialize an instance"""
+    def __init__(self, callback, interval=1, config_path=None, snapshot_service=None):
+        """initialize instance"""
         self.callback = callback
         self.interval = interval
-        self.state_manager = state_manager if state_manager else DefaultServicePack.get_default_state_manager(config_path=config_path)
+        self.snapshot_service = snapshot_service if snapshot_service else DefaultServicePack.get_default_code_snapshot_service(config_path=config_path)
 
     @abc.abstractmethod
     def start(self):
@@ -18,10 +18,10 @@ class Engine(metaclass=abc.ABCMeta):
         """Stop loop"""
 
     def work(self):
-        for x in self.state_manager.search('WAITING'):
+        for x in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
-            for s in self.state_manager.get(x['dependency'].keys()):
-                if s != 'TERMINATED':
+            for s in self.snapshot_service.load([x['serial_number'] for x in x['dependency']], projection={'state'}):
+                if s['state'] != 'TERMINATED':
                     resolved = False
                     break
             if resolved:

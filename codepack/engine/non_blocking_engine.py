@@ -1,10 +1,10 @@
-from codepack.engine.abc import Engine
+from codepack.engine import Engine
 from codepack.utils import Looper
 
 
 class NonBlockingEngine(Engine):
-    def __init__(self, callback, interval=1, daemon=True, config_path=None, state_manager=None):
-        super().__init__(callback=callback, interval=interval, config_path=config_path, state_manager=state_manager)
+    def __init__(self, callback, interval=1, daemon=True, config_path=None, snapshot_service=None):
+        super().__init__(callback=callback, interval=interval, config_path=config_path, snapshot_service=snapshot_service)
         self.worker = Looper(self.work, interval=interval, daemon=daemon)
 
     def start(self):
