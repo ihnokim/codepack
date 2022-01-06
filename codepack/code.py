@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Iterable, Callable
 import dill
 from codepack.service import DefaultServicePack
-from codepack.abc import CodeBase
+from codepack.base import CodeBase
 import re
 import ast
 from collections import OrderedDict

@@ -63,26 +63,3 @@ class Storable(metaclass=abc.ABCMeta):
     @classmethod
     def get_path(cls, serial_number, path='./'):
         return '%s%s.json' % (path, serial_number)
-
-
-class Snapshotable(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def to_snapshot(self, *args, **kwargs):
-        """convert to snapshot"""
-
-    @classmethod
-    @abc.abstractmethod
-    def from_snapshot(cls, snapshot):
-        """create instance from snapshot"""
-
-
-class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def __init__(self, id=None, serial_number=None):
-        Storable.__init__(self, id=id, serial_number=serial_number)
-
-
-class CodePackBase(Storable, metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def __init__(self, id=None, serial_number=None):
-        super().__init__(id=id, serial_number=serial_number)

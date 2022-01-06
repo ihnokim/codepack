@@ -1,4 +1,4 @@
-from codepack.abc import CodeBase, CodePackBase
+from codepack.base import CodeBase, CodePackBase
 from codepack import Code
 from queue import Queue
 from copy import deepcopy

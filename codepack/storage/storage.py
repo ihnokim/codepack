@@ -1,5 +1,5 @@
 import abc
-from codepack.abc import Storable
+from codepack.storage import Storable
 
 
 class Storage(metaclass=abc.ABCMeta):

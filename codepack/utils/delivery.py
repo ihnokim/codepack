@@ -1,4 +1,4 @@
-from codepack.abc import Storable
+from codepack.storage import Storable
 import json
 from datetime import datetime
 

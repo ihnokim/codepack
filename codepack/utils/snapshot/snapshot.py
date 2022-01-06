@@ -1,4 +1,4 @@
-from codepack.abc import Storable
+from codepack.storage import Storable
 from datetime import datetime
 from codepack.utils.state import State
 from copy import deepcopy

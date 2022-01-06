@@ -1,4 +1,5 @@
-from codepack.abc import CodeBase, Storable
+from codepack.base import CodeBase
+from codepack.storage import Storable
 
 
 class Dependency(Storable):
