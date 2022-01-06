@@ -1,6 +1,6 @@
 from codepack.abc import Storable
 from datetime import datetime
-from codepack.utils.state_code import StateCode
+from codepack.utils.state import State
 from copy import deepcopy
 
 
@@ -10,7 +10,7 @@ class Snapshot(Storable):
         self.attr = dict()
         self.__setitem__('id', self.id)
         self.__setitem__('serial_number', self.serial_number)
-        self.__setitem__('state', StateCode.get(state))
+        self.__setitem__('state', State.get(state))
         self.__setitem__('timestamp', timestamp if timestamp else datetime.now().timestamp())
         for k, v in kwargs.items():
             self.__setitem__(k, v)
@@ -19,7 +19,7 @@ class Snapshot(Storable):
         if key in ['id', 'serial_number']:
             self.__setattr__(key, value)
         if key == 'state':
-            value = StateCode.get(value)
+            value = State.get(value)
         self.attr[key] = value
 
     def __getitem__(self, item):
