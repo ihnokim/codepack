@@ -1,13 +1,12 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from codepack.scheduler.jobstores.mongodb import MongoDBJobStore
 from codepack import CodePack
-from codepack.service import MongoDBService
+from codepack.storage import MongoStorage
 
 
-class MongoScheduler(MongoDBService):
-    def __init__(self, db=None, collection=None, config=None, ssh_config=None, mongodb=None, offline=False, **kwargs):
-        super().__init__(db=db, collection=collection,
-                         config=config, ssh_config=ssh_config, mongodb=mongodb, offline=offline)
+class MongoScheduler(MongoStorage):
+    def __init__(self, mongodb=None, db=None, collection=None, *args, **kwargs):
+        MongoStorage.__init__(self, obj=CodePack, mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
         if self.mongodb:
             self.jobstores = {
                 'mongo': MongoDBJobStore(database=self.db,
