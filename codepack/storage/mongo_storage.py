@@ -1,15 +1,17 @@
 from codepack.interface import MongoDB
+from codepack.storage import Storage
 
 
-class MongoDBService:
-    def __init__(self, mongodb=None, db=None, collection=None, *args, **kwargs):
+class MongoStorage(Storage):
+    def __init__(self, obj=None, mongodb=None, db=None, collection=None, *args, **kwargs):
+        super().__init__(obj=obj)
         self.mongodb = None
         self.db = None
         self.collection = None
         self.new_connection = None
-        self.connect(mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
+        self.init(mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
 
-    def connect(self, mongodb, db, collection, *args, **kwargs):
+    def init(self, mongodb=None, db=None, collection=None, *args, **kwargs):
         self.db = db
         self.collection = collection
         if isinstance(mongodb, MongoDB):

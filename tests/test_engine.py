@@ -4,19 +4,19 @@ from codepack.engine import BlockingEngine, NonBlockingEngine
 import time
 
 
-def load_and_run_code_from_state(state):
-    code = Code(id=state['id'], serial_number=state['_id'], state='NEW', dependency=state['dependency'].values())
-    code(*state['args'], **state['kwargs'])
+def load_and_run_code_from_snapshot(snapshot):
+    code = Code.from_snapshot(snapshot)
+    code(*snapshot['args'], **snapshot['kwargs'])
 
 
-def load_and_run_code_from_state_and_raise_exception(state):
-    code = Code(id=state['id'], serial_number=state['_id'], state='NEW', dependency=state['dependency'].values())
-    code(*state['args'], **state['kwargs'])
+def load_and_run_code_from_snapshot_and_raise_exception(snapshot):
+    code = Code.from_snapshot(snapshot)
+    code(*snapshot['args'], **snapshot['kwargs'])
     raise KeyboardInterrupt
 
 
 def test_blocking_engine(default_os_env):
-    be = BlockingEngine(callback=load_and_run_code_from_state_and_raise_exception, interval=0.5)
+    be = BlockingEngine(callback=load_and_run_code_from_snapshot_and_raise_exception, interval=0.5)
     c1 = Code(add3)
     c2 = Code(mul2)
     c3 = Code(combination)
@@ -54,7 +54,7 @@ def test_blocking_engine(default_os_env):
 
 
 def test_non_blocking_engine(default_os_env):
-    nbe = NonBlockingEngine(callback=load_and_run_code_from_state, interval=0.5)
+    nbe = NonBlockingEngine(callback=load_and_run_code_from_snapshot, interval=0.5)
     c1 = Code(add3)
     c2 = Code(mul2)
     c3 = Code(combination)

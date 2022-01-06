@@ -167,25 +167,25 @@ def test_validate_dependency_result(default_os_env):
     assert ret is None
     assert code3.get_state() == 'WAITING'
     code2(3, 4)
-    code2.send_result(item=1, send_time=datetime.now().timestamp() + 1)
+    code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
     ret = code3(a=3)
     assert ret is None
     assert code3.get_state() == 'WAITING'
     code2(3, 4)
-    states = code3.get_dependency_state_info()
+    snapshots = code3.get_dependent_snapshots()
     caches = code3.get_dependency_cache_info()
-    assert len(states) == 2
+    assert len(snapshots) == 2
     assert len(caches) == 2
-    code2_state_info = states.pop(code2.serial_number)
-    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
-    update_time = code2_state_info.pop('update_time')
-    states[code2.serial_number] = code2_state_info
-    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
-    states[code2.serial_number]['update_time'] = update_time
-    send_time = caches[code2.serial_number].pop('send_time')
-    assert code3.validate_dependency_result(states=states, caches=caches) == 'NOT_READY'
-    caches[code2.serial_number]['send_time'] = send_time
-    assert code3.validate_dependency_result(states=states, caches=caches) == 'READY'
+    code2_state_info = snapshots.pop(code2.serial_number)
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    update_time = code2_state_info.pop('timestamp')
+    snapshots[code2.serial_number] = code2_state_info
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    snapshots[code2.serial_number]['timestamp'] = update_time
+    send_time = caches[code2.serial_number].pop('timestamp')
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    caches[code2.serial_number]['timestamp'] = send_time
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'READY'
 
 
 def test_default_arg(default_os_env):

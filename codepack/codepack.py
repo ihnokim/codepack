@@ -1,4 +1,4 @@
-from codepack.abc import CodeBase, CodePackBase
+from codepack.base import CodeBase, CodePackBase
 from codepack import Code
 from queue import Queue
 from copy import deepcopy
@@ -105,8 +105,6 @@ class CodePack(CodePackBase):
         while not q.empty():
             n = q.get()
             if init:
-                if n.get_state() != 'NEW':
-                    n.update_state('NEW')
                 if n.id not in self.codes:
                     self.codes[n.id] = n
             for p in n.parents.values():
@@ -147,16 +145,16 @@ class CodePack(CodePackBase):
             ret = c.get_result(serial_number=c.serial_number)
         return ret
 
-    def to_dict(self, *args, **kwargs):
+    def to_dict(self):
         d = dict()
         d['_id'] = self.id
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
-        d['source'] = {id: code.source for id, code in self.codes.items()}
+        d['source'] = self.get_source()
         return d
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive})')
         root = None
         stack = list()
@@ -188,6 +186,9 @@ class CodePack(CodePackBase):
             if len(stack) > 0:
                 stack[-1][0] >> n
         return cls(d['_id'], code=root, subscribe=d['subscribe'])
+
+    def get_source(self):
+        return {id: code.source for id, code in self.codes.items()}
 
     def get_structure(self):
         ret = str()

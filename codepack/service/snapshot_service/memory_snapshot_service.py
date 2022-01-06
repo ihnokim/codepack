@@ -1,25 +1,18 @@
-from codepack.utils.snapshot import Snapshot
-from codepack.service.abc import SnapshotService
+from codepack.storage import MemoryStorage
+from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
-from codepack.utils import Singleton
 
 
-class MemorySnapshotService(SnapshotService, Singleton):
-    def __init__(self):
-        SnapshotService.__init__(self)
-        if not hasattr(self, 'memory'):
-            self.memory = None
-            self.init()
-
-    def init(self):
-        self.memory = dict()
+class MemorySnapshotService(SnapshotService, MemoryStorage):
+    def __init__(self, obj=None):
+        MemoryStorage.__init__(self, obj=obj)
 
     def save(self, snapshot):
-        if isinstance(snapshot, Snapshot):
-            loaded = self.load(snapshot.serial_number)
-            if loaded:
-                for key in snapshot.diff(loaded).keys():
-                    self.memory[snapshot.serial_number][key] = snapshot[key]
+        if isinstance(snapshot, self.obj):
+            d = self.load(snapshot.serial_number)
+            if d:
+                for key, value in self.obj.from_dict(d).diff(snapshot).items():
+                    self.memory[snapshot.serial_number][key] = value
             else:
                 self.memory[snapshot.serial_number] = snapshot
         else:

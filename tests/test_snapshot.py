@@ -7,12 +7,15 @@ from datetime import datetime
 
 def test_snapshot_to_dict_and_from_dict():
     snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9)
-    snapshot2 = Snapshot.from_dict(snapshot1.to_dict())
+    snapshot_dict1 = snapshot1.to_dict()
+    snapshot2 = Snapshot.from_dict(snapshot_dict1)
     assert snapshot1.id == snapshot2.id
     assert snapshot1.serial_number == snapshot2.serial_number
     assert snapshot1.timestamp == snapshot2.timestamp
     assert snapshot1.custom_value == snapshot2.custom_value
     assert snapshot2.custom_value == 9
+    assert '_id' in snapshot_dict1
+    assert '_id' not in snapshot2.attr
 
 
 def test_snapshot_diff():
@@ -75,3 +78,11 @@ def test_code_snapshot_diff(default_os_env):
     assert set(diff.keys()) == {'kwargs', 'timestamp'}
     assert diff['kwargs'] == {'b': 3}
     assert diff['timestamp'] == timestamp + 1
+
+
+def test_code_to_snapshot_and_from_snapshot(default_os_env):
+    code1 = Code(add2)
+    snapshot1 = code1.to_snapshot(args=(1, 2))
+    code2 = Code.from_snapshot(snapshot=snapshot1)
+    assert code2.get_state() == 'UNKNOWN'
+    assert code2(1, 2) == 3

@@ -38,8 +38,9 @@ class CodeSnapshot(Snapshot):
             self.__getitem__('dependency').sort(key=lambda x: x['serial_number'])
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         ret = cls()
         for k, v in d.items():
-            ret[k] = v
+            if k != '_id':
+                ret[k] = v
         return ret

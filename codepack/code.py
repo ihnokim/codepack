@@ -2,18 +2,19 @@ import inspect
 from collections.abc import Iterable, Callable
 import dill
 from codepack.service import DefaultServicePack
-from codepack.abc import CodeBase
+from codepack.base import CodeBase
 import re
 import ast
 from collections import OrderedDict
 from datetime import datetime
 from codepack.utils.dependency import Dependency
 from codepack.utils.dependency_state import DependencyState
+from codepack.utils.snapshot import CodeSnapshot
 
 
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, state_manager=None, storage_service=None, state=None):
+                 config_path=None, delivery_service=None, snapshot_service=None, storage_service=None, state=None):
         super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
@@ -24,7 +25,7 @@ class Code(CodeBase):
         self.config_path = None
         self.service = None
         self.init_service(delivery_service=delivery_service,
-                          state_manager=state_manager,
+                          snapshot_service=snapshot_service,
                           storage_service=storage_service,
                           config_path=config_path)
         self.set_function(function=function, source=source)
@@ -43,12 +44,12 @@ class Code(CodeBase):
         if dependency:
             self.add_dependency(dependency=dependency)
 
-    def init_service(self, delivery_service=None, state_manager=None, storage_service=None, config_path=None):
+    def init_service(self, delivery_service=None, snapshot_service=None, storage_service=None, config_path=None):
         self.service = dict()
         self.service['delivery_service'] =\
             delivery_service if delivery_service else DefaultServicePack.get_default_delivery_service(config_path=config_path)
-        self.service['state_manager'] =\
-            state_manager if state_manager else DefaultServicePack.get_default_state_manager(config_path=config_path)
+        self.service['snapshot_service'] =\
+            snapshot_service if snapshot_service else DefaultServicePack.get_default_code_snapshot_service(config_path=config_path)
         self.service['storage_service'] =\
             storage_service if storage_service else DefaultServicePack.get_default_code_storage_service(obj=self.__class__,
                                                                                                         config_path=config_path)
@@ -173,23 +174,27 @@ class Code(CodeBase):
     def __repr__(self):
         return self.__str__()  # pragma: no cover
 
-    def update_state(self, state, update_time=None, args=None, kwargs=None):
-        if state:
-            self.service['state_manager'].set(id=self.id, serial_number=self.serial_number, state=state,
-                                              update_time=update_time, args=args, kwargs=kwargs, dependency=self.dependency)
+    def update_state(self, state, timestamp=None, args=None, kwargs=None):
+        snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
+        snapshot['state'] = state
+        self.service['snapshot_service'].save(snapshot)
 
     def get_state(self):
-        return self.service['state_manager'].get(serial_number=self.serial_number)
+        ret = self.service['snapshot_service'].load(serial_number=self.serial_number, projection={'state'})
+        if ret:
+            return ret['state']
+        else:
+            return 'UNKNOWN'
 
-    def send_result(self, item, send_time=None):
-        self.service['delivery_service'].send(sender=self.id, invoice_number=self.serial_number, item=item, send_time=send_time)
+    def send_result(self, item, timestamp=None):
+        self.service['delivery_service'].send(id=self.id, serial_number=self.serial_number, item=item, timestamp=timestamp)
 
     def get_result(self, serial_number=None):
         serial_number = serial_number if serial_number else self.serial_number
-        return self.service['delivery_service'].receive(invoice_number=serial_number)
+        return self.service['delivery_service'].receive(serial_number=serial_number)
 
-    def save(self, *args, **kwargs):
-        self.service['storage_service'].save(self, *args, **kwargs)
+    def save(self):
+        self.service['storage_service'].save(item=self)
 
     def receive(self, arg):
         self.assert_arg(arg)
@@ -223,49 +228,49 @@ class Code(CodeBase):
     def remove_dependency(self, serial_number):
         self.dependency.pop(serial_number, None)
 
-    def get_dependency_state_info(self):
+    def get_dependent_snapshots(self):
         ret = dict()
-        states = self.service['state_manager'].check(serial_number=list(self.dependency.keys()))
-        for state in states:
-            ret[state['_id']] = state
+        snapshots = self.service['snapshot_service'].load(serial_number=list(self.dependency.keys()))
+        for snapshot in snapshots:
+            ret[snapshot['_id']] = snapshot
         return ret
 
     def get_dependency_cache_info(self):
         ret = dict()
-        caches = self.service['delivery_service'].check(invoice_number=[k for k, v in self.dependency.items() if v.arg])
+        caches = self.service['delivery_service'].check(serial_number=[k for k, v in self.dependency.items() if v.arg])
         for cache in caches:
             ret[cache['_id']] = cache
         return ret
 
-    def check_dependency_state(self, states):
-        for state in states.values():
-            if state['state'] == 'ERROR':
+    def check_dependency_state(self, snapshots):
+        for snapshot in snapshots.values():
+            if snapshot['state'] == 'ERROR':
                 return DependencyState.ERROR
-            elif state['state'] != 'TERMINATED':
+            elif snapshot['state'] != 'TERMINATED':
                 return DependencyState.NOT_READY
-        if len(self.dependency) != len(states):
+        if len(self.dependency) != len(snapshots):
             return DependencyState.NOT_READY
         return DependencyState.READY
 
-    def validate_dependency_result(self, states, caches):
+    def validate_dependency_result(self, snapshots, caches):
         if len([k for k, v in self.dependency.items() if v.arg]) != len(caches):
             return DependencyState.NOT_READY
         for cache in caches.values():
-            if cache['_id'] not in states:
+            if cache['_id'] not in snapshots:
                 return DependencyState.NOT_READY
-            elif 'send_time' not in cache or 'update_time' not in states[cache['_id']]:
+            elif 'timestamp' not in cache or 'timestamp' not in snapshots[cache['_id']]:
                 return DependencyState.NOT_READY
-            elif cache['send_time'] != states[cache['_id']]['update_time']:
+            elif cache['timestamp'] != snapshots[cache['_id']]['timestamp']:
                 return DependencyState.NOT_READY
         return DependencyState.READY
 
     def check_dependency(self):
-        states = self.get_dependency_state_info()
-        dependency_state = self.check_dependency_state(states=states)
+        snapshots = self.get_dependent_snapshots()
+        dependency_state = self.check_dependency_state(snapshots=snapshots)
         if dependency_state != 'READY':
             return dependency_state
         caches = self.get_dependency_cache_info()
-        return self.validate_dependency_result(states=states, caches=caches)
+        return self.validate_dependency_result(snapshots=snapshots, caches=caches)
 
     def __call__(self, *args, **kwargs):
         try:
@@ -277,8 +282,8 @@ class Code(CodeBase):
                 self.update_state('RUNNING')
                 ret = self.function(*args, **kwargs)
                 now = datetime.now().timestamp()
-                self.send_result(item=ret, send_time=now)
-                self.update_state('TERMINATED', update_time=now)
+                self.send_result(item=ret, timestamp=now)
+                self.update_state('TERMINATED', timestamp=now)
                 return ret
             elif dependency_state == 'NOT_READY':
                 self.update_state('WAITING', args=args, kwargs=kwargs)
@@ -292,7 +297,7 @@ class Code(CodeBase):
             self.update_state('ERROR')
             raise e
 
-    def to_dict(self, *args, **kwargs):
+    def to_dict(self):
         d = dict()
         d['_id'] = self.id
         d['source'] = self.source
@@ -300,5 +305,13 @@ class Code(CodeBase):
         return d
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
-        return cls(id=d['_id'], source=d['source'], *args, **kwargs)
+    def from_dict(cls, d):
+        return cls(id=d['_id'], source=d['source'])
+
+    def to_snapshot(self, *args, **kwargs):
+        return CodeSnapshot(self, *args, **kwargs)
+
+    @classmethod
+    def from_snapshot(cls, snapshot):
+        return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
+                   state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'])

@@ -32,7 +32,7 @@ def empty_dir(directory):
 def default_os_env():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
     DefaultServicePack.get_default_delivery_service().init()
-    DefaultServicePack.get_default_state_manager().init()
+    DefaultServicePack.get_default_code_snapshot_service().init()
     DefaultServicePack.get_default_code_storage_service(obj=Code).init()
     DefaultServicePack.get_default_codepack_storage_service(obj=CodePack).init()
     yield
@@ -54,6 +54,7 @@ def testdir():
     mkdir(rootdir + 'delivery_service/')
     mkdir(rootdir + 'state_manager/')
     mkdir(rootdir + 'storage_service/')
+    mkdir(rootdir + 'snapshot_service/')
     yield
     rmdir(rootdir)
 
@@ -67,16 +68,16 @@ def testdir_delivery_service():
 
 
 @pytest.fixture(scope='function', autouse=False)
-def testdir_state_manager():
-    directory = 'testdir/state_manager/'
+def testdir_storage_service():
+    directory = 'testdir/storage_service/'
     empty_dir(directory)
     yield directory
     empty_dir(directory)
 
 
 @pytest.fixture(scope='function', autouse=False)
-def testdir_storage_service():
-    directory = 'testdir/storage_service/'
+def testdir_snapshot_service():
+    directory = 'testdir/snapshot_service/'
     empty_dir(directory)
     yield directory
     empty_dir(directory)
