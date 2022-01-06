@@ -7,7 +7,7 @@ from tests import *
 import os
 
 
-def test_memory_snapshot_service_save_and_load(default_os_env):
+def test_memory_code_snapshot_service_save_and_load(default_os_env):
     mss = MemorySnapshotService(obj=CodeSnapshot)
     mss.init()
     code = Code(add2)
@@ -23,7 +23,7 @@ def test_memory_snapshot_service_save_and_load(default_os_env):
     assert loaded['serial_number'] == snapshot.serial_number
 
 
-def test_memory_snapshot_service_search_and_remove(default_os_env):
+def test_memory_code_snapshot_service_search_and_remove(default_os_env):
     mss = MemorySnapshotService(obj=CodeSnapshot)
     mss.init()
     code1 = Code(add2)
@@ -71,7 +71,7 @@ def test_memory_snapshot_service_update():
     assert mss.memory[snapshot1.serial_number].timestamp == timestamp + 1
 
 
-def test_file_snapshot_service_save_and_load(default_os_env, testdir_snapshot_service):
+def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapshot_service):
     fss = FileSnapshotService(obj=CodeSnapshot, path=testdir_snapshot_service)
     code = Code(add2)
     snapshot = CodeSnapshot(code)
@@ -86,7 +86,7 @@ def test_file_snapshot_service_save_and_load(default_os_env, testdir_snapshot_se
     assert loaded['serial_number'] == snapshot.serial_number
 
 
-def test_file_snapshot_service_search_and_remove(default_os_env, testdir_snapshot_service):
+def test_file_code_snapshot_service_search_and_remove(default_os_env, testdir_snapshot_service):
     fss = FileSnapshotService(obj=CodeSnapshot, path=testdir_snapshot_service)
     code1 = Code(add2)
     code2 = Code(add3)
@@ -132,10 +132,10 @@ def test_file_snapshot_service_update(testdir_snapshot_service):
     assert search_result[0]['timestamp'] == timestamp + 1
 
 
-def test_mongo_snapshot_service_save_and_load(default_os_env, fake_mongodb):
+def test_mongo_code_snapshot_service_save_and_load(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'snapshot'
-    mss = MongoSnapshotService(obj=Snapshot, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoSnapshotService(obj=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
     code = Code(add2)
     snapshot = CodeSnapshot(code)
     mss.save(snapshot=snapshot)
@@ -149,10 +149,10 @@ def test_mongo_snapshot_service_save_and_load(default_os_env, fake_mongodb):
     assert loaded['serial_number'] == snapshot.serial_number
 
 
-def test_mongo_snapshot_service_search_and_remove(default_os_env, fake_mongodb):
+def test_mongo_code_snapshot_service_search_and_remove(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'snapshot'
-    mss = MongoSnapshotService(obj=Snapshot, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoSnapshotService(obj=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
     code1 = Code(add2)
     code2 = Code(add3)
     code1 >> code2

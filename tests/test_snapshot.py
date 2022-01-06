@@ -78,3 +78,11 @@ def test_code_snapshot_diff(default_os_env):
     assert set(diff.keys()) == {'kwargs', 'timestamp'}
     assert diff['kwargs'] == {'b': 3}
     assert diff['timestamp'] == timestamp + 1
+
+
+def test_code_to_snapshot_and_from_snapshot(default_os_env):
+    code1 = Code(add2)
+    snapshot1 = code1.to_snapshot(args=(1, 2))
+    code2 = Code.from_snapshot(snapshot=snapshot1)
+    assert code2.get_state() == 'UNKNOWN'
+    assert code2(1, 2) == 3
