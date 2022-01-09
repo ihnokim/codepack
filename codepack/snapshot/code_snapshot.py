@@ -1,4 +1,4 @@
-from codepack.utils.snapshot import Snapshot
+from codepack.snapshot import Snapshot
 from codepack.utils.dependency import Dependency
 
 

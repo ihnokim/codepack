@@ -2,7 +2,7 @@ from codepack.service.delivery_service import MemoryDeliveryService, FileDeliver
 from codepack.service.storage_service import MemoryStorageService, FileStorageService, MongoStorageService, StorageServiceAlias
 from codepack.service.snapshot_service import MemorySnapshotService, FileSnapshotService, MongoSnapshotService, SnapshotServiceAlias
 from codepack.utils import Singleton
-from codepack.utils.snapshot import CodeSnapshot
+from codepack.snapshot import CodeSnapshot
 from codepack.utils.delivery import Delivery
 from codepack.utils.config import get_default_service_config
 
