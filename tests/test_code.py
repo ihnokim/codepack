@@ -214,3 +214,37 @@ def test_load_code_from_storage_service_with_id(default_os_env):
     assert code1(1, 2) == code2(1, 2)
     assert code1.serial_number != code2.serial_number
     assert code2.serial_number == '1234'
+
+
+def test_update_serial_number(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code4 = Code(linear)
+    code1 >> code2
+    code2 >> [code3, code4]
+    code2.receive('a') << code1
+    code3.receive('b') << code2
+    code4.receive('c') << code2
+    old_serial_number = code2.serial_number
+    new_serial_number = '1234'
+    code2.update_serial_number(new_serial_number)
+    assert code2.serial_number == new_serial_number
+    assert code2.id in code1.children
+    assert code1.children[code2.id].serial_number == new_serial_number
+    assert code2.id in code3.parents
+    assert code3.parents[code2.id].serial_number == new_serial_number
+    assert old_serial_number not in code3.dependency
+    assert new_serial_number in code3.dependency
+    assert code3.dependency[new_serial_number].arg == 'b'
+    assert code3.dependency[new_serial_number].code == code3
+    assert code3.dependency[new_serial_number].id == code2.id
+    assert code3.dependency[new_serial_number].serial_number == new_serial_number
+    assert code2.id in code4.parents
+    assert code4.parents[code2.id].serial_number == new_serial_number
+    assert old_serial_number not in code4.dependency
+    assert new_serial_number in code4.dependency
+    assert code4.dependency[new_serial_number].arg == 'c'
+    assert code4.dependency[new_serial_number].code == code4
+    assert code4.dependency[new_serial_number].id == code2.id
+    assert code4.dependency[new_serial_number].serial_number == new_serial_number
