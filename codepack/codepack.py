@@ -1,17 +1,17 @@
 from codepack.base import CodeBase, CodePackBase
 from codepack import Code
 from queue import Queue
-from copy import deepcopy
+from codepack.utils.state import State
 from parse import compile as parser
 from ast import literal_eval
+from codepack.snapshot import CodePackSnapshot
 
 
 class CodePack(CodePackBase):
-    def __init__(self, id, code, subscribe=None):
-        super().__init__(id=id)
+    def __init__(self, id, code, subscribe=None, serial_number=None):
+        super().__init__(id=id, serial_number=serial_number)
         self.root = None
         self.roots = None
-        self.arg_cache = None
         self.set_root(code)
         if isinstance(subscribe, CodeBase):
             self.subscribe = subscribe.id
@@ -20,28 +20,14 @@ class CodePack(CodePackBase):
         else:
             self.subscribe = None
         self.codes = dict()
-        self.init(arg_dict=None, lazy=False)
+        self.init()
+        self.service = dict()
+        self.service['snapshot_service'] = None
 
-    def init(self, arg_dict=None, lazy=False):
-        self.init_arg_cache(arg_dict, lazy=lazy)
-        if not lazy:
-            self.roots = self.get_roots(init=True)
+    def init(self):
+        self.roots = self.get_roots()
 
-    def init_arg_cache(self, arg_dict, lazy=False):
-        if arg_dict and lazy:
-            q = Queue()
-            for id in self.arg_cache:
-                if self.arg_cache[id] != arg_dict[id]:
-                    q.put(id)
-            while not q.empty():
-                id = q.get()
-                self.arg_cache.pop(id, None)
-                for c in self.codes[id].children.values():
-                    q.put(c.id)
-        else:
-            self.arg_cache = dict()
-
-    def make_arg_dict(self):
+    def make_argpack(self):
         ret = dict()
         stack = list()
         for root in self.roots:
@@ -83,6 +69,24 @@ class CodePack(CodePackBase):
     def __repr__(self):
         return self.__str__()
 
+    def get_state(self):
+        states = self.root.service['snapshot_service']\
+            .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'state'})
+        if states:
+            max_state = 0
+            terminated = True
+            for state in states:
+                if state['state'] == 'ERROR':
+                    return 'ERROR'
+                elif state['state'] != 'TERMINATED':
+                    terminated = False
+                    max_state = max(State[state['state']].value, max_state)
+            if terminated:
+                return 'TERMINATED'
+            else:
+                return State(max_state).name
+        return 'UNKNOWN'
+
     def get_leaves(self):
         leaves = set()
         q = Queue()
@@ -95,7 +99,7 @@ class CodePack(CodePackBase):
                 leaves.add(n)
         return leaves
 
-    def get_roots(self, init=False):
+    def get_roots(self):
         roots = set()
         touched = set()
         q = Queue()
@@ -104,9 +108,8 @@ class CodePack(CodePackBase):
             touched.add(leave.id)
         while not q.empty():
             n = q.get()
-            if init:
-                if n.id not in self.codes:
-                    self.codes[n.id] = n
+            if n.id not in self.codes:
+                self.codes[n.id] = n
             for p in n.parents.values():
                 if p.id not in touched:
                     q.put(p)
@@ -115,35 +118,41 @@ class CodePack(CodePackBase):
                 roots.add(n)
         return roots
 
-    def recursive_run(self, code, arg_dict):
-        state = code.get_state()
-        senders = code.get_dependent_args().values()
-        redo = True if state != 'TERMINATED' else False
+    def recursive_run(self, code, argpack):
         for p in code.parents.values():
-            if p.get_state() != 'TERMINATED' or \
-                    p.id not in self.arg_cache or \
-                    arg_dict[p.id] != self.arg_cache[p.id]:
-                redo = True if p.id in senders else False
+            if p.get_state() != 'TERMINATED':
                 code.update_state('WAITING')
-                self.recursive_run(p, arg_dict)
-        if redo or \
-                code.id not in self.arg_cache or \
-                arg_dict[code.id] != self.arg_cache[code.id]:
-            self.arg_cache[code.id] = deepcopy(arg_dict[code.id])
-            code.update_state('READY')
-            code(**arg_dict[code.id])
+                self.recursive_run(p, argpack)
+        code.update_state('READY')
+        code(**argpack[code.id])
 
-    def __call__(self, arg_dict=None, lazy=False):
-        ret = None
-        if not arg_dict:
-            arg_dict = self.make_arg_dict()
-        self.init(arg_dict=arg_dict if lazy else None, lazy=lazy)
+    def sync_run(self, argpack):
         for leave in self.get_leaves():
-            self.recursive_run(leave, arg_dict)
-        if self.subscribe:
-            c = self.codes[self.subscribe]
-            ret = c.get_result(serial_number=c.serial_number)
-        return ret
+            self.recursive_run(leave, argpack)
+
+    def async_run(self, argpack=None):
+        for id, code in self.codes.items():
+            code(**argpack[id])
+
+    def __call__(self, argpack=None, sync=True):
+        self.init_code_state()
+        if not argpack:
+            argpack = self.make_argpack()
+        if sync:
+            self.sync_run(argpack=argpack)
+        else:
+            self.async_run(argpack=argpack)
+        return self.get_result()
+
+    def init_code_state(self):
+        for code in self.codes.values():
+            code.update_state('READY')
+
+    def get_result(self):
+        if self.subscribe and self.codes[self.subscribe].get_state() == 'TERMINATED':
+            return self.codes[self.subscribe].get_result()
+        else:
+            return None
 
     def to_dict(self):
         d = dict()
@@ -159,32 +168,29 @@ class CodePack(CodePackBase):
         root = None
         stack = list()
         codes = dict()
-
-        for i, line in enumerate(d['structure'].split('\n')): # os.linesep
+        receive = dict()
+        for i, line in enumerate(d['structure'].split('\n')):  # os.linesep
             split_idx = line.index('Code')
             hierarchy = len(line[1: split_idx-1])
             attr = p.parse(line[split_idx:])
-
             if attr['id'] not in codes:
                 codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']])
-
             code = codes[attr['id']]
-            receive = literal_eval(attr['receive'])
-            for arg, sender in receive.items():
-                code.receive(arg) << sender
+            receive[code.id] = literal_eval(attr['receive'])
             if i == 0:
                 root = code
-
             while len(stack) and stack[-1][1] >= hierarchy:
                 n, h = stack.pop(-1)
                 if len(stack) > 0:
                     stack[-1][0] >> n
             stack.append((code, hierarchy))
-
         while len(stack):
             n, h = stack.pop(-1)
             if len(stack) > 0:
                 stack[-1][0] >> n
+        for id, code in codes.items():
+            for arg, sender in receive[id].items():
+                code.receive(arg) << codes[sender]
         return cls(d['_id'], code=root, subscribe=d['subscribe'])
 
     def get_source(self):
@@ -206,4 +212,17 @@ class CodePack(CodePackBase):
                 ret += '|%s %s' % ('-' * h, n.get_info(state=False))
                 for c in n.children.values():
                     stack.append((c, h + 1))
+        return ret
+
+    def to_snapshot(self, *args, **kwargs):
+        return CodePackSnapshot(self, *args, **kwargs)
+
+    @classmethod
+    def from_snapshot(cls, snapshot):
+        d = snapshot.to_dict()
+        d['_id'] = d['id']
+        ret = cls.from_dict(d)
+        ret.serial_number = d['serial_number']
+        for id, code in ret.codes.items():
+            code.update_serial_number(d['codes'][id])
         return ret
