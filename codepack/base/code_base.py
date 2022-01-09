@@ -1,5 +1,5 @@
 from codepack.storage import Storable
-from codepack.utils.snapshot.snapshotable import Snapshotable
+from codepack.snapshot import Snapshotable
 import abc
 
 
