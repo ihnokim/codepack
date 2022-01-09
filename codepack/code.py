@@ -9,12 +9,13 @@ from collections import OrderedDict
 from datetime import datetime
 from codepack.utils.dependency import Dependency
 from codepack.utils.dependency_state import DependencyState
-from codepack.utils.snapshot import CodeSnapshot
+from codepack.snapshot import CodeSnapshot
 
 
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, snapshot_service=None, storage_service=None, state=None):
+                 config_path=None, delivery_service=None, snapshot_service=None, storage_service=None,
+                 state=None, callback=None):
         super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
@@ -24,6 +25,7 @@ class Code(CodeBase):
         self.dependency = None
         self.config_path = None
         self.service = None
+        self.callback = None
         self.init_service(delivery_service=delivery_service,
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
@@ -33,6 +35,7 @@ class Code(CodeBase):
             self.id = self.function.__name__
         self.init_linkage()
         self.init_dependency(dependency=dependency)
+        self.register(callback=callback)
         self.update_state(state)
 
     def init_linkage(self):
@@ -53,6 +56,9 @@ class Code(CodeBase):
         self.service['storage_service'] =\
             storage_service if storage_service else DefaultServicePack.get_default_code_storage_service(obj=self.__class__,
                                                                                                         config_path=config_path)
+
+    def register(self, callback):
+        self.callback = callback
 
     @staticmethod
     def get_source(function):
@@ -131,6 +137,14 @@ class Code(CodeBase):
             raise TypeError(type(other))  # pragma: no cover
         return other
 
+    def update_serial_number(self, serial_number):
+        for c in self.children.values():
+            if self.serial_number in c.dependency:
+                d = c.dependency.pop(self.serial_number)
+                d.serial_number = serial_number
+                c.add_dependency(d)
+        self.serial_number = serial_number
+
     def get_args(self):
         ret = OrderedDict()
         argspec = inspect.getfullargspec(self.function)
@@ -175,9 +189,12 @@ class Code(CodeBase):
         return self.__str__()  # pragma: no cover
 
     def update_state(self, state, timestamp=None, args=None, kwargs=None):
-        snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
-        snapshot['state'] = state
-        self.service['snapshot_service'].save(snapshot)
+        if state:
+            snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
+            snapshot['state'] = state
+            self.service['snapshot_service'].save(snapshot)
+            if self.callback:
+                self.callback({'serial_number': self.serial_number, 'state': state})
 
     def get_state(self):
         ret = self.service['snapshot_service'].load(serial_number=self.serial_number, projection={'state'})
