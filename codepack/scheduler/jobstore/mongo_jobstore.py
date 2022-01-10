@@ -1,5 +1,5 @@
 from apscheduler.jobstores.mongodb import *
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class MongoJobStore(MongoDBJobStore):
@@ -20,7 +20,9 @@ class MongoJobStore(MongoDBJobStore):
             self.collection.insert_one({
                 '_id': job.id,
                 'trigger': job.trigger.__str__(),
-                'last_run_time': None,
+                'codepack': job.kwargs['snapshot']['id'],
+                'snapshot': job.kwargs['snapshot']['serial_number'],
+                'last_run_time': datetime.now(timezone.utc).timestamp(),
                 'next_run_time': utc_timestamp,
                 'job_state': Binary(pickle.dumps(job.__getstate__(), self.pickle_protocol))
             })
@@ -30,8 +32,7 @@ class MongoJobStore(MongoDBJobStore):
     def update_job(self, job):
         utc_timestamp = datetime_to_utc_timestamp(job.next_run_time)
         changes = {
-            'trigger': job.trigger.__str__(),
-            'last_run_time': datetime_to_utc_timestamp(datetime.now()),
+            'last_run_time': datetime.now(timezone.utc).timestamp(),
             'next_run_time': utc_timestamp,
             'job_state': Binary(pickle.dumps(job.__getstate__(), self.pickle_protocol))
         }
