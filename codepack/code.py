@@ -296,11 +296,11 @@ class Code(CodeBase):
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
                         kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
-                self.update_state('RUNNING')
+                self.update_state('RUNNING', args=args, kwargs=kwargs)
                 ret = self.function(*args, **kwargs)
                 now = datetime.now().timestamp()
                 self.send_result(item=ret, timestamp=now)
-                self.update_state('TERMINATED', timestamp=now)
+                self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
                 return ret
             elif dependency_state == 'NOT_READY':
                 self.update_state('WAITING', args=args, kwargs=kwargs)
@@ -311,7 +311,7 @@ class Code(CodeBase):
             else:
                 raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
-            self.update_state('ERROR')
+            self.update_state('ERROR', args=args, kwargs=kwargs)
             raise e
 
     def to_dict(self):

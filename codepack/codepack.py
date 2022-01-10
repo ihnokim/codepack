@@ -155,26 +155,27 @@ class CodePack(CodePackBase):
             code(**argpack[id])
 
     def __call__(self, argpack=None, sync=True):
-        self.init_code_state('READY')
-        self.update_state('READY')
+        self.init_code_state(state='READY', argpack=argpack)
+        self.update_state('READY', argpack=argpack)
         if not argpack:
             argpack = self.make_argpack()
         if sync:
             self.sync_run(argpack=argpack)
+            self.update_state('TERMINATED', argpack=argpack)
         else:
             self.async_run(argpack=argpack)
+            self.update_state(self.get_state(), argpack=argpack)
         return self.get_result()
 
-    def init_code_state(self, state):
-        for code in self.codes.values():
-            code.update_state(state)
+    def init_code_state(self, state, argpack=None):
+        for id, code in self.codes.items():
+            if argpack and id in argpack:
+                code.update_state(state, kwargs=argpack[id])
 
     def get_result(self):
         if self.subscribe and self.codes[self.subscribe].get_state() == 'TERMINATED':
-            self.update_state('TERMINATED')
             return self.codes[self.subscribe].get_result()
         else:
-            self.update_state('WAITING')
             return None
 
     def to_dict(self):
