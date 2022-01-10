@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from codepack.interface.abc import Interface
+from codepack.interface import Interface
 
 
 class MongoDB(Interface):

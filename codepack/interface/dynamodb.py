@@ -1,6 +1,6 @@
 import boto3
 from botocore.config import Config
-from codepack.interface.abc import SQLInterface
+from codepack.interface import SQLInterface
 from boto3.dynamodb.types import TypeDeserializer
 
 
