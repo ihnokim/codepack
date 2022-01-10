@@ -1,4 +1,5 @@
-from codepack.abc import CodeBase, Storable
+from codepack.base import CodeBase
+from codepack.storage import Storable
 
 
 class Dependency(Storable):
@@ -47,5 +48,5 @@ class Dependency(Storable):
         return {'id': self.id, 'serial_number': self.serial_number, 'arg': self.arg}
 
     @classmethod
-    def from_dict(cls, d, *args, **kwargs):
+    def from_dict(cls, d):
         return cls(id=d['id'], serial_number=d['serial_number'], arg=d['arg'])

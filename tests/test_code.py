@@ -1,6 +1,7 @@
 from codepack import Code
 from tests import *
 import pytest
+from datetime import datetime
 
 
 def test_assert_arg(default_os_env):
@@ -79,7 +80,7 @@ def test_add_dependency(default_os_env):
     assert len(tmp) == 1 and 'a' in tmp
 
 
-def test_check_dependency1(default_os_env):
+def test_check_dependency_linkage(default_os_env):
     code1 = Code(add2)
     code2 = Code(print_x)
     code3 = Code(add3)
@@ -106,7 +107,7 @@ def test_check_dependency1(default_os_env):
     assert len(code2.parents) == 0 and len(code3.parents) == 0
 
 
-def test_check_dependency2(default_os_env):
+def test_check_dependency_state(default_os_env):
     code1 = Code(add2)
     code2 = Code(mul2)
     code3 = Code(add3)
@@ -136,6 +137,57 @@ def test_check_dependency2(default_os_env):
     assert ret == 8 and code3.get_state() == 'TERMINATED'
 
 
+def test_dependency_error_propagation(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code1 >> code3
+    code2 >> code3
+    assert code3.get_state() == 'UNKNOWN'
+    with pytest.raises(TypeError):
+        code1()
+    assert code1.get_state() == 'ERROR'
+    ret = code3(1, 2, 3)
+    assert ret is None
+    assert code3.get_state() == 'ERROR'
+
+
+def test_validate_dependency_result(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code1 >> code3
+    code2 >> code3
+    code3.receive('b') << code1
+    code3.receive('c') << code2
+    code1(1, 2)
+    code2(3, 4)
+    code2.service['delivery_service'].cancel(code2.serial_number)
+    ret = code3(a=3)
+    assert ret is None
+    assert code3.get_state() == 'WAITING'
+    code2(3, 4)
+    code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
+    ret = code3(a=3)
+    assert ret is None
+    assert code3.get_state() == 'WAITING'
+    code2(3, 4)
+    snapshots = code3.get_dependent_snapshots()
+    caches = code3.get_dependency_cache_info()
+    assert len(snapshots) == 2
+    assert len(caches) == 2
+    code2_state_info = snapshots.pop(code2.serial_number)
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    update_time = code2_state_info.pop('timestamp')
+    snapshots[code2.serial_number] = code2_state_info
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    snapshots[code2.serial_number]['timestamp'] = update_time
+    send_time = caches[code2.serial_number].pop('timestamp')
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    caches[code2.serial_number]['timestamp'] = send_time
+    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'READY'
+
+
 def test_default_arg(default_os_env):
     code1 = Code(add2)
     code2 = Code(add3)
@@ -162,3 +214,37 @@ def test_load_code_from_storage_service_with_id(default_os_env):
     assert code1(1, 2) == code2(1, 2)
     assert code1.serial_number != code2.serial_number
     assert code2.serial_number == '1234'
+
+
+def test_update_serial_number(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(add3)
+    code4 = Code(linear)
+    code1 >> code2
+    code2 >> [code3, code4]
+    code2.receive('a') << code1
+    code3.receive('b') << code2
+    code4.receive('c') << code2
+    old_serial_number = code2.serial_number
+    new_serial_number = '1234'
+    code2.update_serial_number(new_serial_number)
+    assert code2.serial_number == new_serial_number
+    assert code2.id in code1.children
+    assert code1.children[code2.id].serial_number == new_serial_number
+    assert code2.id in code3.parents
+    assert code3.parents[code2.id].serial_number == new_serial_number
+    assert old_serial_number not in code3.dependency
+    assert new_serial_number in code3.dependency
+    assert code3.dependency[new_serial_number].arg == 'b'
+    assert code3.dependency[new_serial_number].code == code3
+    assert code3.dependency[new_serial_number].id == code2.id
+    assert code3.dependency[new_serial_number].serial_number == new_serial_number
+    assert code2.id in code4.parents
+    assert code4.parents[code2.id].serial_number == new_serial_number
+    assert old_serial_number not in code4.dependency
+    assert new_serial_number in code4.dependency
+    assert code4.dependency[new_serial_number].arg == 'c'
+    assert code4.dependency[new_serial_number].code == code4
+    assert code4.dependency[new_serial_number].id == code2.id
+    assert code4.dependency[new_serial_number].serial_number == new_serial_number

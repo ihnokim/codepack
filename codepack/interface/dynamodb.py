@@ -1,29 +1,24 @@
 import boto3
 from botocore.config import Config
-from codepack.interface.abc import SQLInterface
+from codepack.interface import SQLInterface
 from boto3.dynamodb.types import TypeDeserializer
 
 
 class DynamoDB(SQLInterface):
-    def __init__(self, config, **kwargs):
-        super().__init__()
-        self.client = None
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(config)
         self.td = TypeDeserializer()
-        try:
-            self.client = self.connect(config=config, **kwargs)
-        except Exception as e:
-            print(e)
-            self.client = None
+        self.connect(*args, **kwargs)
 
-    def connect(self, config, ssh_config=None, **kwargs):
-        self.config = config
-        return boto3.client(config=Config(retries=dict(max_attempts=3)), **self.config, **kwargs)
+    def connect(self, *args, **kwargs):
+        self.session = boto3.client(config=Config(retries=dict(max_attempts=3)), *args, **self.config, **kwargs)
+        return self.session
 
     def list_tables(self, name):
         ret = list()
-        if self.client is None:
+        if self.session is None:
             return ret
-        return self.client.list_tables(ExclusiveStartTableName=name)['TableNames']
+        return self.session.list_tables(ExclusiveStartTableName=name)['TableNames']
 
     def query(self, table, q, columns=None, preprocess=None, preprocess_args=None, preprocess_kwargs=None, dummy_column='dummy'):
         if preprocess is None:
@@ -41,7 +36,7 @@ class DynamoDB(SQLInterface):
         while not done:
             if start_key:
                 params['ExclusiveStartKey'] = start_key
-            response = self.client.query(**params)
+            response = self.session.query(**params)
             items = [{k: preprocess(self.td.deserialize(v), *preprocess_args, **preprocess_kwargs) for k, v in item.items()}
                      for item in response.get('Items', list()) if dummy_column not in item]
             start_key = response.get('LastEvaluatedKey', None)
@@ -57,7 +52,7 @@ class DynamoDB(SQLInterface):
                           dummy_column=dummy_column)
 
     def describe_table(self, table):
-        return self.client.describe_table(TableName=table)['Table']
+        return self.session.describe_table(TableName=table)['Table']
 
     @staticmethod
     def array_parser(s, sep='\x7f', dtype=str):

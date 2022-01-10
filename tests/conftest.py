@@ -2,7 +2,8 @@ import pytest
 from codepack.interface import MongoDB
 import os
 import mongomock
-from codepack.service import DefaultServicePack
+from codepack.service import DefaultService
+from codepack import Code, CodePack
 from shutil import rmtree
 from glob import glob
 
@@ -30,6 +31,10 @@ def empty_dir(directory):
 @pytest.fixture(scope='function', autouse=False)
 def default_os_env():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
+    DefaultService.get_default_delivery_service().init()
+    DefaultService.get_default_code_snapshot_service().init()
+    DefaultService.get_default_code_storage_service(obj=Code).init()
+    DefaultService.get_default_codepack_storage_service(obj=CodePack).init()
     yield
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 
@@ -37,7 +42,7 @@ def default_os_env():
 @pytest.fixture(scope='function', autouse=False)
 def fake_mongodb():
     mongodb = MongoDB({'host': 'unknown', 'port': '0'})
-    mongodb.client = mongomock.MongoClient()
+    mongodb.session = mongomock.MongoClient()
     yield mongodb
     mongodb.close()
 
@@ -49,6 +54,7 @@ def testdir():
     mkdir(rootdir + 'delivery_service/')
     mkdir(rootdir + 'state_manager/')
     mkdir(rootdir + 'storage_service/')
+    mkdir(rootdir + 'snapshot_service/')
     yield
     rmdir(rootdir)
 
@@ -62,14 +68,6 @@ def testdir_delivery_service():
 
 
 @pytest.fixture(scope='function', autouse=False)
-def testdir_state_manager():
-    directory = 'testdir/state_manager/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=False)
 def testdir_storage_service():
     directory = 'testdir/storage_service/'
     empty_dir(directory)
@@ -77,13 +75,21 @@ def testdir_storage_service():
     empty_dir(directory)
 
 
+@pytest.fixture(scope='function', autouse=False)
+def testdir_snapshot_service():
+    directory = 'testdir/snapshot_service/'
+    empty_dir(directory)
+    yield directory
+    empty_dir(directory)
+
+
 @pytest.fixture(scope='function', autouse=True)
-def init_default_service_pack():
-    DefaultServicePack.init()
+def init_default_service():
+    DefaultService.init()
 
 
 @pytest.fixture(scope='function', autouse=False)
 def default_services():
-    DefaultServicePack.init()
-    yield DefaultServicePack
-    DefaultServicePack.init()
+    DefaultService.init()
+    yield DefaultService
+    DefaultService.init()
