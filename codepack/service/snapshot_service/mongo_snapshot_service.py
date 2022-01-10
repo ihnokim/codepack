@@ -1,6 +1,7 @@
 from codepack.storage import MongoStorage
 from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
+from codepack.utils.state import State
 
 
 class MongoSnapshotService(SnapshotService, MongoStorage):
@@ -15,6 +16,8 @@ class MongoSnapshotService(SnapshotService, MongoStorage):
                 diff = existing_snapshot.diff(snapshot)
                 for key, value in diff.items():
                     existing_snapshot[key] = value
+                if 'state' in diff and isinstance(diff['state'], State):
+                    diff['state'] = diff['state'].name
                 self.mongodb[self.db][self.collection].update_one({'_id': existing_snapshot.serial_number},
                                                                   {'$set': diff}, upsert=True)
             else:

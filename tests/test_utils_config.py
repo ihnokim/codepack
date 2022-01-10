@@ -1,8 +1,9 @@
 from codepack import Code
 from tests import *
-from codepack.service import *
+from codepack.utils.config import get_default_service_config
 import pytest
 import os
+from codepack.service import MemoryDeliveryService, FileSnapshotService, MongoStorageService
 
 
 def test_no_config():

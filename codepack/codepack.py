@@ -1,6 +1,7 @@
 from codepack.base import CodeBase, CodePackBase
 from codepack import Code
 from queue import Queue
+from codepack.service import DefaultService
 from codepack.utils.state import State
 from parse import compile as parser
 from ast import literal_eval
@@ -8,10 +9,11 @@ from codepack.snapshot import CodePackSnapshot
 
 
 class CodePack(CodePackBase):
-    def __init__(self, id, code, subscribe=None, serial_number=None):
+    def __init__(self, id, code, subscribe=None, serial_number=None, config_path=None, snapshot_service=None, storage_service=None):
         super().__init__(id=id, serial_number=serial_number)
         self.root = None
         self.roots = None
+        self.service = None
         self.set_root(code)
         if isinstance(subscribe, CodeBase):
             self.subscribe = subscribe.id
@@ -21,11 +23,20 @@ class CodePack(CodePackBase):
             self.subscribe = None
         self.codes = dict()
         self.init()
-        self.service = dict()
-        self.service['snapshot_service'] = None
+        self.init_service(snapshot_service=snapshot_service,
+                          storage_service=storage_service,
+                          config_path=config_path)
 
     def init(self):
         self.roots = self.get_roots()
+
+    def init_service(self, snapshot_service=None, storage_service=None, config_path=None):
+        self.service = dict()
+        self.service['snapshot_service'] =\
+            snapshot_service if snapshot_service else DefaultService.get_default_codepack_snapshot_service(config_path=config_path)
+        self.service['storage_service'] =\
+            storage_service if storage_service else DefaultService.get_default_codepack_storage_service(obj=self.__class__,
+                                                                                                        config_path=config_path)
 
     def make_argpack(self):
         ret = dict()
@@ -69,6 +80,12 @@ class CodePack(CodePackBase):
     def __repr__(self):
         return self.__str__()
 
+    def update_state(self, state, timestamp=None, argpack=None):
+        if state:
+            snapshot = self.to_snapshot(argpack=argpack, timestamp=timestamp)
+            snapshot['state'] = state
+            self.service['snapshot_service'].save(snapshot)
+
     def get_state(self):
         states = self.root.service['snapshot_service']\
             .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'state'})
@@ -86,6 +103,9 @@ class CodePack(CodePackBase):
             else:
                 return State(max_state).name
         return 'UNKNOWN'
+
+    def save(self):
+        self.service['storage_service'].save(item=self)
 
     def get_leaves(self):
         leaves = set()
@@ -135,18 +155,22 @@ class CodePack(CodePackBase):
             code(**argpack[id])
 
     def __call__(self, argpack=None, sync=True):
-        self.init_code_state()
+        self.init_code_state(state='READY', argpack=argpack)
+        self.update_state('READY', argpack=argpack)
         if not argpack:
             argpack = self.make_argpack()
         if sync:
             self.sync_run(argpack=argpack)
+            self.update_state('TERMINATED', argpack=argpack)
         else:
             self.async_run(argpack=argpack)
+            self.update_state(self.get_state(), argpack=argpack)
         return self.get_result()
 
-    def init_code_state(self):
-        for code in self.codes.values():
-            code.update_state('READY')
+    def init_code_state(self, state, argpack=None):
+        for id, code in self.codes.items():
+            if argpack and id in argpack:
+                code.update_state(state, kwargs=argpack[id])
 
     def get_result(self):
         if self.subscribe and self.codes[self.subscribe].get_state() == 'TERMINATED':

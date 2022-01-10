@@ -1,5 +1,5 @@
 import pymysql
-from codepack.interface.abc import SQLInterface
+from codepack.interface import SQLInterface
 import re
 
 

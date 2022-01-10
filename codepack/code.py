@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Iterable, Callable
 import dill
-from codepack.service import DefaultServicePack
+from codepack.service import DefaultService
 from codepack.base import CodeBase
 import re
 import ast
@@ -50,12 +50,12 @@ class Code(CodeBase):
     def init_service(self, delivery_service=None, snapshot_service=None, storage_service=None, config_path=None):
         self.service = dict()
         self.service['delivery_service'] =\
-            delivery_service if delivery_service else DefaultServicePack.get_default_delivery_service(config_path=config_path)
+            delivery_service if delivery_service else DefaultService.get_default_delivery_service(config_path=config_path)
         self.service['snapshot_service'] =\
-            snapshot_service if snapshot_service else DefaultServicePack.get_default_code_snapshot_service(config_path=config_path)
+            snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
         self.service['storage_service'] =\
-            storage_service if storage_service else DefaultServicePack.get_default_code_storage_service(obj=self.__class__,
-                                                                                                        config_path=config_path)
+            storage_service if storage_service else DefaultService.get_default_code_storage_service(obj=self.__class__,
+                                                                                                    config_path=config_path)
 
     def register(self, callback):
         self.callback = callback
@@ -296,11 +296,11 @@ class Code(CodeBase):
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
                         kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
-                self.update_state('RUNNING')
+                self.update_state('RUNNING', args=args, kwargs=kwargs)
                 ret = self.function(*args, **kwargs)
                 now = datetime.now().timestamp()
                 self.send_result(item=ret, timestamp=now)
-                self.update_state('TERMINATED', timestamp=now)
+                self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
                 return ret
             elif dependency_state == 'NOT_READY':
                 self.update_state('WAITING', args=args, kwargs=kwargs)
@@ -311,7 +311,7 @@ class Code(CodeBase):
             else:
                 raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
-            self.update_state('ERROR')
+            self.update_state('ERROR', args=args, kwargs=kwargs)
             raise e
 
     def to_dict(self):
