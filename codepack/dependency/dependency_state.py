@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class DependencyState(Enum):
-    READY = 0
-    NOT_READY = 1
+    RESOLVED = 0
+    PENDING = 1
     ERROR = 2
 
     def __str__(self):

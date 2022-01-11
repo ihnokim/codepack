@@ -3,7 +3,7 @@ from codepack.service.storage_service import StorageServiceAlias
 from codepack.service.snapshot_service import SnapshotServiceAlias
 from codepack.utils import Singleton
 from codepack.snapshot import CodeSnapshot, CodePackSnapshot
-from codepack.utils.delivery import Delivery
+from codepack.delivery import Delivery
 from codepack.utils.config import get_default_service_config
 
 

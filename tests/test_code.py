@@ -76,7 +76,7 @@ def test_add_dependency(default_os_env):
     assert '1234' in code.dependency and '5678' in code.dependency
     assert code.dependency['5678'].arg == 'a'
     assert not code.dependency['1234'].arg
-    tmp = code.get_dependent_args()
+    tmp = code.dependency.get_args()
     assert len(tmp) == 1 and 'a' in tmp
 
 
@@ -162,7 +162,7 @@ def test_validate_dependency_result(default_os_env):
     code3.receive('c') << code2
     code1(1, 2)
     code2(3, 4)
-    code2.service['delivery_service'].cancel(code2.serial_number)
+    code2.service['delivery'].cancel(code2.serial_number)
     ret = code3(a=3)
     assert ret is None
     assert code3.get_state() == 'WAITING'
@@ -172,20 +172,22 @@ def test_validate_dependency_result(default_os_env):
     assert ret is None
     assert code3.get_state() == 'WAITING'
     code2(3, 4)
-    snapshots = code3.get_dependent_snapshots()
-    caches = code3.get_dependency_cache_info()
+    snapshots = code3.dependency.load_snapshot()
+    deliveries = code3.dependency.check_delivery()
     assert len(snapshots) == 2
-    assert len(caches) == 2
-    code2_state_info = snapshots.pop(code2.serial_number)
-    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
+    assert len(deliveries) == 2
+    snapshot_dict = {x['_id']: x for x in snapshots}
+    code2_state_info = snapshot_dict.pop(code2.serial_number)
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
     update_time = code2_state_info.pop('timestamp')
-    snapshots[code2.serial_number] = code2_state_info
-    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
-    snapshots[code2.serial_number]['timestamp'] = update_time
-    send_time = caches[code2.serial_number].pop('timestamp')
-    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'NOT_READY'
-    caches[code2.serial_number]['timestamp'] = send_time
-    assert code3.validate_dependency_result(snapshots=snapshots, caches=caches) == 'READY'
+    snapshot_dict[code2.serial_number] = code2_state_info
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
+    snapshot_dict[code2.serial_number]['timestamp'] = update_time
+    delivery_dict = {x['_id']: x for x in deliveries}
+    send_time = delivery_dict[code2.serial_number].pop('timestamp')
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'PENDING'
+    delivery_dict[code2.serial_number]['timestamp'] = send_time
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'RESOLVED'
 
 
 def test_default_arg(default_os_env):

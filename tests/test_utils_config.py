@@ -194,20 +194,20 @@ def test_if_default_services_have_single_instance_for_each_service(default_servi
     try:
         code1 = Code(add2)
         code2 = Code(add3)
-        assert isinstance(code1.service['delivery_service'], MemoryDeliveryService)
-        assert isinstance(code1.service['snapshot_service'], FileSnapshotService)
-        assert isinstance(code1.service['storage_service'], MongoStorageService)
-        assert isinstance(code2.service['delivery_service'], MemoryDeliveryService)
-        assert isinstance(code2.service['snapshot_service'], FileSnapshotService)
-        assert isinstance(code2.service['storage_service'], MongoStorageService)
+        assert isinstance(code1.service['delivery'], MemoryDeliveryService)
+        assert isinstance(code1.service['snapshot'], FileSnapshotService)
+        assert isinstance(code1.service['storage'], MongoStorageService)
+        assert isinstance(code2.service['delivery'], MemoryDeliveryService)
+        assert isinstance(code2.service['snapshot'], FileSnapshotService)
+        assert isinstance(code2.service['storage'], MongoStorageService)
 
-        assert (code1.service['delivery_service']) == (code2.service['delivery_service'])
-        assert (code1.service['snapshot_service']) == (code2.service['snapshot_service'])
-        assert (code1.service['storage_service']) == (code2.service['storage_service'])
+        assert (code1.service['delivery']) == (code2.service['delivery'])
+        assert (code1.service['snapshot']) == (code2.service['snapshot'])
+        assert (code1.service['storage']) == (code2.service['storage'])
 
-        assert id(code1.service['delivery_service']) == id(code2.service['delivery_service'])
-        assert id(code1.service['snapshot_service']) == id(code2.service['snapshot_service'])
-        assert id(code1.service['storage_service']) == id(code2.service['storage_service'])
+        assert id(code1.service['delivery']) == id(code2.service['delivery'])
+        assert id(code1.service['snapshot']) == id(code2.service['snapshot'])
+        assert id(code1.service['storage']) == id(code2.service['storage'])
     finally:
         for env in ['CODEPACK_CACHE_SOURCE',
                     'CODEPACK_CODE_SNAPSHOT_SOURCE', 'CODEPACK_CODE_SNAPSHOT_PATH',
