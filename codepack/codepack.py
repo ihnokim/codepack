@@ -32,9 +32,9 @@ class CodePack(CodePackBase):
 
     def init_service(self, snapshot_service=None, storage_service=None, config_path=None):
         self.service = dict()
-        self.service['snapshot_service'] =\
+        self.service['snapshot'] =\
             snapshot_service if snapshot_service else DefaultService.get_default_codepack_snapshot_service(config_path=config_path)
-        self.service['storage_service'] =\
+        self.service['storage'] =\
             storage_service if storage_service else DefaultService.get_default_codepack_storage_service(obj=self.__class__,
                                                                                                         config_path=config_path)
 
@@ -48,7 +48,7 @@ class CodePack(CodePackBase):
                 if n.id not in ret:
                     ret[n.id] = dict()
                 for arg, value in n.get_args().items():
-                    if arg not in n.get_dependent_args().keys():
+                    if arg not in n.dependency.get_args().keys():
                         ret[n.id][arg] = value
                 for c in n.children.values():
                     stack.append(c)
@@ -84,10 +84,10 @@ class CodePack(CodePackBase):
         if state:
             snapshot = self.to_snapshot(argpack=argpack, timestamp=timestamp)
             snapshot['state'] = state
-            self.service['snapshot_service'].save(snapshot)
+            self.service['snapshot'].save(snapshot)
 
     def get_state(self):
-        states = self.root.service['snapshot_service']\
+        states = self.root.service['snapshot']\
             .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'state'})
         if states:
             max_state = 0
@@ -105,7 +105,7 @@ class CodePack(CodePackBase):
         return 'UNKNOWN'
 
     def save(self):
-        self.service['storage_service'].save(item=self)
+        self.service['storage'].save(item=self)
 
     def get_leaves(self):
         leaves = set()
