@@ -15,7 +15,7 @@ class Interface(metaclass=abc.ABCMeta):
 
     def init_config(self, config):
         _config = deepcopy(config)
-        if 'sshtunnel' in _config:
+        if _config and 'sshtunnel' in _config:
             _ssh_config = _config.pop('sshtunnel')
             if isinstance(_ssh_config, str):
                 config_path, section = _ssh_config.split(':')
