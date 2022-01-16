@@ -6,6 +6,7 @@ from codepack.utils.state import State
 from parse import compile as parser
 from ast import literal_eval
 from codepack.snapshot import CodePackSnapshot
+from codepack.argpack import ArgPack
 
 
 class CodePack(CodePackBase):
@@ -39,20 +40,7 @@ class CodePack(CodePackBase):
                                                                                                         config_path=config_path)
 
     def make_argpack(self):
-        ret = dict()
-        stack = list()
-        for root in self.roots:
-            stack.append(root)
-            while len(stack):
-                n = stack.pop(-1)
-                if n.id not in ret:
-                    ret[n.id] = dict()
-                for arg, value in n.get_args().items():
-                    if arg not in n.dependency.get_args().keys():
-                        ret[n.id][arg] = value
-                for c in n.children.values():
-                    stack.append(c)
-        return ret
+        return ArgPack(self)
 
     def set_root(self, code):
         if not isinstance(code, CodeBase):

@@ -1,4 +1,6 @@
 from codepack.snapshot import Snapshot
+from codepack.argpack import ArgPack
+from copy import deepcopy
 
 
 class CodePackSnapshot(Snapshot):
@@ -27,7 +29,14 @@ class CodePackSnapshot(Snapshot):
         self.set_argpack(argpack=argpack)
 
     def set_argpack(self, argpack=None):
-        self.__setitem__('argpack', argpack if argpack else dict())
+        if isinstance(argpack, ArgPack):
+            tmp = argpack.to_dict()
+            tmp.pop('_id', None)
+        elif isinstance(argpack, dict):
+            tmp = deepcopy(argpack)
+        else:
+            tmp = dict()
+        self.__setitem__('argpack', tmp)
 
     @classmethod
     def from_dict(cls, d):
