@@ -1,30 +1,29 @@
 from codepack import Code
-from kafka import KafkaConsumer
-import json
+from codepack.snapshot import CodeSnapshot
 
 
-def consumer_example():
-    consumer = KafkaConsumer('test', bootstrap_servers='1.2.3.4:9092',
-                             auto_offset_reset='latest',
-                             enable_auto_commit=True,
-                             consumer_timeout_ms=1000,
-                             group_id='group1')
-    while True:
-        try:
-            buffer = consumer.poll(timeout_ms=1000)
-            for tp, msgs in buffer.items():
-                print('topic: %s, partition: %d' % (tp.topic, tp.partition))
-                for msg in msgs:
-                    try:
-                        print('offset: %d, key: %s, value: %s' % (msg.offset, msg.key, msg.value))
-                        content = json.loads(msg.value.decode('utf-8'))
-                        print(content)
-                        code = Code(id=content['id'], serial_number=content['_id'], dependency=content['dependency'])
-                        ret = code(*content['args'], **content['kwargs'])
-                        print(ret)
-                    except Exception as e:
-                        print(e)
-                        continue
-        except KeyboardInterrupt:
-            print("exit")
-            break
+class Worker:
+    def __init__(self, listener, interval=1):
+        self.listener = listener
+        self.interval = interval
+
+    def start(self):
+        self.listener.consume(self.work, timeout_ms=int(self.interval * 1000))
+
+    def stop(self):
+        self.listener.close()
+
+    @staticmethod
+    def work(buffer):
+        for tp, msgs in buffer.items():
+            for msg in msgs:
+                code = None
+                try:
+                    snapshot = CodeSnapshot.from_dict(msg.value)
+                    code = Code.from_snapshot(snapshot)
+                    code(*snapshot.args, **snapshot.kwargs)
+                except Exception as e:
+                    print(e)  # log.error(e)
+                    if code is not None:
+                        code.update_state('ERROR')
+                    continue
