@@ -12,6 +12,7 @@ class DynamoDB(SQLInterface):
 
     def connect(self, *args, **kwargs):
         self.session = boto3.client(config=Config(retries=dict(max_attempts=3)), *args, **self.config, **kwargs)
+        self._closed = False
         return self.session
 
     def list_tables(self, name):
@@ -67,7 +68,7 @@ class DynamoDB(SQLInterface):
             return s
 
     def close(self):
-        pass
+        self._closed = True
 
     @staticmethod
     def do_nothing(x, *args, **kwargs):
