@@ -50,6 +50,15 @@ def get_default_service_config(section, config_path=None):
         conn_config = get_default_config(section='conn', config_path=config_path)
         conn_config_path = get_default_value(section='conn', key='path', config=conn_config)
         ret['mongodb'] = get_config(conn_config_path, 'mongodb')
+    elif ret['source'] == 'KAFKA':
+        ret['topic'] = get_default_value(section=section, key='topic', config=config)
+        conn_config = get_default_config(section='conn', config_path=config_path)
+        conn_config_path = get_default_value(section='conn', key='path', config=conn_config)
+        ret['kafka'] = get_config(conn_config_path, 'kafka')
     else:
         raise NotImplementedError("'%s' is not implemented" % ret['source'])
+    if config:
+        for k in config:
+            if k not in ret:
+                ret[k] = get_default_value(section=section, key=k, config=config)
     return ret
