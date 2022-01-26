@@ -50,7 +50,7 @@ class ArgPack(Storable):
     def from_dict(cls, d):
         args = dict()
         id = None
-        for k, v in args.items():
+        for k, v in d.items():
             if k == '_id':
                 id = v
             else:
@@ -64,12 +64,12 @@ class ArgPack(Storable):
         return self.args.__iter__()
 
     def __str__(self):
-        ret = '%s(' % self.__class__.__name__
+        ret = '%s(id: %s, args: {' % (self.__class__.__name__, self.id)
         for i, (id, arg) in enumerate(self.args.items()):
             if i:
                 ret += ', '
             ret += '%s%s' % (id, arg.__str__().replace('Arg(', '('))
-        ret += ')'
+        ret += '})'
         return ret
 
     def __repr__(self):

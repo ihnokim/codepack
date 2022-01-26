@@ -4,14 +4,12 @@ from codepack.storage import Storable
 class Arg(Storable):
     def __init__(self, code=None, kwargs=None):
         Storable.__init__(self)
+        self.kwargs = dict()
         if kwargs:
             for arg, value in kwargs.items():
-                self.kwargs = dict()
                 self.kwargs[arg] = value
         elif code:
             self.kwargs = self.extract(code)
-        else:
-            self.kwargs = dict()
 
     @staticmethod
     def extract(code):
