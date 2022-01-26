@@ -1,9 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
-class NewCodeFromStorageToRun(BaseModel):
+class CodeID(BaseModel):
     id: str
     args: tuple = ()
     kwargs: dict = {}
-    mode: Optional[str] = None
+
+
+class CodeJSON(BaseModel):
+    code: str
+
+
+class SnapshotJSON(BaseModel):
+    snapshot: str
