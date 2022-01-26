@@ -210,8 +210,8 @@ class Code(CodeBase):
         serial_number = serial_number if serial_number else self.serial_number
         return self.service['delivery'].receive(serial_number=serial_number)
 
-    def save(self):
-        self.service['storage'].save(item=self)
+    def save(self, update=False):
+        self.service['storage'].save(item=self, update=update)
 
     def receive(self, arg):
         self.assert_arg(arg)
