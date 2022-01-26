@@ -13,6 +13,7 @@ class DefaultService(Singleton):
     code_snapshot_service = None
     codepack_storage_service = None
     codepack_snapshot_service = None
+    argpack_storage_service = None
 
     @classmethod
     def init(cls):
@@ -21,6 +22,7 @@ class DefaultService(Singleton):
         cls.code_snapshot_service = None
         cls.codepack_storage_service = None
         cls.codepack_snapshot_service = None
+        cls.argpack_storage_service = None
 
     @staticmethod
     def get_delivery_service(source, *args, **kwargs):
@@ -71,3 +73,10 @@ class DefaultService(Singleton):
             config = get_default_service_config(section='codepack_snapshot', config_path=config_path)
             cls.codepack_snapshot_service = cls.get_snapshot_service(obj=CodePackSnapshot, **config)
         return cls.codepack_snapshot_service
+
+    @classmethod
+    def get_default_argpack_storage_service(cls, obj, config_path=None):
+        if not cls.argpack_storage_service:
+            config = get_default_service_config(section='argpack_storage', config_path=config_path)
+            cls.argpack_storage_service = cls.get_storage_service(obj=obj, **config)
+        return cls.argpack_storage_service
