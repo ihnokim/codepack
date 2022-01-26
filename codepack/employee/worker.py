@@ -1,24 +1,38 @@
+import requests
 from codepack import Code
 from codepack.snapshot import CodeSnapshot
 from codepack.interface import KafkaConsumer
 from codepack.utils.config import get_default_service_config
+from codepack.employee.supervisor import Supervisor
 
 
 class Worker:
-    def __init__(self, consumer=None, interval=None, callback=None, config_path=None):
+    def __init__(self, consumer=None, interval=None, callback=None, supervisor=None, config_path=None):
         self.consumer = consumer
         self.interval = interval
+        self.supervisor = supervisor
+        self.callback = callback
+        new_consumer = False
         if self.consumer is None:
             config = get_default_service_config('worker', config_path=config_path)
             consumer_config = config['kafka']
             for k, v in config.items():
-                if k not in ['kafka', 'interval', 'source']:
+                if k not in ['kafka', 'interval', 'source', 'supervisor']:
                     consumer_config[k] = v
             self.consumer = KafkaConsumer(consumer_config)
+            new_consumer = True
             if self.interval is None:
                 self.interval = config.get('interval', 1)
-        self.callback = None
-        self.register(callback=callback)
+            if self.supervisor is None:
+                self.supervisor = config.get('supervisor', None)
+        if self.supervisor and not self.callback:
+            if isinstance(self.supervisor, str) or isinstance(self.supervisor, Supervisor):
+                self.callback = self.inform_supervisor_of_termination
+            else:
+                if new_consumer:
+                    self.consumer.close()
+                raise TypeError(type(self.supervisor))
+        self.register(callback=self.callback)
 
     def register(self, callback):
         self.callback = callback
@@ -43,3 +57,10 @@ class Worker:
                     if code is not None:
                         code.update_state('ERROR')
                     continue
+
+    def inform_supervisor_of_termination(self, x):
+        if x['state'] == 'TERMINATED':
+            if isinstance(self.supervisor, str):
+                requests.get(self.supervisor + '/organize/%s' % x['serial_number'])
+            elif isinstance(self.supervisor, Supervisor):
+                self.supervisor.organize(x['serial_number'])
