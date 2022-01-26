@@ -7,9 +7,14 @@ class MemoryStorageService(StorageService, MemoryStorage):
     def __init__(self, obj=None):
         MemoryStorage.__init__(self, obj=obj)
 
-    def save(self, item):
+    def save(self, item, update=False):
         if isinstance(item, self.obj):
-            self.memory[item.id] = item
+            if update:
+                self.memory[item.id] = item
+            elif self.check(item.id):
+                raise ValueError('%s already exists' % item.id)
+            else:
+                self.memory[item.id] = item
         else:
             raise TypeError(type(item))
 

@@ -8,9 +8,14 @@ class FileStorageService(StorageService, FileStorage):
     def __init__(self, obj=None, path='./'):
         FileStorage.__init__(self, obj=obj, path=path)
 
-    def save(self, item):
+    def save(self, item, update=False):
         if isinstance(item, self.obj):
-            item.to_file(self.obj.get_path(serial_number=item.id, path=self.path))
+            if update:
+                item.to_file(self.obj.get_path(serial_number=item.id, path=self.path))
+            elif self.check(item.id):
+                raise ValueError('%s already exists' % item.id)
+            else:
+                item.to_file(self.obj.get_path(serial_number=item.id, path=self.path))
         else:
             raise TypeError(type(item))
 

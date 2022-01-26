@@ -7,9 +7,16 @@ class MongoStorageService(StorageService, MongoStorage):
     def __init__(self, obj=None, mongodb=None, db=None, collection=None, *args, **kwargs):
         MongoStorage.__init__(self, obj=obj, mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
 
-    def save(self, item):
+    def save(self, item, update=False):
         if isinstance(item, self.obj):
-            item.to_db(mongodb=self.mongodb, db=self.db, collection=self.collection)
+            if update:
+                d = item.to_dict()
+                _id = d.pop('_id')
+                self.mongodb[self.db][self.collection].update_one({'_id': _id}, {'$set': d}, upsert=True)
+            elif self.check(item.id):
+                raise ValueError('%s already exists' % item.id)
+            else:
+                item.to_db(mongodb=self.mongodb, db=self.db, collection=self.collection)
         else:
             raise TypeError(type(item))
 
