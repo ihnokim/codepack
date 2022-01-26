@@ -1,17 +1,14 @@
 from fastapi import FastAPI, Request
-from codepack import Code, CodePack
-from typing import Tuple
-import os
 from codepack.service import DefaultService
-from codepack.utils.config import get_default_service_config
 from codepack.employee import Supervisor
-from .routers import code
+from .routers import code, codepack, argpack
 from .dependencies import common
 
 
-# os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
 app = FastAPI()
 app.include_router(code.router)
+app.include_router(codepack.router)
+app.include_router(argpack.router)
 
 
 @app.middleware('http')
@@ -31,12 +28,24 @@ async def startup():
 @app.on_event('shutdown')
 async def shutdown():
     common.supervisor.producer.close()
-    code_storage_service = DefaultService.get_default_code_storage_service(obj=Code)
-    if hasattr(code_storage_service, 'mongodb'):
-        code_storage_service.mongodb.close()
+    services = [DefaultService.delivery_service,
+                DefaultService.code_storage_service,
+                DefaultService.code_snapshot_service,
+                DefaultService.codepack_storage_service,
+                DefaultService.codepack_snapshot_service,
+                DefaultService.argpack_storage_service]
+    for service in services:
+        if hasattr(service, 'mongodb'):
+            service.mongodb.close()
 
 
 @app.get('/organize')
 async def organize():
     common.supervisor.organize()
+    return None
+
+
+@app.get('/organize/{serial_number}')
+async def organize(serial_number: str):
+    common.supervisor.organize(serial_number=serial_number)
     return None

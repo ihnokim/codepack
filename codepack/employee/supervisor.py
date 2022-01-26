@@ -1,6 +1,6 @@
-from codepack import Code
+from codepack import Code, CodePack
 from codepack.service import DefaultService
-from codepack.snapshot import CodeSnapshot
+from codepack.snapshot import CodeSnapshot, CodePackSnapshot
 from codepack.interface import KafkaProducer
 from codepack.utils.config import get_default_service_config
 
@@ -16,23 +16,34 @@ class Supervisor:
                 self.topic = config['topic']
         self.snapshot_service = snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
 
-    def order(self, code, args=None, kwargs=None):
+    def run_code(self, code, args=None, kwargs=None):
         if isinstance(code, Code):
+            code.update_state('READY')
             self.producer.produce(self.topic, value=code.to_snapshot(args=args, kwargs=kwargs).to_dict())
-        elif isinstance(code, dict):
-            self.producer.produce(self.topic, value=code)
-        elif isinstance(code, CodeSnapshot):
-            self.producer.produce(self.topic, value=code.to_dict())
         else:
             raise TypeError(type(code))
 
-    def organize(self):
+    def run_codepack(self, codepack, argpack=None):
+        if isinstance(codepack, CodePack):
+            codepack.save_snapshot(argpack=argpack)
+            for id, code in codepack.codes.items():
+                _kwargs = argpack[id].to_dict() if id in argpack else None
+                self.run_code(code=code, kwargs=_kwargs)
+        else:
+            raise TypeError(type(codepack))
+
+    def organize(self, serial_number=None):
         for snapshot in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
-            serial_numbers = [snapshot['serial_number'] for snapshot in snapshot['dependency']]
-            for dependency in self.snapshot_service.load(serial_numbers, projection={'state'}):
+            dependent_serial_numbers = [snapshot['serial_number'] for snapshot in snapshot['dependency']]
+            dependencies = self.snapshot_service.load(dependent_serial_numbers, projection={'state'})
+            if serial_number and serial_number not in {dependency['serial_number'] for dependency in dependencies}:
+                continue
+            for dependency in dependencies:
                 if dependency['state'] != 'TERMINATED':
                     resolved = False
                     break
             if resolved:
-                self.order(snapshot)
+                code_snapshot = CodeSnapshot.from_dict(snapshot)
+                code = Code.from_snapshot(code_snapshot)
+                self.run_code(code=code, args=code_snapshot.args, kwargs=code_snapshot.kwargs)
