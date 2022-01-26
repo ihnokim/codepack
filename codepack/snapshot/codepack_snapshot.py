@@ -8,7 +8,7 @@ class CodePackSnapshot(Snapshot):
         if codepack:
             _id = codepack.id
             _serial_number = codepack.serial_number
-            _state = codepack.get_state()
+            _state = None
             _codes = {k: v.serial_number for k, v in codepack.codes.items()}
             _source = codepack.get_source()
             _structure = codepack.get_structure()
