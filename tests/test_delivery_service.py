@@ -4,7 +4,7 @@ import os
 
 
 def test_memory_delivery_service_check():
-    mds = MemoryDeliveryService(obj=Delivery)
+    mds = MemoryDeliveryService(item_type=Delivery)
     mds.init()
     sender = 'sender'
     serial_number = '1234'
@@ -21,7 +21,7 @@ def test_memory_delivery_service_check():
 
 
 def test_file_delivery_service_check(testdir_delivery_service):
-    fds = FileDeliveryService(obj=Delivery, path=testdir_delivery_service)
+    fds = FileDeliveryService(item_type=Delivery, path=testdir_delivery_service)
     sender = 'sender'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
@@ -48,7 +48,7 @@ def test_file_delivery_service_check(testdir_delivery_service):
 def test_mongo_delivery_service_check(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(obj=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    mds = MongoDeliveryService(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
     sender = 'sender'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
@@ -67,7 +67,7 @@ def test_mongo_delivery_service_check(fake_mongodb):
 
 
 def test_memory_delivery_service():
-    mds = MemoryDeliveryService(obj=Delivery)
+    mds = MemoryDeliveryService(item_type=Delivery)
     mds.init()
     sender = 'sender'
     serial_number = '1234'
@@ -84,7 +84,7 @@ def test_memory_delivery_service():
 
 
 def test_file_delivery_service(testdir_delivery_service):
-    fds = FileDeliveryService(obj=Delivery, path=testdir_delivery_service)
+    fds = FileDeliveryService(item_type=Delivery, path=testdir_delivery_service)
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
@@ -102,7 +102,7 @@ def test_file_delivery_service(testdir_delivery_service):
 def test_mongo_delivery_service(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(obj=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    mds = MongoDeliveryService(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'

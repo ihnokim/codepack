@@ -133,9 +133,9 @@ def test_default_memory_code_storage_service_with_os_env(default_services):
     env_source = 'CODEPACK_CODE_STORAGE_SOURCE'
     try:
         os.environ[env_source] = 'MEMORY'
-        mss = default_services.get_default_code_storage_service(obj=Code)
+        mss = default_services.get_default_code_storage_service(item_type=Code)
         assert hasattr(mss, 'memory')
-        assert mss.obj == Code
+        assert mss.item_type == Code
     finally:
         if env_source in os.environ:
             os.environ.pop(env_source, None)
@@ -149,10 +149,10 @@ def test_default_file_code_storage_service_with_os_env(default_services):
     try:
         os.environ[env_source] = 'FILE'
         os.environ[env_path] = 'tmp/'
-        fss = default_services.get_default_code_storage_service(obj=Code)
+        fss = default_services.get_default_code_storage_service(item_type=Code)
         assert hasattr(fss, 'path')
         assert fss.path == 'tmp/'
-        assert fss.obj == Code
+        assert fss.item_type == Code
     finally:
         for env in [env_source, env_path]:
             if env in os.environ:
@@ -172,9 +172,9 @@ def test_default_mongo_code_storage_service_with_os_env(default_services):
         os.environ[env_db] = 'test'
         os.environ[env_collection] = 'codes'
         os.environ[env_config_path] = 'config/test_conn.ini'
-        mss = default_services.get_default_code_storage_service(obj=Code)
+        mss = default_services.get_default_code_storage_service(item_type=Code)
         assert hasattr(mss, 'mongodb')
-        assert mss.obj == Code
+        assert mss.item_type == Code
     finally:
         for env in [env_source, env_db, env_collection, env_config_path]:
             if env in os.environ:

@@ -41,11 +41,11 @@ class CodePack(CodePackBase):
             )
         self.service['storage'] =\
             storage_service if storage_service else DefaultService.get_default_codepack_storage_service(
-                obj=self.__class__, config_path=config_path
+                item_type=self.__class__, config_path=config_path
             )
         self.service['argpack'] = \
             argpack_service if argpack_service else DefaultService.get_default_argpack_storage_service(
-                obj=ArgPack, config_path=config_path
+                item_type=ArgPack, config_path=config_path
             )
 
     def make_argpack(self):
@@ -169,7 +169,11 @@ class CodePack(CodePackBase):
     def init_code_state(self, state, argpack=None):
         for id, code in self.codes.items():
             if argpack and id in argpack:
-                code.update_state(state, kwargs=argpack[id].to_dict())
+                if isinstance(argpack[id], dict):
+                    _kwargs = argpack[id]
+                else:
+                    _kwargs = argpack[id].to_dict()
+                code.update_state(state, kwargs=_kwargs)
 
     def get_result(self):
         if self.subscribe and self.codes[self.subscribe].get_state() == 'TERMINATED':

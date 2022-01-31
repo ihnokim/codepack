@@ -1,17 +1,20 @@
 from codepack.interface import MongoDB
-from codepack.storage import Storage
+from codepack.storage import Storage, Storable
+from typing import Union
+from typing import Type
 
 
 class MongoStorage(Storage):
-    def __init__(self, obj=None, mongodb=None, db=None, collection=None, *args, **kwargs):
-        super().__init__(obj=obj)
+    def __init__(self, item_type: Type[Storable],
+                 mongodb: Union[MongoDB, dict] = None, db: str = None, collection: str = None, *args, **kwargs):
+        super().__init__(item_type=item_type)
         self.mongodb = None
         self.db = None
         self.collection = None
         self.new_connection = None
         self.init(mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
 
-    def init(self, mongodb=None, db=None, collection=None, *args, **kwargs):
+    def init(self, mongodb: Union[MongoDB, dict] = None, db: str = None, collection: str = None, *args, **kwargs):
         self.db = db
         self.collection = collection
         if isinstance(mongodb, MongoDB):
@@ -22,3 +25,8 @@ class MongoStorage(Storage):
             self.new_connection = True
         else:
             raise TypeError(type(mongodb))
+
+    def close(self):
+        if self.new_connection:
+            self.mongodb.close()
+        self.mongodb = None

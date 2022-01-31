@@ -5,31 +5,31 @@ from collections.abc import Iterable
 
 
 class FileStorageService(StorageService, FileStorage):
-    def __init__(self, obj=None, path='./'):
-        FileStorage.__init__(self, obj=obj, path=path)
+    def __init__(self, item_type=None, path='./'):
+        FileStorage.__init__(self, item_type=item_type, path=path)
 
     def save(self, item, update=False):
-        if isinstance(item, self.obj):
+        if isinstance(item, self.item_type):
             if update:
-                item.to_file(self.obj.get_path(serial_number=item.id, path=self.path))
+                item.to_file(self.item_type.get_path(serial_number=item.id, path=self.path))
             elif self.check(item.id):
                 raise ValueError('%s already exists' % item.id)
             else:
-                item.to_file(self.obj.get_path(serial_number=item.id, path=self.path))
+                item.to_file(self.item_type.get_path(serial_number=item.id, path=self.path))
         else:
             raise TypeError(type(item))
 
     def load(self, id):
-        return self.obj.from_file(path=self.obj.get_path(serial_number=id, path=self.path))
+        return self.item_type.from_file(path=self.item_type.get_path(serial_number=id, path=self.path))
 
     def remove(self, id):
-        os.remove(path=self.obj.get_path(serial_number=id, path=self.path))
+        os.remove(path=self.item_type.get_path(serial_number=id, path=self.path))
 
     def check(self, id):
         if isinstance(id, str):
             ret = None
             try:
-                ret = self.obj.from_file(path=self.obj.get_path(serial_number=id, path=self.path)).id
+                ret = self.item_type.from_file(path=self.item_type.get_path(serial_number=id, path=self.path)).id
             finally:
                 return ret
         elif isinstance(id, Iterable):
