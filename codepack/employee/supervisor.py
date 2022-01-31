@@ -19,7 +19,11 @@ class Supervisor:
     def run_code(self, code, args=None, kwargs=None):
         if isinstance(code, Code):
             code.update_state('READY')
-            self.producer.produce(self.topic, value=code.to_snapshot(args=args, kwargs=kwargs).to_dict())
+            if kwargs and not isinstance(kwargs, dict):
+                _kwargs = kwargs.to_dict()
+            else:
+                _kwargs = kwargs
+            self.producer.produce(self.topic, value=code.to_snapshot(args=args, kwargs=_kwargs).to_dict())
         else:
             raise TypeError(type(code))
 
@@ -27,7 +31,7 @@ class Supervisor:
         if isinstance(codepack, CodePack):
             codepack.save_snapshot(argpack=argpack)
             for id, code in codepack.codes.items():
-                _kwargs = argpack[id].to_dict() if id in argpack else None
+                _kwargs = argpack[id] if id in argpack else None
                 self.run_code(code=code, kwargs=_kwargs)
         else:
             raise TypeError(type(codepack))
