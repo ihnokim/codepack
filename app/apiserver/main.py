@@ -1,11 +1,10 @@
 from codepack.scheduler import Scheduler, get_default_scheduler
-from codepack.utils.config import get_default_config, get_default_service_config
+from codepack.config import Config
 from fastapi import FastAPI, Request
 from codepack.service import DefaultService
 from codepack.employee import Supervisor
 from .routers import code, codepack, argpack
 from .dependencies import common
-import os
 
 
 app = FastAPI()
@@ -25,7 +24,8 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.on_event('startup')
 async def startup():
-    config = get_default_config(section='apiservier')
+    common['config'] = Config()
+    config = common['config'].get_config(section='apiservier')
     supervisor = config.get('supervisor', 'self')
     scheduler = config.get('scheduler', 'self')
     if isinstance(supervisor, Supervisor):

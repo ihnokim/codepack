@@ -1,6 +1,6 @@
 from codepack import Code
 from tests import *
-from codepack.utils.config import get_default_service_config
+from codepack.config import Config
 import pytest
 import os
 from codepack.service import MemoryDeliveryService, FileSnapshotService, MongoStorageService
@@ -22,8 +22,9 @@ def test_config_path():
 
 
 def test_default_memory_code_snapshot_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('code_snapshot')
+        config.get_storage_config('code_snapshot')
     env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
     try:
         os.environ[env_source] = 'MEMORY'
@@ -35,8 +36,9 @@ def test_default_memory_code_snapshot_service_with_os_env(default_services):
 
 
 def test_default_file_code_snapshot_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('code_snapshot')
+        config.get_storage_config('code_snapshot')
     env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
     env_path = 'CODEPACK_CODE_SNAPSHOT_PATH'
     try:
@@ -52,8 +54,9 @@ def test_default_file_code_snapshot_service_with_os_env(default_services):
 
 
 def test_default_mongo_code_snapshot_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('code_snapshot')
+        config.get_storage_config('code_snapshot')
     env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
     env_db = 'CODEPACK_CODE_SNAPSHOT_DB'
     env_collection = 'CODEPACK_CODE_SNAPSHOT_COLLECTION'
@@ -75,8 +78,9 @@ def test_default_mongo_code_snapshot_service_with_os_env(default_services):
 
 
 def test_default_memory_delivery_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('cache')
+        config.get_storage_config('cache')
     env_source = 'CODEPACK_CACHE_SOURCE'
     try:
         os.environ[env_source] = 'MEMORY'
@@ -88,8 +92,9 @@ def test_default_memory_delivery_service_with_os_env(default_services):
 
 
 def test_default_file_delivery_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('cache')
+        config.get_storage_config('cache')
     env_source = 'CODEPACK_CACHE_SOURCE'
     env_path = 'CODEPACK_CACHE_PATH'
     try:
@@ -105,8 +110,9 @@ def test_default_file_delivery_service_with_os_env(default_services):
 
 
 def test_default_mongo_delivery_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('cache')
+        config.get_storage_config('cache')
     env_source = 'CODEPACK_CACHE_SOURCE'
     env_db = 'CODEPACK_CACHE_DB'
     env_collection = 'CODEPACK_CACHE_COLLECTION'
@@ -128,8 +134,9 @@ def test_default_mongo_delivery_service_with_os_env(default_services):
 
 
 def test_default_memory_code_storage_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('code')
+        config.get_storage_config('code')
     env_source = 'CODEPACK_CODE_STORAGE_SOURCE'
     try:
         os.environ[env_source] = 'MEMORY'
@@ -142,8 +149,9 @@ def test_default_memory_code_storage_service_with_os_env(default_services):
 
 
 def test_default_file_code_storage_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('cache')
+        config.get_storage_config('cache')
     env_source = 'CODEPACK_CODE_STORAGE_SOURCE'
     env_path = 'CODEPACK_CODE_STORAGE_PATH'
     try:
@@ -160,8 +168,9 @@ def test_default_file_code_storage_service_with_os_env(default_services):
 
 
 def test_default_mongo_code_storage_service_with_os_env(default_services):
+    config = Config()
     with pytest.raises(AssertionError):
-        get_default_service_config('cache')
+        config.get_storage_config('cache')
     env_source = 'CODEPACK_CODE_STORAGE_SOURCE'
     env_db = 'CODEPACK_CODE_STORAGE_DB'
     env_collection = 'CODEPACK_CODE_STORAGE_COLLECTION'
