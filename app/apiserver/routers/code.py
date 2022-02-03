@@ -15,7 +15,7 @@ router = APIRouter(
 
 @router.post('/run/id')
 async def run_by_id(params: CodeID):
-    storage_service = DefaultService.get_default_code_storage_service(obj=Code)
+    storage_service = DefaultService.get_default_code_storage_service(item_type=Code)
     code = storage_service.load(params.id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
@@ -45,7 +45,7 @@ async def update(code: CodeJSON):
 
 @router.get('/remove/{id}')
 async def remove(id: str):
-    storage_service = DefaultService.get_default_code_storage_service(obj=Code)
+    storage_service = DefaultService.get_default_code_storage_service(item_type=Code)
     storage_service.remove(id)
     return {'id': id}
 

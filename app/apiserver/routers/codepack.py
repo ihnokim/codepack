@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.post('/run/id')
 async def run_by_id(params: CodePackID):
-    storage_service = DefaultService.get_default_codepack_storage_service(obj=CodePack)
+    storage_service = DefaultService.get_default_codepack_storage_service(item_type=CodePack)
     codepack = storage_service.load(params.id)
     argpack = ArgPack.from_json(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
@@ -25,9 +25,9 @@ async def run_by_id(params: CodePackID):
 
 @router.post('/run/id-pair')
 async def run_by_id_pair(params: IDPair):
-    codepack_storage_service = DefaultService.get_default_codepack_storage_service(obj=CodePack)
+    codepack_storage_service = DefaultService.get_default_codepack_storage_service(item_type=CodePack)
     codepack = codepack_storage_service.load(params.codepack_id)
-    argpack_storage_service = DefaultService.get_default_argpack_storage_service(obj=ArgPack)
+    argpack_storage_service = DefaultService.get_default_argpack_storage_service(item_type=ArgPack)
     argpack = argpack_storage_service.load(params.argpack_id)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
@@ -58,14 +58,14 @@ async def update(codepack: CodePackJSON):
 
 @router.get('/remove/{id}')
 async def remove(id: str):
-    storage_service = DefaultService.get_default_codepack_storage_service(obj=CodePack)
+    storage_service = DefaultService.get_default_codepack_storage_service(item_type=CodePack)
     storage_service.remove(id)
     return {'id': id}
 
 
 @router.get('/load/{id}')
 async def load(id: str):
-    storage_service = DefaultService.get_default_codepack_storage_service(obj=CodePack)
+    storage_service = DefaultService.get_default_codepack_storage_service(item_type=CodePack)
     codepack = storage_service.load(id)
     return {'codepack': codepack.to_json()}
 
