@@ -13,7 +13,7 @@ def get_default_scheduler(config_path=None):
     config = Config(config_path=config_path)
     storage_config = config.get_storage_config(section='scheduler')
     source = storage_config.pop('source', None)
-    supervisor = storage_config.pop('superviosr', None)
+    supervisor = storage_config.pop('supervisor', None)
     if 'CODEPACK_SCHEDULER_SUPERVISOR' in os.environ:
         supervisor = os.environ['CODEPACK_SCHEDULER_SUPERVISOR']
     cls = SchedulerAlias[source].value

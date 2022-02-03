@@ -25,7 +25,7 @@ async def add_process_time_header(request: Request, call_next):
 @app.on_event('startup')
 async def startup():
     common['config'] = Config()
-    config = common['config'].get_config(section='apiservier')
+    config = common['config'].get_config(section='apiserver')
     supervisor = config.get('supervisor', 'self')
     scheduler = config.get('scheduler', 'self')
     if isinstance(supervisor, Supervisor):
