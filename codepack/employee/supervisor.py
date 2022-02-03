@@ -31,6 +31,7 @@ class Supervisor:
     def run_codepack(self, codepack, argpack=None):
         if isinstance(codepack, CodePack):
             codepack.save_snapshot(argpack=argpack)
+            codepack.init_code_state(state='READY', argpack=argpack)
             for id, code in codepack.codes.items():
                 _kwargs = argpack[id] if id in argpack else None
                 self.run_code(code=code, kwargs=_kwargs)
