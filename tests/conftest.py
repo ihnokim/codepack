@@ -3,7 +3,6 @@ from codepack.interface import MongoDB
 import os
 import mongomock
 from codepack.service import DefaultService
-from codepack import Code, CodePack
 from shutil import rmtree
 from glob import glob
 
@@ -33,8 +32,8 @@ def default_os_env():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
     DefaultService.get_default_delivery_service().init()
     DefaultService.get_default_code_snapshot_service().init()
-    DefaultService.get_default_code_storage_service(item_type=Code).init()
-    DefaultService.get_default_codepack_storage_service(item_type=CodePack).init()
+    DefaultService.get_default_code_storage_service().init()
+    DefaultService.get_default_codepack_storage_service().init()
     yield
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 

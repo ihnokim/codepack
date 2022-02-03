@@ -53,8 +53,7 @@ class Code(CodeBase):
         self.service['snapshot'] =\
             snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
         self.service['storage'] =\
-            storage_service if storage_service else DefaultService.get_default_code_storage_service(item_type=self.__class__,
-                                                                                                    config_path=config_path)
+            storage_service if storage_service else DefaultService.get_default_code_storage_service(config_path=config_path)
 
     def register(self, callback):
         self.callback = callback

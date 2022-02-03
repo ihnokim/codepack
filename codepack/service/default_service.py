@@ -5,6 +5,7 @@ from codepack.utils import Singleton
 from codepack.snapshot import CodeSnapshot, CodePackSnapshot
 from codepack.delivery import Delivery
 from codepack.config import Config
+from importlib import import_module
 
 
 class DefaultService(Singleton):
@@ -48,11 +49,12 @@ class DefaultService(Singleton):
         return cls.delivery_service
 
     @classmethod
-    def get_default_code_storage_service(cls, item_type, config_path=None):
+    def get_default_code_storage_service(cls, config_path=None):
         if not cls.code_storage_service:
             config = Config(config_path=config_path)
             storage_config = config.get_storage_config(section='code_storage')
-            cls.code_storage_service = cls.get_storage_service(item_type=item_type, **storage_config)
+            cls.code_storage_service = cls.get_storage_service(
+                item_type=getattr(import_module('codepack'), 'Code'), **storage_config)
         return cls.code_storage_service
 
     @classmethod
@@ -64,11 +66,12 @@ class DefaultService(Singleton):
         return cls.code_snapshot_service
 
     @classmethod
-    def get_default_codepack_storage_service(cls, item_type, config_path=None):
+    def get_default_codepack_storage_service(cls, config_path=None):
         if not cls.codepack_storage_service:
             config = Config(config_path=config_path)
             storage_config = config.get_storage_config(section='codepack_storage')
-            cls.codepack_storage_service = cls.get_storage_service(item_type=item_type, **storage_config)
+            cls.codepack_storage_service = cls.get_storage_service(
+                item_type=getattr(import_module('codepack'), 'CodePack'), **storage_config)
         return cls.codepack_storage_service
 
     @classmethod
@@ -80,9 +83,10 @@ class DefaultService(Singleton):
         return cls.codepack_snapshot_service
 
     @classmethod
-    def get_default_argpack_storage_service(cls, item_type, config_path=None):
+    def get_default_argpack_storage_service(cls, config_path=None):
         if not cls.argpack_storage_service:
             config = Config(config_path=config_path)
             storage_config = config.get_storage_config(section='argpack_storage')
-            cls.argpack_storage_service = cls.get_storage_service(item_type=item_type, **storage_config)
+            cls.argpack_storage_service = cls.get_storage_service(
+                item_type=getattr(import_module('codepack.argpack'), 'ArgPack'), **storage_config)
         return cls.argpack_storage_service

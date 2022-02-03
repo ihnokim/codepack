@@ -41,11 +41,11 @@ class CodePack(CodePackBase):
             )
         self.service['storage'] =\
             storage_service if storage_service else DefaultService.get_default_codepack_storage_service(
-                item_type=self.__class__, config_path=config_path
+                config_path=config_path
             )
         self.service['argpack'] = \
             argpack_service if argpack_service else DefaultService.get_default_argpack_storage_service(
-                item_type=ArgPack, config_path=config_path
+                config_path=config_path
             )
 
     def make_argpack(self):

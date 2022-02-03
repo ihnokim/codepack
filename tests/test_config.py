@@ -140,7 +140,7 @@ def test_default_memory_code_storage_service_with_os_env(default_services):
     env_source = 'CODEPACK_CODE_STORAGE_SOURCE'
     try:
         os.environ[env_source] = 'MEMORY'
-        mss = default_services.get_default_code_storage_service(item_type=Code)
+        mss = default_services.get_default_code_storage_service()
         assert hasattr(mss, 'memory')
         assert mss.item_type == Code
     finally:
@@ -157,7 +157,7 @@ def test_default_file_code_storage_service_with_os_env(default_services):
     try:
         os.environ[env_source] = 'FILE'
         os.environ[env_path] = 'tmp/'
-        fss = default_services.get_default_code_storage_service(item_type=Code)
+        fss = default_services.get_default_code_storage_service()
         assert hasattr(fss, 'path')
         assert fss.path == 'tmp/'
         assert fss.item_type == Code
@@ -181,7 +181,7 @@ def test_default_mongo_code_storage_service_with_os_env(default_services):
         os.environ[env_db] = 'test'
         os.environ[env_collection] = 'codes'
         os.environ[env_config_path] = 'config/test_conn.ini'
-        mss = default_services.get_default_code_storage_service(item_type=Code)
+        mss = default_services.get_default_code_storage_service()
         assert hasattr(mss, 'mongodb')
         assert mss.item_type == Code
     finally:
