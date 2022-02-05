@@ -46,18 +46,18 @@ class Config:
     def get_storage_config(self, section: str, config_path: str = None):
         config = self.get_config(section=section, config_path=config_path, ignore_error=True)
         ret = dict()
-        ret['source'] = self.get_value(section=section, key='source', config=config).upper()
-        if ret['source'] == 'MEMORY':
+        ret['source'] = self.get_value(section=section, key='source', config=config)
+        if ret['source'] == 'memory':
             pass
-        elif ret['source'] == 'FILE':
+        elif ret['source'] == 'file':
             ret['path'] = self.get_value(section=section, key='path', config=config)
-        elif ret['source'] == 'MONGODB':
+        elif ret['source'] == 'mongodb':
             ret['db'] = self.get_value(section=section, key='db', config=config)
             ret['collection'] = self.get_value(section=section, key='collection', config=config)
             conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
             conn_config_path = self.get_value(section='conn', key='path', config=conn_config)
             ret['mongodb'] = self.parse_config(section='mongodb', config_path=conn_config_path)
-        elif ret['source'] == 'KAFKA':
+        elif ret['source'] == 'kafka':
             ret['topic'] = self.get_value(section=section, key='topic', config=config)
             conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
             conn_config_path = self.get_value(section='conn', key='path', config=conn_config)
