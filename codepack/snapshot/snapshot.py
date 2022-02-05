@@ -1,6 +1,6 @@
 from codepack.storage import Storable
 from datetime import datetime, timezone
-from codepack.utils.state import State
+from codepack.snapshot.state import State
 from copy import deepcopy
 
 

@@ -1,7 +1,7 @@
 from codepack.storage import MongoStorage
 from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
-from codepack.utils.state import State
+from codepack.snapshot import State
 
 
 class MongoSnapshotService(SnapshotService, MongoStorage):

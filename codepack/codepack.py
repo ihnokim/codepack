@@ -2,7 +2,7 @@ from codepack.base import CodeBase, CodePackBase
 from codepack import Code
 from queue import Queue
 from codepack.config import Default
-from codepack.utils.state import State
+from codepack.snapshot import State
 from parse import compile as parser
 from ast import literal_eval
 from codepack.snapshot import CodePackSnapshot
