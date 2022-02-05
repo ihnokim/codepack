@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from ..models.code import CodeID, CodeJSON, SnapshotJSON
-from codepack.service import DefaultService
+from codepack.config import Default
 from codepack import Code
 from codepack.snapshot import CodeSnapshot
 from ..dependencies import common
@@ -15,7 +15,7 @@ router = APIRouter(
 
 @router.post('/run/id')
 async def run_by_id(params: CodeID):
-    storage_service = DefaultService.get_default_code_storage_service()
+    storage_service = Default.get_storage_instance('code', 'storage_service')
     code = storage_service.load(params.id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
@@ -45,7 +45,7 @@ async def update(code: CodeJSON):
 
 @router.get('/remove/{id}')
 async def remove(id: str):
-    storage_service = DefaultService.get_default_code_storage_service()
+    storage_service = Default.get_storage_instance('code', 'storage_service')
     storage_service.remove(id)
     return {'id': id}
 
@@ -58,7 +58,7 @@ async def load(id: str):
 
 @router.get('/state/{serial_number}')
 async def state(serial_number: str):
-    snapshot_service = DefaultService.get_default_code_snapshot_service()
+    snapshot_service = Default.get_storage_instance('code_snapshot', 'snapshot_service')
     ret = snapshot_service.load(serial_number=serial_number, projection={'state'})
     if ret:
         _state = ret['state']
@@ -69,7 +69,7 @@ async def state(serial_number: str):
 
 @router.get('/result/{serial_number}')
 async def result(serial_number: str):
-    delivery_service = DefaultService.get_default_delivery_service()
+    delivery_service = Default.get_storage_instance('delivery', 'delivery_service')
     tmp = delivery_service.check(serial_number=serial_number)
     if tmp:
         _result = delivery_service.receive(serial_number=serial_number)

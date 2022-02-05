@@ -1,7 +1,6 @@
 from codepack.scheduler import Scheduler, get_default_scheduler
-from codepack.config import Config
+from codepack.config import Default
 from fastapi import FastAPI, Request
-from codepack.service import DefaultService
 from codepack.employee import Supervisor
 from .routers import code, codepack, argpack
 from .dependencies import common
@@ -24,8 +23,8 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.on_event('startup')
 async def startup():
-    common['config'] = Config()
-    config = common['config'].get_config(section='apiserver')
+    Default.init()
+    config = Default.config.get_config(section='apiserver')
     supervisor = config.get('supervisor', 'self')
     scheduler = config.get('scheduler', 'self')
     if isinstance(supervisor, Supervisor):
@@ -49,13 +48,7 @@ async def startup():
 @app.on_event('shutdown')
 async def shutdown():
     common.supervisor.producer.close()
-    services = [DefaultService.delivery_service,
-                DefaultService.code_storage_service,
-                DefaultService.code_snapshot_service,
-                DefaultService.codepack_storage_service,
-                DefaultService.codepack_snapshot_service,
-                DefaultService.argpack_storage_service]
-    for service in services:
+    for service in Default.instances.values():
         if hasattr(service, 'mongodb'):
             service.mongodb.close()
     if isinstance(common.scheduler, Scheduler):

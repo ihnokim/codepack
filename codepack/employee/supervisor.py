@@ -1,5 +1,5 @@
 from codepack import Code, CodePack
-from codepack.service import DefaultService
+from codepack.config import Default
 from codepack.snapshot import CodeSnapshot
 from codepack.interface import KafkaProducer
 from codepack.config import Config
@@ -15,7 +15,10 @@ class Supervisor:
             self.producer = KafkaProducer(storage_config['kafka'])
             if self.topic is None:
                 self.topic = storage_config['topic']
-        self.snapshot_service = snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
+        self.snapshot_service =\
+            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot',
+                                                                                   'snapshot_service',
+                                                                                   config_path=config_path)
 
     def run_code(self, code, args=None, kwargs=None):
         if isinstance(code, Code):
