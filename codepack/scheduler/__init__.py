@@ -1,12 +1,7 @@
 from codepack.scheduler.scheduler import Scheduler
 from codepack.scheduler.mongo_scheduler import MongoScheduler
 from codepack.config import Config
-from enum import Enum
 import os
-
-
-class SchedulerAlias(Enum):
-    MONGODB = MongoScheduler
 
 
 def get_default_scheduler(config_path=None):
@@ -16,8 +11,8 @@ def get_default_scheduler(config_path=None):
     supervisor = storage_config.pop('supervisor', None)
     if 'CODEPACK_SCHEDULER_SUPERVISOR' in os.environ:
         supervisor = os.environ['CODEPACK_SCHEDULER_SUPERVISOR']
-    cls = SchedulerAlias[source].value
-    scheduler = cls(**storage_config)
+    # cls = SchedulerAlias[source].value
+    scheduler = MongoScheduler(**storage_config)
     if supervisor:
         if 'CODEPACK_SCHEDULER_SUPERVISOR' not in os.environ:
             os.environ['CODEPACK_SCHEDULER_SUPERVISOR'] = supervisor
