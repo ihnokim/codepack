@@ -10,13 +10,15 @@ class Config:
         self.config_path = config_path
 
     @staticmethod
-    def parse_config(section: str, config_path: str):
+    def parse_config(section: str, config_path: str, ignore_error: bool = False):
         cp = ConfigParser()
         cp.read(config_path)
+        if ignore_error and not cp.has_section(section):
+            return None
         items = cp.items(section)
         return {item[0]: item[1] for item in items}
 
-    def get_config(self, section: str, config_path: str = None, ignore_error=False):
+    def get_config(self, section: str, config_path: str = None, ignore_error: bool = False):
         _config_path = config_path
         if not _config_path:
             _config_path = self.config_path
@@ -30,18 +32,18 @@ class Config:
             raise AttributeError("path of configuration file should be provided in either 'config_path' or os.environ['%s']"
                                  % self.LABEL_CONFIG_PATH)
 
-    def get_value(self, section, key, config=None):
-        env = '%s_%s_%s' % (self.PREFIX, section.upper(), key.upper())
+    @classmethod
+    def get_value(cls, section: str, key: str, config: dict = None):
+        env = '%s_%s_%s' % (cls.PREFIX, section.upper(), key.upper())
         if config:
             ret = config[key]
         elif env in os.environ:
             ret = os.environ.get(env, None)
         else:
-            raise AssertionError("'%s' information should be provided in a configuration file in 'config_path' "
-                                 "or os.environ['%s']" % (section, env))
+            raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
         return ret
 
-    def get_storage_config(self, section, config_path=None):
+    def get_storage_config(self, section: str, config_path: str = None):
         config = self.get_config(section=section, config_path=config_path, ignore_error=True)
         ret = dict()
         ret['source'] = self.get_value(section=section, key='source', config=config).upper()
