@@ -77,3 +77,5 @@ def test_alias_priority2():
 def test_alias_path_argument():
     a = Alias(data='config/alias.ini')
     assert a['memory_storage_service'] == MemoryStorageService
+    b = Alias(data='config/test.ini')
+    assert b['memory_storage_service'] == MemoryStorageService
