@@ -1,8 +1,8 @@
-from codepack.scheduler import Scheduler, get_default_scheduler
+from codepack.scheduler import Scheduler
 from codepack.config import Default
 from fastapi import FastAPI, Request
 from codepack.employee import Supervisor
-from .routers import code, codepack, argpack
+from .routers import code, codepack, argpack, scheduler
 from .dependencies import common
 
 
@@ -10,6 +10,7 @@ app = FastAPI()
 app.include_router(code.router)
 app.include_router(codepack.router)
 app.include_router(argpack.router)
+app.include_router(scheduler.router)
 
 
 @app.middleware('http')
@@ -26,23 +27,23 @@ async def startup():
     Default.init()
     config = Default.config.get_config(section='apiserver')
     supervisor = config.get('supervisor', 'self')
-    scheduler = config.get('scheduler', 'self')
+    _scheduler = config.get('scheduler', 'self')
     if isinstance(supervisor, Supervisor):
         common['supervisor'] = supervisor
     elif isinstance(supervisor, str):
         if supervisor == 'self':
-            common['supervisor'] = Supervisor()
+            common['supervisor'] = Default.get_employee('supervisor')
         else:
             raise NotImplementedError("supervisor should be 'self', not '%s'")
-    if isinstance(scheduler, Scheduler):
-        common['scheduler'] = scheduler
+    if isinstance(_scheduler, Scheduler):
+        common['scheduler'] = _scheduler
         common.scheduler.start()
-    elif isinstance(scheduler, str):
-        if scheduler == 'self':
-            common['scheduler'] = get_default_scheduler()
+    elif isinstance(_scheduler, str):
+        if _scheduler == 'self':
+            common['scheduler'] = Default.get_scheduler()
             common.scheduler.start()
         else:
-            common['scheduler'] = scheduler
+            common['scheduler'] = _scheduler
 
 
 @app.on_event('shutdown')
