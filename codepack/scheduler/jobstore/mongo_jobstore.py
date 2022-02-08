@@ -21,6 +21,7 @@ class MongoJobStore(MongoDBJobStore):
                 '_id': job.id,
                 'trigger': job.trigger.__str__(),
                 'codepack': job.kwargs['snapshot']['id'],
+                'argpack': job.kwargs['snapshot']['argpack']['_id'],
                 'snapshot': job.kwargs['snapshot']['serial_number'],
                 'last_run_time': datetime.now(timezone.utc).timestamp(),
                 'next_run_time': utc_timestamp,

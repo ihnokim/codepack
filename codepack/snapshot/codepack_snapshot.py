@@ -31,9 +31,12 @@ class CodePackSnapshot(Snapshot):
     def set_argpack(self, argpack=None):
         if isinstance(argpack, ArgPack):
             tmp = argpack.to_dict()
-            tmp.pop('_id', None)
         elif isinstance(argpack, dict):
             tmp = deepcopy(argpack)
+            if '_id' not in tmp:
+                tmp['_id'] = None
+        elif argpack is None:
+            tmp = {'_id': None}
         else:
             tmp = dict()
         self.__setitem__('argpack', tmp)
