@@ -13,6 +13,7 @@ class IDPair(BaseModel):
 
 class CodePackJSON(BaseModel):
     codepack: str
+    argpack: str = '{}'
 
 
 class SnapshotJSON(BaseModel):

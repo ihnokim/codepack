@@ -14,6 +14,14 @@ router = APIRouter(
 )
 
 
+@router.post('/run')
+async def run(params: CodePackJSON):
+    codepack = CodePack.from_json(params.codepack)
+    argpack = ArgPack.from_json(params.argpack)
+    common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
+    return {'serial_number': codepack.serial_number}
+
+
 @router.post('/run/id')
 async def run_by_id(params: CodePackID):
     storage_service = Default.get_storage_instance('codepack', 'storage_service')

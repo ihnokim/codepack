@@ -13,6 +13,13 @@ router = APIRouter(
 )
 
 
+@router.post('/run')
+async def run(params: CodeJSON):
+    code = Code.from_json(params.code)
+    common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
+    return {'serial_number': code.serial_number}
+
+
 @router.post('/run/id')
 async def run_by_id(params: CodeID):
     storage_service = Default.get_storage_instance('code', 'storage_service')

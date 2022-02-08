@@ -9,6 +9,8 @@ class CodeID(BaseModel):
 
 class CodeJSON(BaseModel):
     code: str
+    args: tuple = ()
+    kwargs: dict = {}
 
 
 class SnapshotJSON(BaseModel):
