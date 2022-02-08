@@ -6,7 +6,7 @@ from typing import Type
 
 
 class FileStorage(Storage):
-    def __init__(self, item_type: Type[Storable], path: str = '.'):
+    def __init__(self, item_type: Type[Storable] = None, path: str = '.'):
         super().__init__(item_type=item_type)
         self.path = None
         self.new_path = None

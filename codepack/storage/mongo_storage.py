@@ -5,7 +5,7 @@ from typing import Type
 
 
 class MongoStorage(Storage):
-    def __init__(self, item_type: Type[Storable],
+    def __init__(self, item_type: Type[Storable] = None,
                  mongodb: Union[MongoDB, dict] = None, db: str = None, collection: str = None, *args, **kwargs):
         super().__init__(item_type=item_type)
         self.mongodb = None

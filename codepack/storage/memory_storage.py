@@ -3,7 +3,7 @@ from typing import Type
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Type[Storable]):
+    def __init__(self, item_type: Type[Storable] = None):
         super().__init__(item_type=item_type)
         self.memory = None
         self.init()
