@@ -6,17 +6,26 @@ from codepack.snapshot import CodePackSnapshot
 from codepack.employee import Supervisor
 import requests
 import json
-import os
 
 
 class Scheduler(metaclass=abc.ABCMeta):
-    def __init__(self, callback=None, blocking=False):
+    supervisor = None
+
+    def __init__(self, callback=None, blocking=False, supervisor=None):
         self.scheduler = None
         self.jobstores = dict()
         self.jobstores['codepack'] = self.get_jobstore()
         self.callback = None
         self.init_scheduler(blocking=blocking)
         self.register(callback)
+        if isinstance(supervisor, str) or isinstance(supervisor, Supervisor) or supervisor is None:
+            self.init_supervisor(supervisor=supervisor)
+        else:
+            raise TypeError(type(supervisor))
+
+    @classmethod
+    def init_supervisor(cls, supervisor):
+        Scheduler.supervisor = supervisor
 
     def register(self, callback):
         self.callback = callback
@@ -62,11 +71,13 @@ class Scheduler(metaclass=abc.ABCMeta):
     def remove_job(self, job_id, **kwargs):
         return self.scheduler.remove_job(job_id=job_id, **kwargs)
 
-    def _get_callback(self, callback):
+    def _get_callback(self, callback=None):
         if callback:
             _callback = callback
         elif self.callback:
             _callback = self.callback
+        elif self.supervisor:
+            _callback = self.request_to_supervisor
         else:
             _callback = self.run_snapshot
         return _callback
@@ -94,8 +105,13 @@ class Scheduler(metaclass=abc.ABCMeta):
     @staticmethod
     def request_to_supervisor(snapshot):
         _snapshot = Scheduler._get_snapshot(snapshot)
-        return requests.post('%s/codepack/run/snapshot' % os.environ['CODEPACK_SCHEDULER_SUPERVISOR'],
-                             data=json.dumps({'snapshot': _snapshot.to_json()}))
+        if isinstance(Scheduler.supervisor, str):
+            return requests.post('%s/codepack/run/snapshot' % Scheduler.supervisor,
+                                 data=json.dumps({'snapshot': _snapshot.to_json()}))
+        else:
+            codepack = Scheduler._get_codepack(_snapshot)
+            argpack = Scheduler._get_argpack(_snapshot)
+            return Scheduler.supervisor.run_codepack(codepack=codepack, argpack=argpack)
 
     @staticmethod
     def run_snapshot(snapshot):
