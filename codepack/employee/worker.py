@@ -1,37 +1,21 @@
 import requests
 from codepack import Code
 from codepack.snapshot import CodeSnapshot
-from codepack.interface import KafkaConsumer
-from codepack.config import Config
 from codepack.employee.supervisor import Supervisor
+from codepack.storage import KafkaStorage
 
 
-class Worker:
-    def __init__(self, consumer=None, interval=None, callback=None, supervisor=None, config_path=None):
-        self.consumer = consumer
+class Worker(KafkaStorage):
+    def __init__(self, consumer=None, interval=1, callback=None, supervisor=None, consumer_config=None):
+        KafkaStorage.__init__(self, consumer=consumer, consumer_config=consumer_config)
         self.interval = interval
         self.supervisor = supervisor
         self.callback = callback
-        new_consumer = False
-        if self.consumer is None:
-            config = Config(config_path=config_path)
-            storage_config = config.get_storage_config(section='worker')
-            consumer_config = storage_config['kafka']
-            for k, v in storage_config.items():
-                if k not in ['kafka', 'interval', 'source', 'supervisor']:
-                    consumer_config[k] = v
-            self.consumer = KafkaConsumer(consumer_config)
-            new_consumer = True
-            if self.interval is None:
-                self.interval = storage_config.get('interval', 1)
-            if self.supervisor is None:
-                self.supervisor = storage_config.get('supervisor', None)
         if self.supervisor and not self.callback:
             if isinstance(self.supervisor, str) or isinstance(self.supervisor, Supervisor):
                 self.callback = self.inform_supervisor_of_termination
             else:
-                if new_consumer:
-                    self.consumer.close()
+                self.close()
                 raise TypeError(type(self.supervisor))
         self.register(callback=self.callback)
 
