@@ -10,3 +10,5 @@ parse==1.19.0
 APScheduler==3.8.1
 mongomock==3.23.0
 kafka-python==2.0.2
+docker==5.0.3
+requests==2.26.0
