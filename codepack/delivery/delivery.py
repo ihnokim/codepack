@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Delivery(Storable):
     def __init__(self, id, serial_number, item=None, timestamp=None):
-        super().__init__(id=id, serial_number=serial_number)
+        Storable.__init__(self, id=id, serial_number=serial_number)
         self.item = item
         self.timestamp = timestamp if timestamp else datetime.now().timestamp()
 

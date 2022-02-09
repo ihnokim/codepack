@@ -8,7 +8,7 @@ class CodePackSnapshot(Snapshot):
         if codepack:
             _id = codepack.id
             _serial_number = codepack.serial_number
-            _state = codepack.get_state()
+            _state = None
             _codes = {k: v.serial_number for k, v in codepack.codes.items()}
             _source = codepack.get_source()
             _structure = codepack.get_structure()
@@ -31,9 +31,12 @@ class CodePackSnapshot(Snapshot):
     def set_argpack(self, argpack=None):
         if isinstance(argpack, ArgPack):
             tmp = argpack.to_dict()
-            tmp.pop('_id', None)
         elif isinstance(argpack, dict):
             tmp = deepcopy(argpack)
+            if '_id' not in tmp:
+                tmp['_id'] = None
+        elif argpack is None:
+            tmp = {'_id': None}
         else:
             tmp = dict()
         self.__setitem__('argpack', tmp)

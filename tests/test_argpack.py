@@ -1,5 +1,4 @@
 from codepack import Code, CodePack
-from codepack.argpack import Arg, ArgPack
 from codepack.snapshot import CodePackSnapshot
 from tests import *
 import pytest
@@ -62,7 +61,7 @@ def test_argpack_str(default_os_env):
     code2.receive('b') << code1
     codepack = CodePack(id='argpack_test', code=code1, subscribe=code2)
     argpack = codepack.make_argpack()
-    assert argpack.__str__() == 'ArgPack(add2(a=None, b=None), mul2(a=None))'
+    assert argpack.__str__() == 'ArgPack(id: argpack_test, args: {add2(a=None, b=None), mul2(a=None)})'
     argpack['add2'](a=3, b=2)
     with pytest.raises(TypeError):
         argpack['mul2'](c=5)
@@ -70,5 +69,5 @@ def test_argpack_str(default_os_env):
     assert argpack['add2']['a'] == 3
     assert argpack['add2']['b'] == 2
     assert argpack['mul2']['a'] == 2
-    assert argpack.__str__() == 'ArgPack(add2(a=3, b=2), mul2(a=2))'
+    assert argpack.__str__() == 'ArgPack(id: argpack_test, args: {add2(a=3, b=2), mul2(a=2)})'
     assert codepack(argpack=argpack) == 10

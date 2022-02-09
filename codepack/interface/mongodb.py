@@ -13,21 +13,21 @@ class MongoDB(Interface):
         if 'connect' in _config:
             _config['connect'] = self.eval_bool(_config['connect'])
         self.session = MongoClient(host=host, port=port, *args, **_config, **kwargs)
-        self.closed = False
+        self._closed = False
         return self.session
 
     def __getitem__(self, item):
-        assert not self.closed, "connection is closed"
+        assert not self.closed(), "connection is closed"
         return self.session[item]
 
     def __getattr__(self, item):
-        assert not self.closed, "connection is closed"
+        assert not self.closed(), "connection is closed"
         return self.__getitem__(item)
 
     def close(self):
         self.session.close()
-        if not self.closed:
+        if not self.closed():
             if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None
-            self.closed = True
+            self._closed = True

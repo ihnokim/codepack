@@ -1,5 +1,5 @@
 import abc
-from codepack.service import DefaultService
+from codepack.config import Default
 
 
 class Engine(metaclass=abc.ABCMeta):
@@ -7,7 +7,10 @@ class Engine(metaclass=abc.ABCMeta):
         """initialize instance"""
         self.callback = callback
         self.interval = interval
-        self.snapshot_service = snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
+        self.snapshot_service =\
+            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot',
+                                                                                   'snapshot_service',
+                                                                                   config_path=config_path)
 
     @abc.abstractmethod
     def start(self):
