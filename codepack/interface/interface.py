@@ -10,7 +10,7 @@ class Interface(metaclass=abc.ABCMeta):
         self.ssh_config = None
         self.ssh = None
         self.session = None
-        self.closed = True
+        self._closed = True
         self.init_config(config)
 
     def init_config(self, config):
@@ -33,6 +33,9 @@ class Interface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def close(self):
         """close the connection to the server"""
+
+    def closed(self):
+        return self._closed
 
     @staticmethod
     def exclude_keys(d, keys):
