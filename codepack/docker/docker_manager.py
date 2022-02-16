@@ -3,19 +3,21 @@ from docker import from_env
 from docker.errors import ImageNotFound
 from shutil import rmtree
 from typing import Union
-import codepack.interface
 from docker import DockerClient
+from codepack.interface import Docker
 
 
 class DockerManager:
     CONTAINER_WORKDIR = '/usr/src/codepack'
 
-    def __init__(self, docker: Union[codepack.interface.Docker, DockerClient], path: str = './'):
-        self.docker = docker
+    def __init__(self, docker: Union[Docker, DockerClient] = None, path: str = './'):
+        if docker is None:
+            self.docker = Docker()
+        else:
+            self.docker = docker
         self.path = path
 
     def get_image(self, image: str):
-        self.docker = from_env()
         ret = None
         try:
             ret = self.docker.images.get(image)
