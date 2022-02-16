@@ -2,8 +2,7 @@ import pytest
 from codepack.interface import MongoDB
 import os
 import mongomock
-from codepack.service import DefaultService
-from codepack import Code, CodePack
+from codepack.config import Default
 from shutil import rmtree
 from glob import glob
 
@@ -31,10 +30,10 @@ def empty_dir(directory):
 @pytest.fixture(scope='function', autouse=False)
 def default_os_env():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
-    DefaultService.get_default_delivery_service().init()
-    DefaultService.get_default_code_snapshot_service().init()
-    DefaultService.get_default_code_storage_service(obj=Code).init()
-    DefaultService.get_default_codepack_storage_service(obj=CodePack).init()
+    Default.get_storage_instance('delivery', 'delivery_service').init()
+    Default.get_storage_instance('code_snapshot', 'snapshot_service').init()
+    Default.get_storage_instance('code', 'storage_service').init()
+    Default.get_storage_instance('codepack', 'storage_service').init()
     yield
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 
@@ -55,6 +54,7 @@ def testdir():
     mkdir(rootdir + 'state_manager/')
     mkdir(rootdir + 'storage_service/')
     mkdir(rootdir + 'snapshot_service/')
+    mkdir(rootdir + 'docker_test/')
     yield
     rmdir(rootdir)
 
@@ -83,13 +83,23 @@ def testdir_snapshot_service():
     empty_dir(directory)
 
 
+@pytest.fixture(scope='function', autouse=False)
+def testdir_docker_manager():
+    directory = 'testdir/docker_test/'
+    empty_dir(directory)
+    yield directory
+    empty_dir(directory)
+
+
 @pytest.fixture(scope='function', autouse=True)
-def init_default_service():
-    DefaultService.init()
+def init_default():
+    Default.init()
 
 
 @pytest.fixture(scope='function', autouse=False)
-def default_services():
-    DefaultService.init()
-    yield DefaultService
-    DefaultService.init()
+def default():
+    os.environ['CODEPACK_ALIAS_PATH'] = 'config/alias.ini'
+    Default.init()
+    yield Default
+    Default.init()
+    os.environ.pop('CODEPACK_ALIAS_PATH', None)

@@ -4,12 +4,17 @@ from collections.abc import Iterable
 
 
 class MemoryStorageService(StorageService, MemoryStorage):
-    def __init__(self, obj=None):
-        MemoryStorage.__init__(self, obj=obj)
+    def __init__(self, item_type=None):
+        MemoryStorage.__init__(self, item_type=item_type)
 
-    def save(self, item):
-        if isinstance(item, self.obj):
-            self.memory[item.id] = item
+    def save(self, item, update=False):
+        if isinstance(item, self.item_type):
+            if update:
+                self.memory[item.id] = item
+            elif self.check(item.id):
+                raise ValueError('%s already exists' % item.id)
+            else:
+                self.memory[item.id] = item
         else:
             raise TypeError(type(item))
 

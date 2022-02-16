@@ -8,7 +8,7 @@ import os
 
 
 def test_memory_code_snapshot_service_save_and_load(default_os_env):
-    mss = MemorySnapshotService(obj=CodeSnapshot)
+    mss = MemorySnapshotService(item_type=CodeSnapshot)
     mss.init()
     code = Code(add2)
     snapshot = CodeSnapshot(code)
@@ -24,7 +24,7 @@ def test_memory_code_snapshot_service_save_and_load(default_os_env):
 
 
 def test_memory_code_snapshot_service_search_and_remove(default_os_env):
-    mss = MemorySnapshotService(obj=CodeSnapshot)
+    mss = MemorySnapshotService(item_type=CodeSnapshot)
     mss.init()
     code1 = Code(add2)
     code2 = Code(add3)
@@ -58,7 +58,7 @@ def test_memory_code_snapshot_service_search_and_remove(default_os_env):
 
 
 def test_memory_snapshot_service_update():
-    mss = MemorySnapshotService(obj=Snapshot)
+    mss = MemorySnapshotService(item_type=Snapshot)
     mss.init()
     timestamp = datetime.now().timestamp()
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
@@ -72,7 +72,7 @@ def test_memory_snapshot_service_update():
 
 
 def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapshot_service):
-    fss = FileSnapshotService(obj=CodeSnapshot, path=testdir_snapshot_service)
+    fss = FileSnapshotService(item_type=CodeSnapshot, path=testdir_snapshot_service)
     code = Code(add2)
     snapshot = CodeSnapshot(code)
     fss.save(snapshot=snapshot)
@@ -87,7 +87,7 @@ def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapsh
 
 
 def test_file_code_snapshot_service_search_and_remove(default_os_env, testdir_snapshot_service):
-    fss = FileSnapshotService(obj=CodeSnapshot, path=testdir_snapshot_service)
+    fss = FileSnapshotService(item_type=CodeSnapshot, path=testdir_snapshot_service)
     code1 = Code(add2)
     code2 = Code(add3)
     code1 >> code2
@@ -120,7 +120,7 @@ def test_file_code_snapshot_service_search_and_remove(default_os_env, testdir_sn
 
 
 def test_file_snapshot_service_update(testdir_snapshot_service):
-    fss = FileSnapshotService(obj=Snapshot, path=testdir_snapshot_service)
+    fss = FileSnapshotService(item_type=Snapshot, path=testdir_snapshot_service)
     timestamp = datetime.now().timestamp()
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
     snapshot2 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
@@ -135,7 +135,7 @@ def test_file_snapshot_service_update(testdir_snapshot_service):
 def test_mongo_code_snapshot_service_save_and_load(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'snapshot'
-    mss = MongoSnapshotService(obj=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoSnapshotService(item_type=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
     code = Code(add2)
     snapshot = CodeSnapshot(code)
     mss.save(snapshot=snapshot)
@@ -152,7 +152,7 @@ def test_mongo_code_snapshot_service_save_and_load(default_os_env, fake_mongodb)
 def test_mongo_code_snapshot_service_search_and_remove(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'snapshot'
-    mss = MongoSnapshotService(obj=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoSnapshotService(item_type=CodeSnapshot, mongodb=fake_mongodb, db=db, collection=collection)
     code1 = Code(add2)
     code2 = Code(add3)
     code1 >> code2
@@ -187,7 +187,7 @@ def test_mongo_code_snapshot_service_search_and_remove(default_os_env, fake_mong
 def test_mongo_snapshot_service_update(fake_mongodb):
     db = 'test'
     collection = 'snapshot'
-    mss = MongoSnapshotService(obj=Snapshot, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoSnapshotService(item_type=Snapshot, mongodb=fake_mongodb, db=db, collection=collection)
     timestamp = datetime.now().timestamp()
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
     snapshot2 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)

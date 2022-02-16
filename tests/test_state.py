@@ -1,7 +1,6 @@
-from codepack.utils.state import State
 from codepack import Code
 from tests import *
-from codepack.snapshot import Snapshot
+from codepack.snapshot import Snapshot, State
 
 
 def test_state_eq():
@@ -32,7 +31,7 @@ def test_code_waiting(default_os_env):
     code2.receive('b') << code1
     code2(3, c=2)
     assert code2.get_state() == 'WAITING'
-    snapshot = code2.service['snapshot_service'].load(serial_number=code2.serial_number)
+    snapshot = code2.service['snapshot'].load(serial_number=code2.serial_number)
     assert 'args' in snapshot
     assert isinstance(snapshot['args'], list)
     assert len(snapshot['args']) == 1

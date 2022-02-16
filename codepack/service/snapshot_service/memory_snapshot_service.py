@@ -4,14 +4,14 @@ from collections.abc import Iterable
 
 
 class MemorySnapshotService(SnapshotService, MemoryStorage):
-    def __init__(self, obj=None):
-        MemoryStorage.__init__(self, obj=obj)
+    def __init__(self, item_type=None):
+        MemoryStorage.__init__(self, item_type=item_type)
 
     def save(self, snapshot):
-        if isinstance(snapshot, self.obj):
+        if isinstance(snapshot, self.item_type):
             d = self.load(snapshot.serial_number)
             if d:
-                for key, value in self.obj.from_dict(d).diff(snapshot).items():
+                for key, value in self.item_type.from_dict(d).diff(snapshot).items():
                     self.memory[snapshot.serial_number][key] = value
             else:
                 self.memory[snapshot.serial_number] = snapshot

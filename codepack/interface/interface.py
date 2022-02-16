@@ -1,6 +1,6 @@
 import abc
 from sshtunnel import SSHTunnelForwarder
-from codepack.utils.config import get_config
+from codepack.config import Config
 from copy import deepcopy
 
 
@@ -10,16 +10,16 @@ class Interface(metaclass=abc.ABCMeta):
         self.ssh_config = None
         self.ssh = None
         self.session = None
-        self.closed = True
+        self._closed = True
         self.init_config(config)
 
     def init_config(self, config):
         _config = deepcopy(config)
-        if 'sshtunnel' in _config:
+        if _config and 'sshtunnel' in _config:
             _ssh_config = _config.pop('sshtunnel')
             if isinstance(_ssh_config, str):
                 config_path, section = _ssh_config.split(':')
-                self.ssh_config = get_config(filename=config_path, section=section)
+                self.ssh_config = Config.parse_config(section=section, config_path=config_path)
             elif isinstance(_ssh_config, dict):
                 self.ssh_config = _ssh_config
             else:
@@ -33,6 +33,9 @@ class Interface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def close(self):
         """close the connection to the server"""
+
+    def closed(self):
+        return self._closed
 
     @staticmethod
     def exclude_keys(d, keys):

@@ -32,11 +32,11 @@ class OracleDB(SQLInterface):
             kwargs = self.exclude_keys(kwargs, keys=['as_dict'])
         _config = self.exclude_keys(self.config, keys=exclude_keys)
         self.session = cx_Oracle.connect(dsn=dsn, *args, **_config, **kwargs)
-        self.closed = False
+        self._closed = False
         return self.session
 
     def query(self, q, commit=False):
-        assert not self.closed, "connection is closed"
+        assert not self.closed(), "connection is closed"
         columns = None
         rows = None
         try:
@@ -66,9 +66,9 @@ class OracleDB(SQLInterface):
                 return None
 
     def close(self):
-        if not self.closed:
+        if not self.closed():
             self.session.close()
             if self.ssh_config and self.ssh is not None:
                 self.ssh.stop()
                 self.ssh = None
-            self.closed = True
+            self._closed = True
