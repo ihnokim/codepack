@@ -1,8 +1,8 @@
 from codepack.docker import DockerManager
 
 
-def test_make_dockerfile():
-    ret = DockerManager.make_dockerfile(path='docker_test', base_image='python:3.7-slim',
+def test_make_dockerfile(testdir_docker_manager):
+    ret = DockerManager.make_dockerfile(path='testdir/docker_test', base_image='python:3.7-slim',
                                         args={'http_proxy': "http://1.2.3.4:5678", 'https_proxy': "''"},
                                         requirements=['pymongo==3.12.1', 'numpy'],
                                         pip_options={'upgrade': None,

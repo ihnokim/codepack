@@ -55,6 +55,7 @@ def testdir():
     mkdir(rootdir + 'state_manager/')
     mkdir(rootdir + 'storage_service/')
     mkdir(rootdir + 'snapshot_service/')
+    mkdir(rootdir + 'docker_test/')
     yield
     rmdir(rootdir)
 
@@ -78,6 +79,14 @@ def testdir_storage_service():
 @pytest.fixture(scope='function', autouse=False)
 def testdir_snapshot_service():
     directory = 'testdir/snapshot_service/'
+    empty_dir(directory)
+    yield directory
+    empty_dir(directory)
+
+
+@pytest.fixture(scope='function', autouse=False)
+def testdir_docker_manager():
+    directory = 'testdir/docker_test/'
     empty_dir(directory)
     yield directory
     empty_dir(directory)
