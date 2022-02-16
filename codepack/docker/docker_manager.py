@@ -1,5 +1,4 @@
 import os
-from docker import from_env
 from docker.errors import ImageNotFound
 from shutil import rmtree
 from typing import Union
@@ -35,6 +34,12 @@ class DockerManager:
     def run(self, image: str, **kwargs):
         return self.docker.containers.run(image=image, volumes=['%s:%s' % (os.path.abspath(self.path), self.CONTAINER_WORKDIR)],
                                           working_dir=self.CONTAINER_WORKDIR, auto_remove=True, name=id(self), **kwargs)
+
+    @staticmethod
+    def extract_requirements_from_file(path: str):
+        with open(path, 'r') as f:
+            lines = f.readlines()
+        return [line.strip() for line in lines]
 
     @staticmethod
     def _collect_requirements_in_dict(r: list, d: dict):
