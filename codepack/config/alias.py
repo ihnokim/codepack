@@ -40,7 +40,9 @@ class Alias:
             aliases = Config.parse_config(section='alias', config_path=os.environ['%s_ALIAS_PATH' % Config.PREFIX])
             path = aliases[item]
         elif Config.LABEL_CONFIG_PATH in os.environ:
-            config = Config.parse_config(section='alias', config_path=os.environ.get(Config.LABEL_CONFIG_PATH), ignore_error=True)
+            config = Config.parse_config(section='alias',
+                                         config_path=Config.get_config_path(os.environ.get(Config.LABEL_CONFIG_PATH)),
+                                         ignore_error=True)
             alias_path = Config.get_value(section='alias', key='path', config=config)
             aliases = Config.parse_config(section='alias', config_path=alias_path)
             path = aliases[item]

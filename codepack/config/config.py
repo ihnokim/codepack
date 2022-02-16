@@ -4,6 +4,7 @@ import os
 
 class Config:
     PREFIX = 'CODEPACK'
+    LABEL_CONFIG_DIR = '%s_CONFIG_DIR' % PREFIX
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
 
     def __init__(self, config_path: str = None):
@@ -23,7 +24,9 @@ class Config:
         if not _config_path:
             _config_path = self.config_path
         if not _config_path:
-            _config_path = os.environ.get(self.LABEL_CONFIG_PATH, None)
+            tmp = os.environ.get(self.LABEL_CONFIG_PATH, None)
+            if tmp:
+                _config_path = self.get_config_path(tmp)
         if _config_path:
             return self.parse_config(section=section, config_path=_config_path)
         elif ignore_error:
@@ -41,6 +44,8 @@ class Config:
             ret = os.environ.get(env, None)
         else:
             raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
+        if key == 'path':
+            ret = cls.get_config_path(ret)
         return ret
 
     def get_storage_config(self, section: str, config_path: str = None):
@@ -68,4 +73,16 @@ class Config:
             for k in config:
                 if k not in ret:
                     ret[k] = self.get_value(section=section, key=k, config=config)
+        return ret
+
+    @classmethod
+    def get_config_path(cls, path: str):
+        ret = path
+        if not os.path.exists(path):
+            if cls.LABEL_CONFIG_DIR in os.environ:
+                ret = os.path.join(os.environ.get(cls.LABEL_CONFIG_DIR), ret)
+            else:
+                raise AssertionError("config directory should be provided in os.environ['%s']" % cls.LABEL_CONFIG_DIR)
+        if not os.path.exists(ret):
+            raise FileNotFoundError("'%s' does not exist" % ret)
         return ret

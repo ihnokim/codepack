@@ -31,10 +31,12 @@ def test_alias_from_config_path_os_env():
     assert a.aliases is None
     with pytest.raises(AttributeError):
         tmp = a['memory_storage_service']
-    os_env = 'CODEPACK_CONFIG_PATH'
-    os.environ[os_env] = 'config/test.ini'
+    os_env1 = 'CODEPACK_CONFIG_DIR'
+    os_env2 = 'CODEPACK_CONFIG_PATH'
+    os.environ[os_env1] = 'config'
+    os.environ[os_env2] = 'test.ini'
     assert a['memory_storage_service'] == MemoryStorageService
-    os.environ.pop(os_env)
+    os.environ.pop(os_env2)
 
 
 def test_alias_priority1():
