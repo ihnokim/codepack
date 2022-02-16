@@ -13,6 +13,7 @@ class CodePackSnapshot(Snapshot):
             _source = codepack.get_source()
             _structure = codepack.get_structure()
             _subscribe = codepack.subscribe
+            _owner = codepack.owner
         else:
             _id = None
             _serial_number = None
@@ -21,7 +22,8 @@ class CodePackSnapshot(Snapshot):
             _source = None
             _structure = None
             _subscribe = None
-        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp)
+            _owner = 'unknown'
+        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp, owner=_owner)
         self.__setitem__('codes', _codes)
         self.__setitem__('source', _source)
         self.__setitem__('structure', _structure)

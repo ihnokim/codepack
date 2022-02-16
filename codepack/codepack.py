@@ -11,11 +11,12 @@ from codepack.argpack import ArgPack
 
 class CodePack(CodePackBase):
     def __init__(self, id, code, subscribe=None, serial_number=None, config_path=None,
-                 snapshot_service=None, storage_service=None, argpack_service=None):
+                 snapshot_service=None, storage_service=None, argpack_service=None, owner='unknown'):
         super().__init__(id=id, serial_number=serial_number)
         self.root = None
         self.roots = None
         self.service = None
+        self.owner = owner
         self.set_root(code)
         if isinstance(subscribe, CodeBase):
             self.subscribe = subscribe.id
@@ -184,11 +185,12 @@ class CodePack(CodePackBase):
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
         d['source'] = self.get_source()
+        d['owner'] = self.owner
         return d
 
     @classmethod
     def from_dict(cls, d):
-        p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive})')
+        p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive}, image: {image}, owner: {owner})')
         root = None
         stack = list()
         codes = dict()
@@ -198,7 +200,7 @@ class CodePack(CodePackBase):
             hierarchy = len(line[1: split_idx-1])
             attr = p.parse(line[split_idx:])
             if attr['id'] not in codes:
-                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']])
+                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']], image=attr['image'], owner=attr['owner'])
             code = codes[attr['id']]
             receive[code.id] = literal_eval(attr['receive'])
             if i == 0:
@@ -215,7 +217,7 @@ class CodePack(CodePackBase):
         for id, code in codes.items():
             for arg, sender in receive[id].items():
                 code.receive(arg) << codes[sender]
-        return cls(d['_id'], code=root, subscribe=d['subscribe'])
+        return cls(d['_id'], code=root, subscribe=d['subscribe'], owner=d['owner'])
 
     def get_source(self):
         return {id: code.source for id, code in self.codes.items()}
