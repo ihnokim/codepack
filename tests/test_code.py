@@ -20,10 +20,10 @@ def test_print_info(default_os_env):
     code2 = Code(add3)
     code1 >> code2
     code2.receive('b') << code1
-    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}, state: UNKNOWN)"
-    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {})"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'})"
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}, image: None, owner: unknown, state: UNKNOWN)"
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, image: None, owner: unknown, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}, image: None, owner: unknown)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, image: None, owner: unknown)"
 
 
 def test_get_function_from_source(default_os_env):
