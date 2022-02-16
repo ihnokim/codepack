@@ -66,7 +66,7 @@ class DockerManager:
         return ret
 
     @staticmethod
-    def make_dockerfile(path: str, base_image: str, args: dict = None, envs: dict = None,
+    def make_dockerfile(base_image: str, path: str = './', args: dict = None, envs: dict = None,
                         requirements: list = None, pip_options: dict = None):
         ret = str()
         if args is None:
