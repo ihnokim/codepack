@@ -24,4 +24,5 @@ def test_extract_requirements_from_file():
     assert requirements == ['dill==0.3.4', 'pymongo==3.12.1', 'numpy',
                             'sshtunnel==0.4.0', 'PyMySQL==1.0.2', 'pymssql==2.2.2',
                             'boto3==1.19.6', 'cx-Oracle==8.2.1', 'parse==1.19.0',
-                            'APScheduler==3.8.1', 'mongomock==3.23.0', 'docker']
+                            'APScheduler==3.8.1', 'kafka-python==2.0.2',
+                            'docker==5.0.3', 'requests==2.26.0']
