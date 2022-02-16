@@ -44,7 +44,7 @@ class Config:
             ret = os.environ.get(env, None)
         else:
             raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
-        if key == 'path':
+        if key == 'path' and section in {'conn', 'alias'}:
             ret = cls.get_config_path(ret)
         return ret
 

@@ -231,8 +231,8 @@ def test_config_dir():
     path = Config.get_value(section='?', key='path', config={'path': 'config/alias.ini'})
     assert path == 'config/alias.ini'
     with pytest.raises(AssertionError):
-        path = Config.get_value(section='?', key='path', config={'path': 'alias.ini'})
+        path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-    path = Config.get_value(section='?', key='path', config={'path': 'alias.ini'})
+    path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
     assert path == os.path.join('config', 'alias.ini')
     os.environ.pop('CODEPACK_CONFIG_DIR', None)
