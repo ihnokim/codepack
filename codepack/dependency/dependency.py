@@ -1,4 +1,3 @@
-from codepack.base import CodeBase
 from codepack.storage import Storable
 
 
@@ -11,7 +10,7 @@ class Dependency(Storable):
         self.depend_on(id=id, serial_number=serial_number, arg=arg)
 
     def __lshift__(self, sender):
-        if isinstance(sender, CodeBase):
+        if isinstance(sender, Storable):
             self.depend_on(id=sender.id, serial_number=sender.serial_number, arg=self.arg)
         elif isinstance(sender, dict):
             self.depend_on(id=sender['id'], serial_number=sender['serial_number'], arg=self.arg)

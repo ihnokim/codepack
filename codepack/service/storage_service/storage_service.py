@@ -4,7 +4,7 @@ from codepack.service.service import Service
 
 class StorageService(Service, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def save(self, item):
+    def save(self, item, update=False):
         """save item"""
 
     @abc.abstractmethod

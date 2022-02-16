@@ -1,6 +1,6 @@
 import abc
 from sshtunnel import SSHTunnelForwarder
-from codepack.utils.config import get_config
+from codepack.config import Config
 from copy import deepcopy
 
 
@@ -19,7 +19,7 @@ class Interface(metaclass=abc.ABCMeta):
             _ssh_config = _config.pop('sshtunnel')
             if isinstance(_ssh_config, str):
                 config_path, section = _ssh_config.split(':')
-                self.ssh_config = get_config(filename=config_path, section=section)
+                self.ssh_config = Config.parse_config(section=section, config_path=config_path)
             elif isinstance(_ssh_config, dict):
                 self.ssh_config = _ssh_config
             else:

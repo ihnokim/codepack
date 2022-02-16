@@ -5,8 +5,8 @@ from collections.abc import Iterable
 
 
 class DependencyManager(MemoryStorage, Iterable):
-    def __init__(self, code, obj=Dependency):
-        MemoryStorage.__init__(self, obj=obj)
+    def __init__(self, code, item_type=Dependency):
+        MemoryStorage.__init__(self, item_type=item_type)
         self.code = code
 
     def add(self, dependency):

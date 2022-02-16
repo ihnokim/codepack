@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Iterable, Callable
 import dill
-from codepack.service import DefaultService
+from codepack.config import Default
 from codepack.base import CodeBase
 import re
 import ast
@@ -49,12 +49,14 @@ class Code(CodeBase):
     def init_service(self, delivery_service=None, snapshot_service=None, storage_service=None, config_path=None):
         self.service = dict()
         self.service['delivery'] =\
-            delivery_service if delivery_service else DefaultService.get_default_delivery_service(config_path=config_path)
+            delivery_service if delivery_service else Default.get_storage_instance('delivery', 'delivery_service',
+                                                                                   config_path=config_path)
         self.service['snapshot'] =\
-            snapshot_service if snapshot_service else DefaultService.get_default_code_snapshot_service(config_path=config_path)
+            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot', 'snapshot_service',
+                                                                                   config_path=config_path)
         self.service['storage'] =\
-            storage_service if storage_service else DefaultService.get_default_code_storage_service(obj=self.__class__,
-                                                                                                    config_path=config_path)
+            storage_service if storage_service else Default.get_storage_instance('code', 'storage_service',
+                                                                                 config_path=config_path)
 
     def register(self, callback):
         self.callback = callback
@@ -210,8 +212,8 @@ class Code(CodeBase):
         serial_number = serial_number if serial_number else self.serial_number
         return self.service['delivery'].receive(serial_number=serial_number)
 
-    def save(self):
-        self.service['storage'].save(item=self)
+    def save(self, update=False):
+        self.service['storage'].save(item=self, update=update)
 
     def receive(self, arg):
         self.assert_arg(arg)

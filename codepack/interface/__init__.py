@@ -6,3 +6,5 @@ from codepack.interface.mssql import MSSQL
 from codepack.interface.dynamodb import DynamoDB
 from codepack.interface.oracledb import OracleDB
 from codepack.interface.docker import Docker
+from codepack.interface.kafka_consumer import KafkaConsumer
+from codepack.interface.kafka_producer import KafkaProducer

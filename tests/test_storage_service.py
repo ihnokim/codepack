@@ -5,7 +5,7 @@ import os
 
 
 def test_memory_storage_service_check(default_os_env):
-    mss = MemoryStorageService(obj=Code)
+    mss = MemoryStorageService(item_type=Code)
     mss.init()
     code1 = Code(hello, id='hello1', storage_service=mss)
     code2 = Code(hello, id='hello2', storage_service=mss)
@@ -23,7 +23,7 @@ def test_memory_storage_service_check(default_os_env):
 
 
 def test_file_storage_service_check(default_os_env, testdir_storage_service):
-    fss = FileStorageService(obj=Code, path=testdir_storage_service)
+    fss = FileStorageService(item_type=Code, path=testdir_storage_service)
     code1 = Code(hello, id='hello1', storage_service=fss)
     code2 = Code(hello, id='hello2', storage_service=fss)
     code3 = Code(hello, id='hello3', storage_service=fss)
@@ -48,7 +48,7 @@ def test_file_storage_service_check(default_os_env, testdir_storage_service):
 def test_mongo_storage_service_check(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'codes'
-    mss = MongoStorageService(obj=Code, mongodb=fake_mongodb, db=db, collection=collection)
+    mss = MongoStorageService(item_type=Code, mongodb=fake_mongodb, db=db, collection=collection)
     code1 = Code(hello, id='hello1', storage_service=mss)
     code2 = Code(hello, id='hello2', storage_service=mss)
     code3 = Code(hello, id='hello3', storage_service=mss)
@@ -71,7 +71,7 @@ def test_mongo_storage_service_check(default_os_env, fake_mongodb):
 
 
 def test_memory_storage_service(default_os_env):
-    mss = MemoryStorageService(obj=Code)
+    mss = MemoryStorageService(item_type=Code)
     mss.init()
     code1 = Code(hello, storage_service=mss)
     code2 = Code(add2, storage_service=mss)
@@ -89,7 +89,7 @@ def test_memory_storage_service(default_os_env):
 
 def test_file_storage_service(default_os_env, testdir_storage_service):
     filepath = testdir_storage_service
-    fss = FileStorageService(obj=Code, path=filepath)
+    fss = FileStorageService(item_type=Code, path=filepath)
     assert fss.path == filepath
     code1 = Code(hello, storage_service=fss)
     code2 = Code(add2, storage_service=fss)
@@ -108,14 +108,14 @@ def test_file_storage_service(default_os_env, testdir_storage_service):
 def test_mongo_storage_service(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'codes'
-    mss = MongoStorageService(obj=Code, mongodb=fake_mongodb, db=db, collection=collection)
-    assert mss.obj == Code
+    mss = MongoStorageService(item_type=Code, mongodb=fake_mongodb, db=db, collection=collection)
+    assert mss.item_type == Code
     code1 = Code(hello, storage_service=mss)
     code2 = Code(add2, storage_service=mss)
     code1.save()
     assert mss.mongodb[db][collection].count_documents({'_id': code1.id}) == 1
     assert mss.mongodb[db][collection].count_documents({'_id': code2.id}) == 0
-    assert mss.obj == Code
+    assert mss.item_type == Code
     code3 = mss.load(code1.id)
     assert code1.id == code3.id
     assert code1.source.strip() == code3.source.strip()
