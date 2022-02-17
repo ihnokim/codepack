@@ -8,5 +8,4 @@ if __name__ == "__main__":
     code_args = code_snapshot.args
     code_kwargs = code_snapshot.kwargs
     code = Code.from_snapshot(code_snapshot)
-    ret = code(*code_args, **code_kwargs)
-    print(ret)
+    code(*code_args, **code_kwargs)
