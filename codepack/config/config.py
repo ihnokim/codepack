@@ -59,14 +59,15 @@ class Config:
         elif ret['source'] == 'mongodb':
             ret['db'] = self.get_value(section=section, key='db', config=config)
             ret['collection'] = self.get_value(section=section, key='collection', config=config)
-            conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
-            conn_config_path = self.get_value(section='conn', key='path', config=conn_config)
+            conn_config_path = self.get_conn_config_path(config_path=config_path)
             ret['mongodb'] = self.parse_config(section='mongodb', config_path=conn_config_path)
         elif ret['source'] == 'kafka':
             ret['topic'] = self.get_value(section=section, key='topic', config=config)
-            conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
-            conn_config_path = self.get_value(section='conn', key='path', config=conn_config)
+            conn_config_path = self.get_conn_config_path(config_path=config_path)
             ret['kafka'] = self.parse_config(section='kafka', config_path=conn_config_path)
+        elif ret['source'] == 'docker':
+            conn_config_path = self.get_conn_config_path(config_path=config_path)
+            ret['docker'] = self.parse_config(section='docker', config_path=conn_config_path)
         else:
             raise NotImplementedError("'%s' is not implemented" % ret['source'])
         if config:
@@ -86,3 +87,7 @@ class Config:
         if not os.path.exists(ret):
             raise FileNotFoundError("'%s' does not exist" % ret)
         return ret
+
+    def get_conn_config_path(self, config_path: str):
+        conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
+        return self.get_value(section='conn', key='path', config=conn_config)
