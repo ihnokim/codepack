@@ -200,7 +200,11 @@ class CodePack(CodePackBase):
             hierarchy = len(line[1: split_idx-1])
             attr = p.parse(line[split_idx:])
             if attr['id'] not in codes:
-                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']], image=attr['image'], owner=attr['owner'])
+                if attr['image'] == 'None' or attr['image'] == 'null':
+                    _image = None
+                else:
+                    _image = attr['image']
+                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']], image=_image, owner=attr['owner'])
             code = codes[attr['id']]
             receive[code.id] = literal_eval(attr['receive'])
             if i == 0:
