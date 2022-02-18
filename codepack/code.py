@@ -14,7 +14,7 @@ from codepack.snapshot import CodeSnapshot
 class Code(CodeBase):
     def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
                  config_path=None, delivery_service=None, snapshot_service=None, storage_service=None,
-                 state=None, callback=None):
+                 state=None, callback=None, image=None, owner='unknown'):
         super().__init__(id=id, serial_number=serial_number)
         self.function = None
         self.source = None
@@ -35,6 +35,8 @@ class Code(CodeBase):
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register(callback=callback)
+        self.image = image
+        self.owner = owner
         self.update_state(state)
 
     def init_linkage(self):
@@ -171,18 +173,18 @@ class Code(CodeBase):
         return ret
 
     def get_info(self, state=True):
-        ret = '%s(id: %s, function: %s, args: %s, receive: %s'
+        ret = '%s(id: %s, function: %s, args: %s, receive: %s, image: %s, owner: %s'
         if state:
             ret += ', state: %s)'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(),
-                          self.dependency.get_args(),
+                          self.print_args(), self.dependency.get_args(),
+                          self.image, self.owner,
                           self.get_state())
         else:
             ret += ')'
             return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(),
-                          self.dependency.get_args())
+                          self.print_args(), self.dependency.get_args(),
+                          self.image, self.owner)
 
     def __str__(self):
         return self.get_info(state=False)  # pragma: no cover
@@ -229,10 +231,15 @@ class Code(CodeBase):
     def remove_dependency(self, serial_number):
         self.dependency.remove(serial_number)
 
+    def check_dependency(self):
+        return self.dependency.get_state()
+
     def __call__(self, *args, **kwargs):
+        ret = None
         try:
-            dependency_state = self.dependency.get_state()
-            if dependency_state == 'RESOLVED':
+            state = self.check_dependency()
+            self.update_state(state, args=args, kwargs=kwargs)
+            if state == 'READY':
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
                         kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
@@ -241,29 +248,23 @@ class Code(CodeBase):
                 now = datetime.now().timestamp()
                 self.send_result(item=ret, timestamp=now)
                 self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
-                return ret
-            elif dependency_state == 'PENDING':
-                self.update_state('WAITING', args=args, kwargs=kwargs)
-                return None
-            elif dependency_state == 'ERROR':
-                self.update_state('ERROR', args=args, kwargs=kwargs)
-                return None
-            else:
-                raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
             self.update_state('ERROR', args=args, kwargs=kwargs)
             raise e
+        return ret
 
     def to_dict(self):
         d = dict()
         d['_id'] = self.id
         d['source'] = self.source
         d['description'] = self.description
+        d['image'] = self.image
+        d['owner'] = self.owner
         return d
 
     @classmethod
     def from_dict(cls, d):
-        return cls(id=d['_id'], source=d['source'])
+        return cls(id=d['_id'], source=d['source'], image=d.get('image', None), owner=d.get('owner', 'unknown'))
 
     def to_snapshot(self, *args, **kwargs):
         return CodeSnapshot(self, *args, **kwargs)
@@ -271,4 +272,5 @@ class Code(CodeBase):
     @classmethod
     def from_snapshot(cls, snapshot):
         return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
-                   state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'])
+                   state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
+                   image=snapshot['image'], owner=snapshot['owner'])

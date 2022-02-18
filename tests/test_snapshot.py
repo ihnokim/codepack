@@ -33,7 +33,7 @@ def test_snapshot_diff():
 def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     code1 = Code(mul2)
     code2 = Code(add2)
-    code3 = Code(add3)
+    code3 = Code(add3, image='test-image')
     code1 >> code3
     code2 >> code3
     code3.receive('c') << code2
@@ -51,6 +51,10 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
         assert dependency['id'] == code3_dependency.id
         assert dependency['serial_number'] == code3_dependency.serial_number
         assert dependency['arg'] == code3_dependency.arg
+    assert 'image' in snapshot_dict1
+    assert snapshot_dict1['image'] is 'test-image'
+    assert 'owner' in snapshot_dict1
+    assert snapshot_dict1['owner'] is 'unknown'
     snapshot2 = CodeSnapshot.from_dict(snapshot_dict1)
     assert snapshot1.id == snapshot2.id
     assert snapshot1.serial_number == snapshot2.serial_number
@@ -59,6 +63,8 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     assert snapshot1.kwargs == snapshot2.kwargs
     assert snapshot1.source == snapshot2.source
     assert snapshot1.dependency == snapshot2.dependency
+    assert snapshot1.image == snapshot2.image
+    assert snapshot1.owner == snapshot2.owner
 
 
 def test_code_snapshot_diff(default_os_env):
@@ -124,7 +130,11 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     assert ret is None
     assert cp1.get_state() == 'ERROR'
     snapshot1 = cp1.to_snapshot(argpack=argpack)
+    assert snapshot1.owner == 'unknown'
+    snapshot1['owner'] = 'codepack'
+    assert snapshot1.owner == 'codepack'
     cp2 = CodePack.from_snapshot(snapshot1)
+    assert cp2.owner == 'codepack'
     assert cp1.id == cp2.id
     assert cp1.serial_number == cp2.serial_number
     assert cp1.get_state() == cp2.get_state()
@@ -136,6 +146,8 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     # assert cp1.get_structure() == cp2.get_structure()
     assert cp1.subscribe == cp2.subscribe
     assert set(cp1.codes.keys()) == set(cp2.codes.keys())
+    assert cp1.owner == 'unknown'
+    assert cp2.owner == 'codepack'
     for code_id in cp1.codes.keys():
         code1 = cp1.codes[code_id]
         code2 = cp2.codes[code_id]

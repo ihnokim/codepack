@@ -146,3 +146,17 @@ class Default:
             return _instance
         else:
             return cls.instances[key]
+
+    @classmethod
+    def get_docker_manager(cls, section: str = 'docker_manager', config_path: str = None, alias_path: str = None):
+        key = section
+        if config_path or alias_path or key not in cls.instances:
+            storage_config = cls._get_storage_config(section=section, config_path=config_path)
+            storage_config.pop('source')
+            c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            _instance = c(**storage_config)
+            if config_path is None and alias_path is None:
+                cls.instances[key] = _instance
+            return _instance
+        else:
+            return cls.instances[key]

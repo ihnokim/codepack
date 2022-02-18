@@ -18,7 +18,8 @@ class Interface(metaclass=abc.ABCMeta):
         if _config and 'sshtunnel' in _config:
             _ssh_config = _config.pop('sshtunnel')
             if isinstance(_ssh_config, str):
-                config_path, section = _ssh_config.split(':')
+                _config_path, section = _ssh_config.split(':')
+                config_path = Config.get_config_path(path=_config_path)
                 self.ssh_config = Config.parse_config(section=section, config_path=config_path)
             elif isinstance(_ssh_config, dict):
                 self.ssh_config = _ssh_config

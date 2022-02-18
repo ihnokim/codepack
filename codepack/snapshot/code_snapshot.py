@@ -10,13 +10,18 @@ class CodeSnapshot(Snapshot):
             _state = code.get_state()
             _source = code.source
             _dependency = code.dependency
+            _image = code.image
+            _owner = code.owner
         else:
             _id = None
             _serial_number = None
             _state = None
             _source = None
             _dependency = None
-        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp)
+            _image = None
+            _owner = 'unknown'
+        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp,
+                         image=_image, owner=_owner)
         self.__setitem__('source', _source)
         self.set_args(args=args, kwargs=kwargs)
         self.set_dependency(dependency=_dependency)

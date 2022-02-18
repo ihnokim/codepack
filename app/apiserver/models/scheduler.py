@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class Job(BaseModel):
     job_id: str = None
     trigger: str
-    trigger_config = dict
+    trigger_config: dict
 
 
 class CodePackIDJob(Job):
