@@ -47,7 +47,7 @@ class Worker(KafkaStorage):
                 snapshot = CodeSnapshot.from_dict(msg.value)
                 self.run_snapshot(snapshot=snapshot)
 
-    def run_snapshot(self, snapshot: CodeSnapshot, script: str = run_snapshot.py):
+    def run_snapshot(self, snapshot: CodeSnapshot, script: str = 'run_snapshot.py'):
         code = Code.from_snapshot(snapshot)
         try:
             if code.image:
