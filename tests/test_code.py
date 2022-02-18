@@ -178,16 +178,16 @@ def test_validate_dependency_result(default_os_env):
     assert len(deliveries) == 2
     snapshot_dict = {x['_id']: x for x in snapshots}
     code2_state_info = snapshot_dict.pop(code2.serial_number)
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'WAITING'
     update_time = code2_state_info.pop('timestamp')
     snapshot_dict[code2.serial_number] = code2_state_info
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'WAITING'
     snapshot_dict[code2.serial_number]['timestamp'] = update_time
     delivery_dict = {x['_id']: x for x in deliveries}
     send_time = delivery_dict[code2.serial_number].pop('timestamp')
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'PENDING'
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'WAITING'
     delivery_dict[code2.serial_number]['timestamp'] = send_time
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'RESOLVED'
+    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'READY'
 
 
 def test_default_arg(default_os_env):

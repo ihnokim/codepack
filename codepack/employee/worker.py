@@ -51,12 +51,15 @@ class Worker(KafkaStorage):
         code = Code.from_snapshot(snapshot)
         try:
             if code.image:
-                filepath = '%s.json' % code.serial_number
-                full_filepath = os.path.join(self.docker_manager.path, filepath)
-                snapshot.to_file(full_filepath)
-                ret = self.docker_manager.run(image=code.image, command=['python', script, filepath])
-                print(ret.decode('utf-8'))
-                self.docker_manager.remove_file_if_exists(path=full_filepath)
+                state = code.check_dependency()
+                code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
+                if state == 'READY':
+                    filepath = '%s.json' % code.serial_number
+                    full_filepath = os.path.join(self.docker_manager.path, filepath)
+                    snapshot.to_file(full_filepath)
+                    ret = self.docker_manager.run(image=code.image, command=['python', script, filepath])
+                    print(ret.decode('utf-8').strip())
+                    self.docker_manager.remove_file_if_exists(path=full_filepath)
                 if self.callback:
                     self.callback({'state': code.get_state(), 'serial_number': code.serial_number})
             else:

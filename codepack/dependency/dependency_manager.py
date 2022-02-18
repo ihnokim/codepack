@@ -1,6 +1,5 @@
 from codepack.storage import MemoryStorage
 from codepack.dependency.dependency import Dependency
-from codepack.dependency.dependency_state import DependencyState
 from collections.abc import Iterable
 
 
@@ -45,31 +44,31 @@ class DependencyManager(MemoryStorage, Iterable):
     def validate_snapshot(self, snapshot):
         for s in snapshot:
             if s['state'] == 'ERROR':
-                return DependencyState.ERROR
+                return 'ERROR'
             elif s['state'] != 'TERMINATED':
-                return DependencyState.PENDING
+                return 'WAITING'
         if len(self) != len(snapshot):
-            return DependencyState.PENDING
-        return DependencyState.RESOLVED
+            return 'WAITING'
+        return 'READY'
 
     def validate_delivery(self, snapshot, delivery):
         if len(self.get_args()) != len(delivery):
-            return DependencyState.PENDING
+            return 'WAITING'
         s = {x['_id']: x for x in snapshot}
         for d in delivery:
             serial_number = d['_id']
             if serial_number not in s:
-                return DependencyState.PENDING
+                return 'WAITING'
             elif 'timestamp' not in d or 'timestamp' not in s[serial_number]:
-                return DependencyState.PENDING
+                return 'WAITING'
             elif d['timestamp'] != s[serial_number]['timestamp']:
-                return DependencyState.PENDING
-        return DependencyState.RESOLVED
+                return 'WAITING'
+        return 'READY'
 
     def get_state(self):
         snapshot = self.load_snapshot()
         dependency_state = self.validate_snapshot(snapshot=snapshot)
-        if dependency_state != DependencyState.RESOLVED:
+        if dependency_state != 'READY':
             return dependency_state
         delivery = self.check_delivery()
         return self.validate_delivery(snapshot=snapshot, delivery=delivery)

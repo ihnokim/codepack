@@ -231,10 +231,15 @@ class Code(CodeBase):
     def remove_dependency(self, serial_number):
         self.dependency.remove(serial_number)
 
+    def check_dependency(self):
+        return self.dependency.get_state()
+
     def __call__(self, *args, **kwargs):
+        ret = None
         try:
-            dependency_state = self.dependency.get_state()
-            if dependency_state == 'RESOLVED':
+            state = self.check_dependency()
+            self.update_state(state, args=args, kwargs=kwargs)
+            if state == 'READY':
                 for dependency in self.dependency.values():
                     if dependency.arg and dependency.arg not in kwargs:
                         kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
@@ -243,18 +248,10 @@ class Code(CodeBase):
                 now = datetime.now().timestamp()
                 self.send_result(item=ret, timestamp=now)
                 self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
-                return ret
-            elif dependency_state == 'PENDING':
-                self.update_state('WAITING', args=args, kwargs=kwargs)
-                return None
-            elif dependency_state == 'ERROR':
-                self.update_state('ERROR', args=args, kwargs=kwargs)
-                return None
-            else:
-                raise NotImplementedError(dependency_state)  # pragma: no cover
         except Exception as e:
             self.update_state('ERROR', args=args, kwargs=kwargs)
             raise e
+        return ret
 
     def to_dict(self):
         d = dict()
