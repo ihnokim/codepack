@@ -1,7 +1,6 @@
 from codepack.interface import MongoDB
 from codepack.storage import Storage, Storable
-from typing import Union
-from typing import Type
+from typing import Type, Union
 
 
 class MongoStorage(Storage):
@@ -30,3 +29,11 @@ class MongoStorage(Storage):
         if self.new_connection:
             self.mongodb.close()
         self.mongodb = None
+
+    def exist(self, key: Union[str, list]):
+        if isinstance(key, str):
+            return self.mongodb[self.db][self.collection].count_documents({'_id': key}) > 0
+        elif isinstance(key, list):
+            return self.mongodb[self.db][self.collection].count_documents({'_id': {'$in': key}}) == len(key)
+        else:
+            raise TypeError(key)

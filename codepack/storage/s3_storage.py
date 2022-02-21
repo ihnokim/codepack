@@ -1,7 +1,6 @@
 from codepack.interface import S3
 from codepack.storage import Storage, Storable
-from typing import Union
-from typing import Type
+from typing import Type, Union
 
 
 class S3Storage(Storage):
@@ -30,3 +29,6 @@ class S3Storage(Storage):
         if self.new_connection:
             self.s3.close()
         self.s3 = None
+
+    def exist(self, key: Union[str, list]):
+        raise NotImplementedError("'exist' is not implemented yet")

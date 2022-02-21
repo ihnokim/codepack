@@ -1,6 +1,5 @@
 from codepack.storage import MemoryStorage
 from codepack.service.delivery_service import DeliveryService
-from collections.abc import Iterable
 
 
 class MemoryDeliveryService(DeliveryService, MemoryStorage):
@@ -13,23 +12,8 @@ class MemoryDeliveryService(DeliveryService, MemoryStorage):
     def receive(self, serial_number):
         return self.memory[serial_number].receive()
 
-    def check(self, serial_number):
-        if isinstance(serial_number, str):
-            if serial_number in self.memory:
-                d = self.memory[serial_number].to_dict()
-                d.pop('item', None)
-                return d
-            else:
-                return None
-        elif isinstance(serial_number, Iterable):
-            ret = list()
-            for i in serial_number:
-                tmp = self.check(i)
-                if tmp:
-                    ret.append(tmp)
-            return ret
-        else:
-            raise TypeError(type(serial_number))  # pragma: no cover
-
     def cancel(self, serial_number):
         self.memory.pop(serial_number, None)
+
+    def check(self, serial_number):
+        return self.exist(key=serial_number)

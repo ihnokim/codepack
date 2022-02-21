@@ -1,6 +1,6 @@
 import abc
 from codepack.storage import Storable
-from typing import Type
+from typing import Type, Union
 
 
 class Storage(metaclass=abc.ABCMeta):
@@ -16,3 +16,7 @@ class Storage(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def close(self):
         """close storage"""
+
+    @abc.abstractmethod
+    def exist(self, key: Union[str, list]):
+        """check if item with 'key' exists"""

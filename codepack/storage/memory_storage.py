@@ -1,5 +1,5 @@
 from codepack.storage import Storage, Storable
-from typing import Type
+from typing import Type, Union
 
 
 class MemoryStorage(Storage):
@@ -14,3 +14,15 @@ class MemoryStorage(Storage):
     def close(self):
         self.memory.clear()
         self.memory = None
+
+    def exist(self, key: Union[str, list]):
+        if isinstance(key, str):
+            return key in self.memory.keys()
+        elif isinstance(key, list):
+            for k in key:
+                exists = k in self.memory.keys()
+                if not exists:
+                    return False
+            return True
+        else:
+            raise TypeError(key)

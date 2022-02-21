@@ -2,7 +2,7 @@ from codepack.storage import Storage, Storable
 from shutil import rmtree
 from glob import glob
 import os
-from typing import Type
+from typing import Type, Union
 
 
 class FileStorage(Storage):
@@ -43,3 +43,17 @@ class FileStorage(Storage):
                 rmtree(item)
             else:
                 raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
+
+    def exist(self, key: Union[str, list]):
+        if isinstance(key, str):
+            path = self.item_type.get_path(key=key, path=self.path)
+            return os.path.exists(path)
+        elif isinstance(key, list):
+            for k in key:
+                path = self.item_type.get_path(key=k, path=self.path)
+                exists = os.path.exists(path)
+                if not exists:
+                    return False
+            return True
+        else:
+            raise TypeError(key)

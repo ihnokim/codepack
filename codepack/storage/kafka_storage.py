@@ -1,7 +1,6 @@
 from codepack.interface import KafkaConsumer, KafkaProducer
 from codepack.storage import Storage, Storable
-from typing import Union
-from typing import Type
+from typing import Type, Union
 
 
 class KafkaStorage(Storage):
@@ -50,3 +49,6 @@ class KafkaStorage(Storage):
         if self.new_consumer_connection:
             self.consumer.close()
         self.consumer = None
+
+    def exist(self, key: Union[str, list]):
+        raise NotImplementedError("'exist' is not supported")
