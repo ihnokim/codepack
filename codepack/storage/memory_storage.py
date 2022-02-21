@@ -43,10 +43,10 @@ class MemoryStorage(Storage):
 
     def search(self, key: str, value: object, projection: list = None):
         ret = list()
-        for snapshot in self.memory.values():
-            if snapshot[key] != value:
+        for item in self.memory.values():
+            if item[key] != value:
                 continue
-            d = snapshot.to_dict()
+            d = item.to_dict()
             if projection:
                 ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
             else:

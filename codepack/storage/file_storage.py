@@ -76,10 +76,10 @@ class FileStorage(Storage):
     def search(self, key: str, value: object, projection: list = None):
         ret = list()
         for filename in glob(self.path + '*.json'):
-            snapshot = self.item_type.from_file(filename)
-            if snapshot[key] != value:
+            item = self.item_type.from_file(filename)
+            if item[key] != value:
                 continue
-            d = snapshot.to_dict()
+            d = item.to_dict()
             if projection:
                 ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
             else:
