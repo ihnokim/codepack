@@ -9,11 +9,11 @@ import os
 
 def test_memory_code_snapshot_service_save_and_load(default_os_env):
     mss = MemorySnapshotService(item_type=CodeSnapshot)
-    mss.init()
+    mss.storage.init()
     code = Code(add2)
     snapshot = CodeSnapshot(code)
     mss.save(snapshot=snapshot)
-    assert len(mss.memory) == 1
+    assert len(mss.storage.memory) == 1
     assert mss.load(snapshot.serial_number) == snapshot.to_dict()
     loaded = mss.load(snapshot.serial_number, projection={'state'})
     assert set(loaded.keys()) == {'serial_number', 'state'}
@@ -25,7 +25,7 @@ def test_memory_code_snapshot_service_save_and_load(default_os_env):
 
 def test_memory_code_snapshot_service_search_and_remove(default_os_env):
     mss = MemorySnapshotService(item_type=CodeSnapshot)
-    mss.init()
+    mss.storage.init()
     code1 = Code(add2)
     code2 = Code(add3)
     code1 >> code2
@@ -34,7 +34,7 @@ def test_memory_code_snapshot_service_search_and_remove(default_os_env):
     snapshot2 = CodeSnapshot(code2)
     mss.save(snapshot=snapshot1)
     mss.save(snapshot=snapshot2)
-    assert len(mss.memory) == 2
+    assert len(mss.storage.memory) == 2
     loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'])
     assert len(loaded) == 2
     assert loaded[0]['state'] == 'UNKNOWN'
@@ -59,16 +59,16 @@ def test_memory_code_snapshot_service_search_and_remove(default_os_env):
 
 def test_memory_snapshot_service_update():
     mss = MemorySnapshotService(item_type=Snapshot)
-    mss.init()
+    mss.storage.init()
     timestamp = datetime.now().timestamp()
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
     snapshot2 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
     mss.save(snapshot=snapshot1)
-    tmp_id = id(mss.memory[snapshot1.serial_number])
+    tmp_id = id(mss.storage.memory[snapshot1.serial_number])
     mss.save(snapshot=snapshot2)
-    assert len(mss.memory) == 1
-    assert tmp_id == id(mss.memory[snapshot2.serial_number])
-    assert mss.memory[snapshot1.serial_number].timestamp == timestamp + 1
+    assert len(mss.storage.memory) == 1
+    assert tmp_id == id(mss.storage.memory[snapshot2.serial_number])
+    assert mss.storage.memory[snapshot1.serial_number].timestamp == timestamp + 1
 
 
 def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapshot_service):

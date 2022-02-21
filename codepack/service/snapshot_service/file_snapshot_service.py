@@ -5,20 +5,20 @@ from collections.abc import Iterable
 from glob import glob
 
 
-class FileSnapshotService(SnapshotService, FileStorage):
+class FileSnapshotService(SnapshotService):
     def __init__(self, item_type=None, path='./'):
-        FileStorage.__init__(self, item_type=item_type, path=path)
+        self.storage = FileStorage(item_type=item_type, path=path)
 
     def save(self, snapshot):
-        if isinstance(snapshot, self.item_type):
+        if isinstance(snapshot, self.storage.item_type):
             d = self.load(snapshot.serial_number)
             if d:
-                existing_snapshot = self.item_type.from_dict(d)
+                existing_snapshot = self.storage.item_type.from_dict(d)
                 for key, value in existing_snapshot.diff(snapshot).items():
                     existing_snapshot[key] = value
-                    existing_snapshot.to_file(self.item_type.get_path(key=existing_snapshot.serial_number, path=self.path))
+                    existing_snapshot.to_file(self.storage.item_type.get_path(key=existing_snapshot.serial_number, path=self.storage.path))
             else:
-                snapshot.to_file(self.item_type.get_path(key=snapshot.serial_number, path=self.path))
+                snapshot.to_file(self.storage.item_type.get_path(key=snapshot.serial_number, path=self.storage.path))
         else:
             raise TypeError(type(snapshot))
 
@@ -26,7 +26,7 @@ class FileSnapshotService(SnapshotService, FileStorage):
         if isinstance(serial_number, str):
             ret = None
             try:
-                d = self.item_type.from_file(self.item_type.get_path(key=serial_number, path=self.path)).to_dict()
+                d = self.storage.item_type.from_file(self.storage.item_type.get_path(key=serial_number, path=self.storage.path)).to_dict()
                 if projection:
                     ret = {k: d[k] for k in set(projection).union({'serial_number'})}
                 else:
@@ -44,12 +44,12 @@ class FileSnapshotService(SnapshotService, FileStorage):
             raise TypeError(type(serial_number))  # pragma: no cover
 
     def remove(self, serial_number):
-        os.remove(self.item_type.get_path(key=serial_number, path=self.path))
+        self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
         ret = list()
-        for filename in glob(self.path + '*.json'):
-            snapshot = self.item_type.from_file(filename)
+        for filename in glob(self.storage.path + '*.json'):
+            snapshot = self.storage.item_type.from_file(filename)
             if snapshot[key] != value:
                 continue
             d = snapshot.to_dict()

@@ -57,3 +57,13 @@ class FileStorage(Storage):
             return True
         else:
             raise TypeError(key)
+
+    def remove(self, key: Union[str, list]):
+        if isinstance(key, str):
+            os.remove(path=self.item_type.get_path(key=key, path=self.path))
+        elif isinstance(key, list):
+            for k in key:
+                path = self.item_type.get_path(key=k, path=self.path)
+                os.remove(path)
+        else:
+            raise TypeError(key)

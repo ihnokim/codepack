@@ -3,25 +3,25 @@ from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
 
 
-class MemorySnapshotService(SnapshotService, MemoryStorage):
+class MemorySnapshotService(SnapshotService):
     def __init__(self, item_type=None):
-        MemoryStorage.__init__(self, item_type=item_type)
+        self.storage = MemoryStorage(item_type=item_type)
 
     def save(self, snapshot):
-        if isinstance(snapshot, self.item_type):
+        if isinstance(snapshot, self.storage.item_type):
             d = self.load(snapshot.serial_number)
             if d:
-                for key, value in self.item_type.from_dict(d).diff(snapshot).items():
-                    self.memory[snapshot.serial_number][key] = value
+                for key, value in self.storage.item_type.from_dict(d).diff(snapshot).items():
+                    self.storage.memory[snapshot.serial_number][key] = value
             else:
-                self.memory[snapshot.serial_number] = snapshot
+                self.storage.memory[snapshot.serial_number] = snapshot
         else:
             raise TypeError(type(snapshot))
 
     def load(self, serial_number, projection=None):
         if isinstance(serial_number, str):
-            if serial_number in self.memory:
-                d = self.memory[serial_number].to_dict()
+            if serial_number in self.storage.memory:
+                d = self.storage.memory[serial_number].to_dict()
                 if projection:
                     return {k: d[k] for k in set(projection).union({'serial_number'})}
                 else:
@@ -39,11 +39,11 @@ class MemorySnapshotService(SnapshotService, MemoryStorage):
             raise TypeError(type(serial_number))  # pragma: no cover
 
     def remove(self, serial_number):
-        self.memory.pop(serial_number, None)
+        self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
         ret = list()
-        for snapshot in self.memory.values():
+        for snapshot in self.storage.memory.values():
             if snapshot[key] != value:
                 continue
             d = snapshot.to_dict()

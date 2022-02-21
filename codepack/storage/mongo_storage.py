@@ -37,3 +37,11 @@ class MongoStorage(Storage):
             return self.mongodb[self.db][self.collection].count_documents({'_id': {'$in': key}}) == len(key)
         else:
             raise TypeError(key)
+
+    def remove(self, key: Union[str, list]):
+        if isinstance(key, str):
+            self.mongodb[self.db][self.collection].delete_one({'_id': key})
+        elif isinstance(key, list):
+            self.mongodb[self.db][self.collection].delete_many({'_id': {'$in': key}})
+        else:
+            raise TypeError(key)

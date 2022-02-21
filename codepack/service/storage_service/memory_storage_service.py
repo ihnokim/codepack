@@ -3,31 +3,31 @@ from codepack.service.storage_service import StorageService
 from collections.abc import Iterable
 
 
-class MemoryStorageService(StorageService, MemoryStorage):
+class MemoryStorageService(StorageService):
     def __init__(self, item_type=None):
-        MemoryStorage.__init__(self, item_type=item_type)
+        self.storage = MemoryStorage(item_type=item_type)
 
     def save(self, item, update=False):
-        if isinstance(item, self.item_type):
+        if isinstance(item, self.storage.item_type):
             if update:
-                self.memory[item.id] = item
+                self.storage.memory[item.id] = item
             elif self.check(item.id):
                 raise ValueError('%s already exists' % item.id)
             else:
-                self.memory[item.id] = item
+                self.storage.memory[item.id] = item
         else:
             raise TypeError(type(item))
 
     def load(self, id):
-        return self.memory[id]
+        return self.storage.memory[id]
 
     def remove(self, id):
-        self.memory.pop(id, None)
+        self.storage.remove(key=id)
 
     def check(self, id):
         if isinstance(id, str):
-            if id in self.memory:
-                return self.memory[id].id
+            if id in self.storage.memory:
+                return self.storage.memory[id].id
             else:
                 return None
         elif isinstance(id, Iterable):

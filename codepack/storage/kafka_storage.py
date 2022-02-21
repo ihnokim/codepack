@@ -52,3 +52,6 @@ class KafkaStorage(Storage):
 
     def exist(self, key: Union[str, list]):
         raise NotImplementedError("'exist' is not supported")
+
+    def remove(self, key: Union[str, list]):
+        raise NotImplementedError("'remove' is not supported")

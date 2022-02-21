@@ -3,9 +3,6 @@ from codepack.service.service import Service
 
 
 class SnapshotService(Service, metaclass=abc.ABCMeta):
-    def __init__(self):
-        super().__init__()
-
     @abc.abstractmethod
     def save(self, snapshot):
         """save snapshot"""

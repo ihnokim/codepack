@@ -26,3 +26,12 @@ class MemoryStorage(Storage):
             return True
         else:
             raise TypeError(key)
+
+    def remove(self, key: Union[str, list]):
+        if isinstance(key, str):
+            self.memory.pop(key, None)
+        elif isinstance(key, list):
+            for k in key:
+                self.memory.pop(k, None)
+        else:
+            raise TypeError(key)

@@ -31,10 +31,10 @@ def empty_dir(directory):
 def default_os_env():
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
     os.environ['CODEPACK_CONFIG_PATH'] = 'test.ini'
-    Default.get_storage_instance('delivery', 'delivery_service').init()
-    Default.get_storage_instance('code_snapshot', 'snapshot_service').init()
-    Default.get_storage_instance('code', 'storage_service').init()
-    Default.get_storage_instance('codepack', 'storage_service').init()
+    Default.get_storage_instance('delivery', 'delivery_service').storage.init()
+    Default.get_storage_instance('code_snapshot', 'snapshot_service').storage.init()
+    Default.get_storage_instance('code', 'storage_service').storage.init()
+    Default.get_storage_instance('codepack', 'storage_service').storage.init()
     yield
     os.environ.pop('CODEPACK_CONFIG_DIR', None)
     os.environ.pop('CODEPACK_CONFIG_PATH', None)

@@ -6,17 +6,17 @@ import os
 
 def test_memory_storage_service_check(default_os_env):
     mss = MemoryStorageService(item_type=Code)
-    mss.init()
+    mss.storage.init()
     code1 = Code(hello, id='hello1', storage_service=mss)
     code2 = Code(hello, id='hello2', storage_service=mss)
     code3 = Code(hello, id='hello3', storage_service=mss)
     code1.save()
     assert isinstance(mss.check(id=code1.id), str)
-    assert code1.id in mss.memory
+    assert code1.id in mss.storage.memory
     mss.remove(id=code1.id)
     code2.save()
     code3.save()
-    assert len(mss.memory) == 2
+    assert len(mss.storage.memory) == 2
     check = mss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
     assert len(check) == 2
@@ -72,25 +72,25 @@ def test_mongo_storage_service_check(default_os_env, fake_mongodb):
 
 def test_memory_storage_service(default_os_env):
     mss = MemoryStorageService(item_type=Code)
-    mss.init()
+    mss.storage.init()
     code1 = Code(hello, storage_service=mss)
     code2 = Code(add2, storage_service=mss)
     code1.save()
-    assert len(mss.memory) == 1
-    assert code1.id in mss.memory
-    assert code2.id not in mss.memory
+    assert len(mss.storage.memory) == 1
+    assert code1.id in mss.storage.memory
+    assert code2.id not in mss.storage.memory
     code3 = mss.load(code1.id)
     assert code1.id == code3.id
     assert code1.source == code3.source
     assert code1("CodePack") == code3("CodePack")
     mss.remove(code3.id)
-    assert len(mss.memory) == 0
+    assert len(mss.storage.memory) == 0
 
 
 def test_file_storage_service(default_os_env, testdir_storage_service):
     filepath = testdir_storage_service
     fss = FileStorageService(item_type=Code, path=filepath)
-    assert fss.path == filepath
+    assert fss.storage.path == filepath
     code1 = Code(hello, storage_service=fss)
     code2 = Code(add2, storage_service=fss)
     code1.save()
@@ -109,16 +109,16 @@ def test_mongo_storage_service(default_os_env, fake_mongodb):
     db = 'test'
     collection = 'codes'
     mss = MongoStorageService(item_type=Code, mongodb=fake_mongodb, db=db, collection=collection)
-    assert mss.item_type == Code
+    assert mss.storage.item_type == Code
     code1 = Code(hello, storage_service=mss)
     code2 = Code(add2, storage_service=mss)
     code1.save()
-    assert mss.mongodb[db][collection].count_documents({'_id': code1.id}) == 1
-    assert mss.mongodb[db][collection].count_documents({'_id': code2.id}) == 0
-    assert mss.item_type == Code
+    assert mss.storage.mongodb[db][collection].count_documents({'_id': code1.id}) == 1
+    assert mss.storage.mongodb[db][collection].count_documents({'_id': code2.id}) == 0
+    assert mss.storage.item_type == Code
     code3 = mss.load(code1.id)
     assert code1.id == code3.id
     assert code1.source.strip() == code3.source.strip()
     assert code1("CodePack") == code3("CodePack")
     mss.remove(code3.id)
-    assert mss.mongodb[db][collection].count_documents({'_id': code1.id}) == 0
+    assert mss.storage.mongodb[db][collection].count_documents({'_id': code1.id}) == 0

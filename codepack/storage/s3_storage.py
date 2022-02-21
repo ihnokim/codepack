@@ -32,3 +32,14 @@ class S3Storage(Storage):
 
     def exist(self, key: Union[str, list]):
         raise NotImplementedError("'exist' is not implemented yet")
+
+    def remove(self, key: Union[str, list]):
+        if isinstance(key, str):
+            path = self.item_type.get_path(key=key, path=self.path)
+            self.s3.delete(bucket=self.bucket, key=path)
+        elif isinstance(key, list):
+            for k in key:
+                path = self.item_type.get_path(key=k, path=self.path)
+                self.s3.delete(bucket=self.bucket, key=path)
+        else:
+            raise TypeError(key)

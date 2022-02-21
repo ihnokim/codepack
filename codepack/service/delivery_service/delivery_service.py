@@ -3,9 +3,6 @@ from codepack.service.service import Service
 
 
 class DeliveryService(Service, metaclass=abc.ABCMeta):
-    def __init__(self):
-        super().__init__()
-
     @abc.abstractmethod
     def send(self, id, serial_number, item=None, timestamp=None):
         """send item"""

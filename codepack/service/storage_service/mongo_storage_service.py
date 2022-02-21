@@ -3,39 +3,44 @@ from codepack.service.storage_service import StorageService
 from collections.abc import Iterable
 
 
-class MongoStorageService(StorageService, MongoStorage):
+class MongoStorageService(StorageService):
     def __init__(self, item_type=None, mongodb=None, db=None, collection=None, *args, **kwargs):
-        MongoStorage.__init__(self, item_type=item_type, mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
+        self.storage = MongoStorage(item_type=item_type, mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
 
     def save(self, item, update=False):
-        if isinstance(item, self.item_type):
+        if isinstance(item, self.storage.item_type):
             if update:
                 d = item.to_dict()
                 _id = d.pop('_id')
-                self.mongodb[self.db][self.collection].update_one({'_id': _id}, {'$set': d}, upsert=True)
+                self.storage.mongodb[self.storage.db][self.storage.collection]\
+                    .update_one({'_id': _id}, {'$set': d}, upsert=True)
             elif self.check(item.id):
                 raise ValueError('%s already exists' % item.id)
             else:
-                item.to_db(mongodb=self.mongodb, db=self.db, collection=self.collection)
+                item.to_db(mongodb=self.storage.mongodb, db=self.storage.db, collection=self.storage.collection)
         else:
             raise TypeError(type(item))
 
     def load(self, id):
-        return self.item_type.from_db(id=id, mongodb=self.mongodb, db=self.db, collection=self.collection)
+        return self.storage.item_type\
+            .from_db(id=id, mongodb=self.storage.mongodb, db=self.storage.db, collection=self.storage.collection)
 
     def remove(self, id):
-        self.mongodb[self.db][self.collection].delete_one({'_id': id})
+        self.storage.remove(key=id)
 
     def check(self, id):
         if isinstance(id, str):
             ret = None
-            item = self.item_type.from_db(id=id, mongodb=self.mongodb, db=self.db, collection=self.collection)
+            item = self.storage.item_type.from_db(id=id,
+                                                  mongodb=self.storage.mongodb,
+                                                  db=self.storage.db, collection=self.storage.collection)
             if item:
                 ret = item.id
             return ret
         elif isinstance(id, Iterable):
             ret = list()
-            for item in self.mongodb[self.db][self.collection].find({'_id': {'$in': id}}, projection={}):
+            for item in self.storage.mongodb[self.storage.db][self.storage.collection]\
+                    .find({'_id': {'$in': id}}, projection={}):
                 ret.append(item['_id'])
             return ret
         else:

@@ -5,7 +5,7 @@ import os
 
 def test_memory_delivery_service_check():
     mds = MemoryDeliveryService(item_type=Delivery)
-    mds.init()
+    mds.storage.init()
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
@@ -81,12 +81,12 @@ def test_mongo_delivery_service_check(fake_mongodb):
 
 def test_memory_delivery_service():
     mds = MemoryDeliveryService(item_type=Delivery)
-    mds.init()
+    mds.storage.init()
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
     mds.send(id=sender, serial_number=serial_number, item=item)
-    assert serial_number in mds.memory, "'send' failed"
+    assert serial_number in mds.storage.memory, "'send' failed"
     check = mds.check(serial_number=serial_number)
     receive = mds.receive(serial_number=serial_number)
     assert check is True
@@ -102,7 +102,7 @@ def test_file_delivery_service(testdir_delivery_service):
     serial_number = '1234'
     item = 'Hello, World!'
     fds.send(id=sender, serial_number=serial_number, item=item)
-    assert os.path.isfile(Delivery.get_path(key=serial_number, path=fds.path)), "'send' failed"
+    assert os.path.isfile(Delivery.get_path(key=serial_number, path=fds.storage.path)), "'send' failed"
     check = fds.check(serial_number=serial_number)
     receive = fds.receive(serial_number=serial_number)
     assert check is True
