@@ -47,14 +47,4 @@ class FileSnapshotService(SnapshotService):
         self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
-        ret = list()
-        for filename in glob(self.storage.path + '*.json'):
-            snapshot = self.storage.item_type.from_file(filename)
-            if snapshot[key] != value:
-                continue
-            d = snapshot.to_dict()
-            if projection:
-                ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
-            else:
-                ret.append(d)
-        return ret
+        return self.storage.search(key=key, value=value, projection=projection)

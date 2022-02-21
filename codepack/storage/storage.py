@@ -19,4 +19,12 @@ class Storage(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def exist(self, key: Union[str, list]):
-        """check if item with 'key' exists"""
+        """check if item with given key exists"""
+
+    @abc.abstractmethod
+    def remove(self, key: Union[str, list]):
+        """remove item with given key"""
+
+    @abc.abstractmethod
+    def search(self, key: str, value: object, projection: list = None):
+        """search by key and value"""

@@ -55,3 +55,6 @@ class KafkaStorage(Storage):
 
     def remove(self, key: Union[str, list]):
         raise NotImplementedError("'remove' is not supported")
+
+    def search(self, key: str, value: object, projection: list = None):
+        raise NotImplementedError("'search' is not supported")

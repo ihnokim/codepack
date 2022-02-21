@@ -67,3 +67,16 @@ class FileStorage(Storage):
                 os.remove(path)
         else:
             raise TypeError(key)
+
+    def search(self, key: str, value: object, projection: list = None):
+        ret = list()
+        for filename in glob(self.path + '*.json'):
+            snapshot = self.item_type.from_file(filename)
+            if snapshot[key] != value:
+                continue
+            d = snapshot.to_dict()
+            if projection:
+                ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
+            else:
+                ret.append(d)
+        return ret

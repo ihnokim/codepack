@@ -43,3 +43,6 @@ class S3Storage(Storage):
                 self.s3.delete(bucket=self.bucket, key=path)
         else:
             raise TypeError(key)
+
+    def search(self, key: str, value: object, projection: list = None):
+        raise NotImplementedError("'search' is not implemented yet")

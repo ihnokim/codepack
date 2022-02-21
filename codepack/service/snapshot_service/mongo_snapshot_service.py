@@ -45,11 +45,4 @@ class MongoSnapshotService(SnapshotService):
         self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
-        if projection:
-            _projection = {k: True for k in projection}
-            _projection['serial_number'] = True
-            _projection['_id'] = False
-        else:
-            _projection = projection
-        return list(self.storage.mongodb[self.storage.db][self.storage.collection]
-                    .find({key: value}, projection=_projection))
+        return self.storage.search(key=key, value=value, projection=projection)

@@ -42,13 +42,4 @@ class MemorySnapshotService(SnapshotService):
         self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
-        ret = list()
-        for snapshot in self.storage.memory.values():
-            if snapshot[key] != value:
-                continue
-            d = snapshot.to_dict()
-            if projection:
-                ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
-            else:
-                ret.append(d)
-        return ret
+        return self.storage.search(key=key, value=value, projection=projection)

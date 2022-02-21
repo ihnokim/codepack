@@ -45,3 +45,13 @@ class MongoStorage(Storage):
             self.mongodb[self.db][self.collection].delete_many({'_id': {'$in': key}})
         else:
             raise TypeError(key)
+
+    def search(self, key: str, value: object, projection: list = None):
+        if projection:
+            _projection = {k: True for k in projection}
+            _projection['serial_number'] = True
+            _projection['_id'] = False
+        else:
+            _projection = projection
+        return list(self.mongodb[self.db][self.collection]
+                    .find({key: value}, projection=_projection))
