@@ -14,7 +14,7 @@ class FileDeliveryService(DeliveryService):
         return self.storage.item_type.from_file(path=self.storage.item_type.get_path(key=serial_number, path=self.storage.path)).receive()
 
     def check(self, serial_number):
-        return self.storage.exist(key=serial_number)
+        return self.storage.exist(key=serial_number, summary='and')
 
     def cancel(self, serial_number):
         self.storage.remove(key=serial_number)

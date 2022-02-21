@@ -1,6 +1,5 @@
 from codepack.storage import MemoryStorage
 from codepack.service.storage_service import StorageService
-from collections.abc import Iterable
 
 
 class MemoryStorageService(StorageService):
@@ -25,17 +24,4 @@ class MemoryStorageService(StorageService):
         self.storage.remove(key=id)
 
     def check(self, id):
-        if isinstance(id, str):
-            if id in self.storage.memory:
-                return self.storage.memory[id].id
-            else:
-                return None
-        elif isinstance(id, Iterable):
-            ret = list()
-            for i in id:
-                tmp = self.check(i)
-                if tmp:
-                    ret.append(tmp)
-            return ret
-        else:
-            raise TypeError(type(id))  # pragma: no cover
+        return self.storage.exist(key=id)

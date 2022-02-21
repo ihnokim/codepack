@@ -44,17 +44,22 @@ class FileStorage(Storage):
             else:
                 raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
 
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         if isinstance(key, str):
             path = self.item_type.get_path(key=key, path=self.path)
             return os.path.exists(path)
         elif isinstance(key, list):
+            _summary, ret = self._validate_summary(summary=summary)
             for k in key:
                 path = self.item_type.get_path(key=k, path=self.path)
                 exists = os.path.exists(path)
-                if not exists:
+                if _summary == 'and' and not exists:
                     return False
-            return True
+                elif _summary == 'or' and exists:
+                    return True
+                elif _summary == '':
+                    ret.append(exists)
+            return ret
         else:
             raise TypeError(key)
 

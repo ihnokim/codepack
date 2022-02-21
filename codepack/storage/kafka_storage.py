@@ -50,7 +50,7 @@ class KafkaStorage(Storage):
             self.consumer.close()
         self.consumer = None
 
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         raise NotImplementedError("'exist' is not supported")
 
     def remove(self, key: Union[str, list]):

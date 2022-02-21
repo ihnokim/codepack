@@ -30,7 +30,7 @@ class S3Storage(Storage):
             self.s3.close()
         self.s3 = None
 
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         raise NotImplementedError("'exist' is not implemented yet")
 
     def remove(self, key: Union[str, list]):

@@ -18,7 +18,7 @@ class MongoDeliveryService(DeliveryService):
         return json.loads(ret['item'])
 
     def check(self, serial_number):
-        return self.storage.exist(key=serial_number)
+        return self.storage.exist(key=serial_number, summary='and')
 
     def cancel(self, serial_number):
         self.storage.remove(key=serial_number)

@@ -1,6 +1,5 @@
 from codepack.storage import MongoStorage
 from codepack.service.storage_service import StorageService
-from collections.abc import Iterable
 
 
 class MongoStorageService(StorageService):
@@ -29,19 +28,4 @@ class MongoStorageService(StorageService):
         self.storage.remove(key=id)
 
     def check(self, id):
-        if isinstance(id, str):
-            ret = None
-            item = self.storage.item_type.from_db(id=id,
-                                                  mongodb=self.storage.mongodb,
-                                                  db=self.storage.db, collection=self.storage.collection)
-            if item:
-                ret = item.id
-            return ret
-        elif isinstance(id, Iterable):
-            ret = list()
-            for item in self.storage.mongodb[self.storage.db][self.storage.collection]\
-                    .find({'_id': {'$in': id}}, projection={}):
-                ret.append(item['_id'])
-            return ret
-        else:
-            raise TypeError(type(id))  # pragma: no cover
+        return self.storage.exist(key=id)

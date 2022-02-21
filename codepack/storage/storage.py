@@ -18,7 +18,7 @@ class Storage(metaclass=abc.ABCMeta):
         """close storage"""
 
     @abc.abstractmethod
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         """check if item with given key exists"""
 
     @abc.abstractmethod
@@ -28,3 +28,16 @@ class Storage(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def search(self, key: str, value: object, projection: list = None):
         """search by key and value"""
+
+    @staticmethod
+    def _validate_summary(summary):
+        op = summary.lower()
+        if op == '':
+            init = list()
+        elif op == 'and':
+            init = True
+        elif op == 'or':
+            init = False
+        else:
+            raise ValueError('%s is unknown' % summary)
+        return op, init

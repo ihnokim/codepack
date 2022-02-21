@@ -15,15 +15,20 @@ class MemoryStorage(Storage):
         self.memory.clear()
         self.memory = None
 
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         if isinstance(key, str):
             return key in self.memory.keys()
         elif isinstance(key, list):
+            _summary, ret = self._validate_summary(summary=summary)
             for k in key:
                 exists = k in self.memory.keys()
-                if not exists:
+                if _summary == 'and' and not exists:
                     return False
-            return True
+                elif _summary == 'or' and exists:
+                    return True
+                elif _summary == '':
+                    ret.append(exists)
+            return ret
         else:
             raise TypeError(key)
 

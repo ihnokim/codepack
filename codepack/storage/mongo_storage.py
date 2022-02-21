@@ -30,11 +30,19 @@ class MongoStorage(Storage):
             self.mongodb.close()
         self.mongodb = None
 
-    def exist(self, key: Union[str, list]):
+    def exist(self, key: Union[str, list], summary: str = ''):
         if isinstance(key, str):
             return self.mongodb[self.db][self.collection].count_documents({'_id': key}) > 0
         elif isinstance(key, list):
-            return self.mongodb[self.db][self.collection].count_documents({'_id': {'$in': key}}) == len(key)
+            _summary, _ = self._validate_summary(summary=summary)
+            if _summary == 'and':
+                return self.mongodb[self.db][self.collection].count_documents({'_id': {'$in': key}}) == len(key)
+            elif _summary == 'or':
+                return self.mongodb[self.db][self.collection].count_documents({'_id': {'$in': key}}) > 0
+            elif _summary == '':
+                tmp = self.mongodb[self.db][self.collection].find({'_id': {'$in': key}}, projection={'_id': True})
+                existing_keys = {k['_id'] for k in tmp}
+                return [True if k in existing_keys else False for k in key]
         else:
             raise TypeError(key)
 

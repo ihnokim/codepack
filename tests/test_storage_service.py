@@ -11,7 +11,7 @@ def test_memory_storage_service_check(default_os_env):
     code2 = Code(hello, id='hello2', storage_service=mss)
     code3 = Code(hello, id='hello3', storage_service=mss)
     code1.save()
-    assert isinstance(mss.check(id=code1.id), str)
+    assert isinstance(mss.check(id=code1.id), bool)
     assert code1.id in mss.storage.memory
     mss.remove(id=code1.id)
     code2.save()
@@ -19,7 +19,8 @@ def test_memory_storage_service_check(default_os_env):
     assert len(mss.storage.memory) == 2
     check = mss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
-    assert len(check) == 2
+    assert len(check) == 3
+    assert not check[0] and check[1] and check[2]
 
 
 def test_file_storage_service_check(default_os_env, testdir_storage_service):
@@ -36,13 +37,13 @@ def test_file_storage_service_check(default_os_env, testdir_storage_service):
     code2.save()
     check = fss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
-    assert code1.id in check and code2.id in check and code3.id not in check
+    assert check[0] and check[1] and not check[2]
     fss.remove(id=code1.id)
     code3.save()
     check = fss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
-    assert code1.id not in check and code2.id in check and code3.id in check
-    assert len(check) == 2
+    assert not check[0] and check[1] and check[2]
+    assert len(check) == 3
 
 
 def test_mongo_storage_service_check(default_os_env, fake_mongodb):
@@ -61,13 +62,13 @@ def test_mongo_storage_service_check(default_os_env, fake_mongodb):
     code2.save()
     check = mss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
-    assert code1.id in check and code2.id in check and code3.id not in check
+    assert check[0] and check[1] and not check[2]
     mss.remove(id=code1.id)
     code3.save()
     check = mss.check([code1.id, code2.id, code3.id])
     assert isinstance(check, list)
-    assert code1.id not in check and code2.id in check and code3.id in check
-    assert len(check) == 2
+    assert not check[0] and check[1] and check[2]
+    assert len(check) == 3
 
 
 def test_memory_storage_service(default_os_env):

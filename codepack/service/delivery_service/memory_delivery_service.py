@@ -14,7 +14,7 @@ class MemoryDeliveryService(DeliveryService):
         return self.storage.memory[serial_number].receive()
 
     def check(self, serial_number):
-        return self.storage.exist(key=serial_number)
+        return self.storage.exist(key=serial_number, summary='and')
 
     def cancel(self, serial_number):
         self.storage.remove(key=serial_number)
