@@ -165,29 +165,25 @@ def test_validate_dependency_result(default_os_env):
     code2.service['delivery'].cancel(code2.serial_number)
     ret = code3(a=3)
     assert ret is None
-    assert code3.get_state() == 'WAITING'
+    assert code3.get_state() == 'ERROR'
     code2(3, 4)
     code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
     ret = code3(a=3)
-    assert ret is None
-    assert code3.get_state() == 'WAITING'
+    assert ret is 7
+    assert code3.get_state() == 'TERMINATED'
     code2(3, 4)
     snapshots = code3.dependency.load_snapshot()
-    deliveries = code3.dependency.check_delivery()
     assert len(snapshots) == 2
-    assert len(deliveries) == 2
+    assert code3.dependency.check_delivery() is True
     snapshot_dict = {x['_id']: x for x in snapshots}
     code2_state_info = snapshot_dict.pop(code2.serial_number)
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'WAITING'
-    update_time = code2_state_info.pop('timestamp')
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'WAITING'
     snapshot_dict[code2.serial_number] = code2_state_info
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'WAITING'
-    snapshot_dict[code2.serial_number]['timestamp'] = update_time
-    delivery_dict = {x['_id']: x for x in deliveries}
-    send_time = delivery_dict[code2.serial_number].pop('timestamp')
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'WAITING'
-    delivery_dict[code2.serial_number]['timestamp'] = send_time
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'READY'
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
+    code2.service['delivery'].cancel(code2.serial_number)
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'ERROR'
+    code2.service['delivery'].send(id='dummy', serial_number=code2.serial_number, item=123)
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
 
 
 def test_default_arg(default_os_env):

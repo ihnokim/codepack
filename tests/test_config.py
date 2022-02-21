@@ -19,8 +19,9 @@ def test_default_config_with_os_env(default_os_env):
 def test_config_path():
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
     code = Code(add2, config_path='config/test.ini')
-    assert code(1, 2) == 3
+    ret = code(1, 2)
     os.environ.pop('CODEPACK_CONFIG_DIR')
+    assert ret == 3
 
 
 def test_default_memory_code_snapshot_service_with_os_env(default):

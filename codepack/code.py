@@ -234,20 +234,23 @@ class Code(CodeBase):
     def check_dependency(self):
         return self.dependency.get_state()
 
+    def _run(self, *args, **kwargs):
+        for dependency in self.dependency.values():
+            if dependency.arg and dependency.arg not in kwargs:
+                kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
+        ret = self.function(*args, **kwargs)
+        self.send_result(item=ret)
+        return ret
+
     def __call__(self, *args, **kwargs):
         ret = None
         try:
             state = self.check_dependency()
             self.update_state(state, args=args, kwargs=kwargs)
             if state == 'READY':
-                for dependency in self.dependency.values():
-                    if dependency.arg and dependency.arg not in kwargs:
-                        kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
                 self.update_state('RUNNING', args=args, kwargs=kwargs)
-                ret = self.function(*args, **kwargs)
-                now = datetime.now().timestamp()
-                self.send_result(item=ret, timestamp=now)
-                self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
+                ret = self._run(*args, **kwargs)
+                self.update_state('TERMINATED', args=args, kwargs=kwargs)
         except Exception as e:
             self.update_state('ERROR', args=args, kwargs=kwargs)
             raise e

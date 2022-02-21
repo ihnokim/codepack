@@ -41,7 +41,7 @@ class DependencyManager(MemoryStorage, Iterable):
     def check_delivery(self):
         return self.code.service['delivery'].check(serial_number=[k for k, v in self.memory.items() if v.arg])
 
-    def validate_snapshot(self, snapshot):
+    def validate(self, snapshot):
         for s in snapshot:
             if s['state'] == 'ERROR':
                 return 'ERROR'
@@ -49,29 +49,12 @@ class DependencyManager(MemoryStorage, Iterable):
                 return 'WAITING'
         if len(self) != len(snapshot):
             return 'WAITING'
-        return 'READY'
-
-    def validate_delivery(self, snapshot, delivery):
-        if len(self.get_args()) != len(delivery):
-            return 'WAITING'
-        s = {x['_id']: x for x in snapshot}
-        for d in delivery:
-            serial_number = d['_id']
-            if serial_number not in s:
-                return 'WAITING'
-            elif 'timestamp' not in d or 'timestamp' not in s[serial_number]:
-                return 'WAITING'
-            elif d['timestamp'] != s[serial_number]['timestamp']:
-                return 'WAITING'
+        if not self.check_delivery():
+            return 'ERROR'
         return 'READY'
 
     def get_state(self):
-        snapshot = self.load_snapshot()
-        dependency_state = self.validate_snapshot(snapshot=snapshot)
-        if dependency_state != 'READY':
-            return dependency_state
-        delivery = self.check_delivery()
-        return self.validate_delivery(snapshot=snapshot, delivery=delivery)
+        return self.validate(snapshot=self.load_snapshot())
 
     def __iter__(self):
         return self.memory.__iter__()
