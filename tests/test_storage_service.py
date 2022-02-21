@@ -94,15 +94,15 @@ def test_file_storage_service(default_os_env, testdir_storage_service):
     code1 = Code(hello, storage_service=fss)
     code2 = Code(add2, storage_service=fss)
     code1.save()
-    assert not os.path.isfile(Code.get_path(serial_number=code1.id))
-    assert os.path.isfile(Code.get_path(serial_number=code1.id, path=filepath))
-    assert not os.path.isfile(Code.get_path(serial_number=code2.id, path=filepath))
+    assert not os.path.isfile(Code.get_path(key=code1.id))
+    assert os.path.isfile(Code.get_path(key=code1.id, path=filepath))
+    assert not os.path.isfile(Code.get_path(key=code2.id, path=filepath))
     code3 = fss.load(code1.id)
     assert code1.id == code3.id
     assert code1.source.strip() == code3.source.strip()
     assert code1("CodePack") == code3("CodePack")
     fss.remove(code3.id)
-    assert not os.path.isfile(Code.get_path(serial_number=code1.id, path=filepath))
+    assert not os.path.isfile(Code.get_path(key=code1.id, path=filepath))
 
 
 def test_mongo_storage_service(default_os_env, fake_mongodb):

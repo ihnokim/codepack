@@ -4,10 +4,11 @@ import json
 import dill
 from datetime import datetime
 from bson import json_util
+import os
 
 
 class Storable(metaclass=abc.ABCMeta):
-    def __init__(self, id=None, serial_number=None):
+    def __init__(self, id=None, serial_number=None, *args, **kwargs):
         """initialize instance"""
         self.id = id
         self.serial_number = serial_number if serial_number else self.generate_serial_number()
@@ -61,5 +62,5 @@ class Storable(metaclass=abc.ABCMeta):
         """create instance from dict"""
 
     @classmethod
-    def get_path(cls, serial_number, path='./'):
-        return '%s%s.json' % (path, serial_number)
+    def get_path(cls, key, path='./'):
+        return os.path.join(path, '%s.json' % key)
