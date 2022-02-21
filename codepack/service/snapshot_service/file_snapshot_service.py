@@ -1,8 +1,6 @@
-import os
 from codepack.storage import FileStorage
 from codepack.service.snapshot_service import SnapshotService
 from collections.abc import Iterable
-from glob import glob
 
 
 class FileSnapshotService(SnapshotService):
