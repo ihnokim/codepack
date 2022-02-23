@@ -3,8 +3,8 @@ from typing import Type, Union
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None):
-        super().__init__(item_type=item_type)
+    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number'):
+        super().__init__(item_type=item_type, key=key)
         self.memory = None
         self.init()
 
@@ -30,25 +30,63 @@ class MemoryStorage(Storage):
                     ret.append(exists)
             return ret
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
     def remove(self, key: Union[str, list]):
         if isinstance(key, str):
             self.memory.pop(key, None)
         elif isinstance(key, list):
             for k in key:
-                self.memory.pop(k, None)
+                self.remove(key=k)
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
-    def search(self, key: str, value: object, projection: list = None):
+    def search(self, key: str, value: object, projection: list = None, to_dict: bool = False):
         ret = list()
         for item in self.memory.values():
-            if item[key] != value:
-                continue
             d = item.to_dict()
+            if d[key] != value:
+                continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
-            else:
+                ret.append({k: d[k] for k in set(projection).union({self.key})})
+            elif to_dict:
                 ret.append(d)
+            else:
+                ret.append(item)
         return ret
+
+    def save(self, item: Union[Storable, list], update: bool = False):
+        if isinstance(item, self.item_type):
+            item_key = getattr(item, self.key)
+            if not update and self.exist(key=item_key):
+                raise ValueError('%s already exists' % item_key)
+            else:
+                self.memory[item_key] = item
+        elif isinstance(item, list):
+            for i in item:
+                self.save(item=i, update=update)
+        else:
+            raise TypeError(item)  # pragma: no cover
+
+    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+        if isinstance(key, str):
+            if self.exist(key=key):
+                item = self.memory[key]
+                d = item.to_dict()
+                if projection:
+                    return {k: d[k] for k in set(projection).union({self.key})}
+                elif to_dict:
+                    return d
+                else:
+                    return item
+            else:
+                return None
+        elif isinstance(key, list):
+            ret = list()
+            for s in key:
+                tmp = self.load(key=s, projection=projection, to_dict=to_dict)
+                if tmp:
+                    ret.append(tmp)
+            return ret
+        else:
+            raise TypeError(type(key))  # pragma: no cover

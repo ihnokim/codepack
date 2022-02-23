@@ -6,8 +6,8 @@ from typing import Type, Union
 
 
 class FileStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, path: str = '.'):
-        super().__init__(item_type=item_type)
+    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number', path: str = '.'):
+        super().__init__(item_type=item_type, key=key)
         self.path = None
         self.new_path = None
         self.init(path=path)
@@ -61,7 +61,7 @@ class FileStorage(Storage):
                     ret.append(exists)
             return ret
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
     def remove(self, key: Union[str, list]):
         if isinstance(key, str):
@@ -71,17 +71,61 @@ class FileStorage(Storage):
                 path = self.item_type.get_path(key=k, path=self.path)
                 os.remove(path)
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
-    def search(self, key: str, value: object, projection: list = None):
+    def search(self, key: str, value: object, projection: list = None, to_dict: bool = None):
         ret = list()
         for filename in glob(self.path + '*.json'):
             item = self.item_type.from_file(filename)
-            if item[key] != value:
-                continue
             d = item.to_dict()
+            if d[key] != value:
+                continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({'serial_number'})})
-            else:
+                ret.append({k: d[k] for k in set(projection).union({self.key})})
+            elif to_dict:
                 ret.append(d)
+            else:
+                ret.append(item)
         return ret
+
+    def save(self, item: Union[Storable, list], update: bool = False):
+        if isinstance(item, self.item_type):
+            item_key = getattr(item, self.key)
+            path = item.get_path(key=item_key, path=self.path)
+            if update:
+                self.remove(key=item_key)
+                item.to_file(path)
+            elif self.exist(key=item_key):
+                raise ValueError('%s already exists' % item_key)
+            else:
+                item.to_file(path)
+        elif isinstance(item, list):
+            for i in item:
+                self.save(item=i, update=update)
+        else:
+            raise TypeError(item)  # pragma: no cover
+
+    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+        if isinstance(key, str):
+            if projection:
+                to_dict = True
+            path = self.item_type.get_path(key=key, path=self.path)
+            if not self.exist(key=key):
+                return None
+            ret_instance = self.item_type.from_file(path)
+            if projection:
+                d = ret_instance.to_dict()
+                return {k: d[k] for k in set(projection).union({self.key})}
+            elif to_dict:
+                return ret_instance.to_dict()
+            else:
+                return ret_instance
+        elif isinstance(key, list):
+            ret = list()
+            for k in key:
+                tmp = self.load(key=k, projection=projection, to_dict=to_dict)
+                if tmp is not None:
+                    ret.append(tmp)
+            return ret
+        else:
+            raise TypeError(key)  # pragma: no cover

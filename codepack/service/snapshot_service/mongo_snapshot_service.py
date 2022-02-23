@@ -1,6 +1,5 @@
 from codepack.storage import MongoStorage
 from codepack.service.snapshot_service import SnapshotService
-from collections.abc import Iterable
 from codepack.snapshot import State
 
 
@@ -26,23 +25,10 @@ class MongoSnapshotService(SnapshotService):
             raise TypeError(type(snapshot))
 
     def load(self, serial_number, projection=None):
-        if projection:
-            _projection = {k: True for k in projection}
-            _projection['serial_number'] = True
-            _projection['_id'] = False
-        else:
-            _projection = projection
-        if isinstance(serial_number, str):
-            return self.storage.mongodb[self.storage.db][self.storage.collection]\
-                .find_one({'_id': serial_number}, projection=_projection)
-        elif isinstance(serial_number, Iterable):
-            return list(self.storage.mongodb[self.storage.db][self.storage.collection]
-                        .find({'_id': {'$in': serial_number}}, projection=_projection))
-        else:
-            raise TypeError(type(serial_number))  # pragma: no cover
+        return self.storage.load(key=serial_number, projection=projection, to_dict=True)
 
     def remove(self, serial_number):
         self.storage.remove(key=serial_number)
 
     def search(self, key, value, projection=None):
-        return self.storage.search(key=key, value=value, projection=projection)
+        return self.storage.search(key=key, value=value, projection=projection, to_dict=True)
