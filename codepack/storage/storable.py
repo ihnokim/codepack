@@ -5,6 +5,7 @@ import dill
 from datetime import datetime
 from bson import json_util
 import os
+from posixpath import join as posixpath_join
 
 
 class Storable(metaclass=abc.ABCMeta):
@@ -62,5 +63,8 @@ class Storable(metaclass=abc.ABCMeta):
         """create instance from dict"""
 
     @classmethod
-    def get_path(cls, key, path='./'):
-        return os.path.join(path, '%s.json' % key)
+    def get_path(cls, key, path='./', posix=False):
+        if posix:
+            return posixpath_join(path, '%s.json' % key)
+        else:
+            return os.path.join(path, '%s.json' % key)
