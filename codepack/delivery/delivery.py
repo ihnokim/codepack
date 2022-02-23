@@ -23,9 +23,10 @@ class Delivery(Storable):
         return self.item
 
     def to_dict(self):
-        return {'_id': self.serial_number, 'id': self.id,
+        return {'_id': self.serial_number, 'id': self.id, 'serial_number': self.serial_number,
                 'timestamp': self.timestamp, 'item': json.dumps(self.item)}
 
     @classmethod
     def from_dict(cls, d):
-        return cls(id=d['id'], serial_number=d['_id'], item=json.loads(d['item']), timestamp=d.get('timestamp', None))
+        return cls(id=d['id'], serial_number=d['serial_number'],
+                   item=json.loads(d['item']), timestamp=d.get('timestamp', None))
