@@ -23,8 +23,18 @@ class S3(Interface):
         return ret
 
     def download(self, bucket: str, key: str, *args, **kwargs):
-        obj = self.session.get_object(Bucket=bucket, Key=key, *args, **kwargs)
+        try:
+            obj = self.session.get_object(Bucket=bucket, Key=key, *args, **kwargs)
+        except self.session.exceptions.NoSuchKey:
+            return None
         return obj['Body'].read()
+
+    def exist(self, bucket: str, key: str, *args, **kwargs):
+        try:
+            obj = self.session.head_object(Bucket=bucket, Key=key, *args, **kwargs)
+            return obj is not None
+        except self.session.exceptions.ClientError:
+            return False
 
     def delete(self, bucket: str, key: str, *args, **kwargs):
         return self.session.delete_object(Bucket=bucket, Key=key, *args, **kwargs)
