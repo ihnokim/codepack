@@ -35,6 +35,10 @@ class Storage(metaclass=abc.ABCMeta):
         """save item"""
 
     @abc.abstractmethod
+    def update(self, key: Union[str, list], values: dict):
+        """update item with given key"""
+
+    @abc.abstractmethod
     def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
         """load item with given key"""
 

@@ -62,5 +62,8 @@ class KafkaStorage(Storage):
     def save(self, item: Union[Storable, list], update: bool = False):
         raise NotImplementedError("'save' is not supported")  # pragma: no cover
 
+    def update(self, key: Union[str, list], values: dict):
+        raise NotImplementedError("'update' is not supported")  # pragma: no cover
+
     def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
         raise NotImplementedError("'load' is not supported")  # pragma: no cover

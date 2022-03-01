@@ -1,10 +1,11 @@
 import abc
 from codepack.service.service import Service
+from codepack.snapshot import Snapshot
 
 
 class SnapshotService(Service, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def save(self, snapshot):
+    def save(self, snapshot: Snapshot):
         """save snapshot"""
 
     @abc.abstractmethod

@@ -93,7 +93,8 @@ class FileStorage(Storage):
             item_key = getattr(item, self.key)
             path = item.get_path(key=item_key, path=self.path)
             if update:
-                self.remove(key=item_key)
+                if self.exist(key=item_key):
+                    self.remove(key=item_key)
                 item.to_file(path)
             elif self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
@@ -104,6 +105,23 @@ class FileStorage(Storage):
                 self.save(item=i, update=update)
         else:
             raise TypeError(item)  # pragma: no cover
+
+    def update(self, key: Union[str, list], values: dict):
+        if len(values) > 0:
+            item = self.load(key=key, to_dict=True)
+            if isinstance(item, dict):
+                if item is not None:
+                    for k, v in values.items():
+                        item[k] = v
+                    self.save(item=self.item_type.from_dict(item), update=True)
+            elif isinstance(item, list):
+                if len(item) > 0:
+                    for i in item:
+                        for k, v in values.items():
+                            i[k] = v
+                    self.save(item=[self.item_type.from_dict(i) for i in item], update=True)
+            else:
+                raise TypeError(type(item))  # pragma: no cover
 
     def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
         if isinstance(key, str):

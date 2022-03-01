@@ -86,6 +86,15 @@ class MongoStorage(Storage):
         else:
             raise TypeError(item)  # pragma: no cover
 
+    def update(self, key: Union[str, list], values: dict):
+        if len(values) > 0:
+            if isinstance(key, str):
+                self.mongodb[self.db][self.collection].update_one({'_id': key}, {'$set': values})
+            elif isinstance(key, list):
+                self.mongodb[self.db][self.collection].update_many({'_id': {'$in': key}}, {'$set': values})
+            else:
+                raise TypeError(type(key))  # pragma: no cover
+
     def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
         if projection:
             to_dict = True

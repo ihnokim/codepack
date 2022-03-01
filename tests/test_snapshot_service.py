@@ -64,11 +64,18 @@ def test_memory_snapshot_service_update():
     snapshot1 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp)
     snapshot2 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
     mss.save(snapshot=snapshot1)
-    tmp_id = id(mss.storage.memory[snapshot1.serial_number])
     mss.save(snapshot=snapshot2)
     assert len(mss.storage.memory) == 1
-    assert tmp_id == id(mss.storage.memory[snapshot2.serial_number])
-    assert mss.storage.memory[snapshot1.serial_number].timestamp == timestamp + 1
+    recent_instance = mss.storage.memory[snapshot2.serial_number]
+    assert id(snapshot1) != id(recent_instance)
+    assert id(snapshot2) != id(recent_instance)
+    assert snapshot1.id == recent_instance.id
+    assert snapshot1.serial_number == recent_instance.serial_number
+    assert snapshot1.timestamp + 1 == recent_instance.timestamp
+    snapshot3 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
+    mss.save(snapshot=snapshot3)
+    recent_instance2 = mss.storage.memory[snapshot2.serial_number]
+    assert id(recent_instance) == id(recent_instance2)
 
 
 def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapshot_service):
