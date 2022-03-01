@@ -1,20 +1,22 @@
 from codepack.storage import FileStorage
 from codepack.service.delivery_service import DeliveryService
+from codepack.delivery import Delivery
+from typing import Type
 
 
 class FileDeliveryService(DeliveryService):
-    def __init__(self, item_type=None, path='./'):
-        self.storage = FileStorage(item_type=item_type, path=path)
+    def __init__(self, item_type: Type[Delivery] = None, path: str = './'):
+        self.storage = FileStorage(item_type=item_type, key='serial_number', path=path)
 
-    def send(self, id, serial_number, item=None, timestamp=None):
-        self.storage.item_type(id=id, serial_number=serial_number, item=item, timestamp=timestamp)\
-            .to_file(path=self.storage.item_type.get_path(key=serial_number, path=self.storage.path))
+    def send(self, id: str, serial_number: str, item: object = None, timestamp: float = None):
+        item = self.storage.item_type(id=id, serial_number=serial_number, item=item, timestamp=timestamp)
+        self.storage.save(item=item, update=True)
 
-    def receive(self, serial_number):
-        return self.storage.item_type.from_file(path=self.storage.item_type.get_path(key=serial_number, path=self.storage.path)).receive()
+    def receive(self, serial_number: str):
+        return self.storage.load(key=serial_number).receive()
 
-    def check(self, serial_number):
+    def check(self, serial_number: str):
         return self.storage.exist(key=serial_number, summary='and')
 
-    def cancel(self, serial_number):
+    def cancel(self, serial_number: str):
         self.storage.remove(key=serial_number)
