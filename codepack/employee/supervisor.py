@@ -8,8 +8,7 @@ class Supervisor(KafkaStorage):
     def __init__(self, producer=None, topic=None, snapshot_service=None, producer_config=None):
         KafkaStorage.__init__(self, producer=producer, topic=topic, producer_config=producer_config)
         self.snapshot_service =\
-            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot',
-                                                                                   'snapshot_service')
+            snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service')
 
     def run_code(self, code, args=None, kwargs=None):
         if isinstance(code, Code):

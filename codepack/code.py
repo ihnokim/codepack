@@ -6,7 +6,6 @@ from codepack.base import CodeBase
 import re
 import ast
 from collections import OrderedDict
-from datetime import datetime
 from codepack.dependency import Dependency, DependencyManager
 from codepack.snapshot import CodeSnapshot
 
@@ -51,14 +50,14 @@ class Code(CodeBase):
     def init_service(self, delivery_service=None, snapshot_service=None, storage_service=None, config_path=None):
         self.service = dict()
         self.service['delivery'] =\
-            delivery_service if delivery_service else Default.get_storage_instance('delivery', 'delivery_service',
-                                                                                   config_path=config_path)
+            delivery_service if delivery_service else Default.get_service('delivery', 'delivery_service',
+                                                                          config_path=config_path)
         self.service['snapshot'] =\
-            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot', 'snapshot_service',
-                                                                                   config_path=config_path)
+            snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service',
+                                                                          config_path=config_path)
         self.service['storage'] =\
-            storage_service if storage_service else Default.get_storage_instance('code', 'storage_service',
-                                                                                 config_path=config_path)
+            storage_service if storage_service else Default.get_service('code', 'storage_service',
+                                                                        config_path=config_path)
 
     def register(self, callback):
         self.callback = callback
