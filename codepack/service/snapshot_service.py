@@ -1,12 +1,13 @@
-from codepack.storage import FileStorage
-from codepack.service.snapshot_service import SnapshotService
+from codepack.service.service import Service
 from codepack.snapshot import Snapshot
-from typing import Type
+from typing import Union
 
 
-class FileSnapshotService(SnapshotService):
-    def __init__(self, item_type: Type[Snapshot] = None, path='./'):
-        self.storage = FileStorage(item_type=item_type, key='serial_number', path=path)
+class SnapshotService(Service):
+    def __init__(self, storage):
+        super().__init__(storage=storage)
+        if self.storage.key != 'serial_number':
+            self.storage.key = 'serial_number'
 
     def save(self, snapshot: Snapshot):
         if self.storage.exist(key=snapshot.serial_number):
@@ -15,10 +16,10 @@ class FileSnapshotService(SnapshotService):
         else:
             self.storage.save(item=snapshot)
 
-    def load(self, serial_number: str, projection: list = None):
+    def load(self, serial_number: Union[str, list], projection: list = None):
         return self.storage.load(key=serial_number, projection=projection, to_dict=True)
 
-    def remove(self, serial_number: str):
+    def remove(self, serial_number: Union[str, list]):
         self.storage.remove(key=serial_number)
 
     def search(self, key: str, value: object, projection: list = None):

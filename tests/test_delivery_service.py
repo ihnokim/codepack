@@ -1,10 +1,12 @@
-from codepack.service import MemoryDeliveryService, FileDeliveryService, MongoDeliveryService
+from codepack.service import DeliveryService
 from codepack.delivery import Delivery
+from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 import os
 
 
 def test_memory_delivery_service_check():
-    mds = MemoryDeliveryService(item_type=Delivery)
+    storage = MemoryStorage(item_type=Delivery)
+    mds = DeliveryService(storage=storage)
     mds.storage.init()
     sender = 'sender'
     serial_number = '1234'
@@ -23,7 +25,8 @@ def test_memory_delivery_service_check():
 
 
 def test_file_delivery_service_check(testdir_delivery_service):
-    fds = FileDeliveryService(item_type=Delivery, path=testdir_delivery_service)
+    storage = FileStorage(item_type=Delivery, path=testdir_delivery_service)
+    fds = DeliveryService(storage=storage)
     sender = 'sender'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
@@ -57,7 +60,8 @@ def test_file_delivery_service_check(testdir_delivery_service):
 def test_mongo_delivery_service_check(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    storage = MongoStorage(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    mds = DeliveryService(storage=storage)
     sender = 'sender'
     serial_number = '1234'
     serial_numbers = ['123', '456', '789']
@@ -80,13 +84,14 @@ def test_mongo_delivery_service_check(fake_mongodb):
 
 
 def test_memory_delivery_service():
-    mds = MemoryDeliveryService(item_type=Delivery)
+    storage = MemoryStorage(item_type=Delivery)
+    mds = DeliveryService(storage=storage)
     mds.storage.init()
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
     mds.send(id=sender, serial_number=serial_number, item=item)
-    assert serial_number in mds.storage.memory, "'send' failed"
+    assert serial_number in storage.memory, "'send' failed"
     check = mds.check(serial_number=serial_number)
     receive = mds.receive(serial_number=serial_number)
     assert check is True
@@ -97,12 +102,13 @@ def test_memory_delivery_service():
 
 
 def test_file_delivery_service(testdir_delivery_service):
-    fds = FileDeliveryService(item_type=Delivery, path=testdir_delivery_service)
+    storage = FileStorage(item_type=Delivery, path=testdir_delivery_service)
+    fds = DeliveryService(storage=storage)
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
     fds.send(id=sender, serial_number=serial_number, item=item)
-    assert os.path.isfile(Delivery.get_path(key=serial_number, path=fds.storage.path)), "'send' failed"
+    assert os.path.isfile(Delivery.get_path(key=serial_number, path=storage.path)), "'send' failed"
     check = fds.check(serial_number=serial_number)
     receive = fds.receive(serial_number=serial_number)
     assert check is True
@@ -115,7 +121,8 @@ def test_file_delivery_service(testdir_delivery_service):
 def test_mongo_delivery_service(fake_mongodb):
     db = 'test'
     collection = 'cache'
-    mds = MongoDeliveryService(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    storage = MongoStorage(item_type=Delivery, mongodb=fake_mongodb, db=db, collection=collection)
+    mds = DeliveryService(storage=storage)
     sender = 'sender'
     serial_number = '1234'
     item = 'Hello, World!'
