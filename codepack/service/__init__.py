@@ -1,4 +1,4 @@
-from codepack.service.delivery_service import MemoryDeliveryService, FileDeliveryService, MongoDeliveryService
-from codepack.service.storage_service import MemoryStorageService, FileStorageService, MongoStorageService
-from codepack.service.snapshot_service import MemorySnapshotService, FileSnapshotService, MongoSnapshotService
+from codepack.service.storage_service import StorageService
+from codepack.service.delivery_service import DeliveryService
+from codepack.service.snapshot_service import SnapshotService
 from codepack.service.service import Service

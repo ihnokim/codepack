@@ -3,7 +3,8 @@ from tests import *
 from codepack.config import Config
 import pytest
 import os
-from codepack.service import MemoryDeliveryService, FileSnapshotService, MongoStorageService
+from codepack.service import DeliveryService, SnapshotService, StorageService
+from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 
 
 def test_no_config():
@@ -19,8 +20,9 @@ def test_default_config_with_os_env(default_os_env):
 def test_config_path():
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
     code = Code(add2, config_path='config/test.ini')
-    assert code(1, 2) == 3
+    ret = code(1, 2)
     os.environ.pop('CODEPACK_CONFIG_DIR')
+    assert ret == 3
 
 
 def test_default_memory_code_snapshot_service_with_os_env(default):
@@ -30,8 +32,8 @@ def test_default_memory_code_snapshot_service_with_os_env(default):
     env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
     try:
         os.environ[env_source] = 'memory'
-        mss = default.get_storage_instance('code_snapshot', 'snapshot_service')
-        assert hasattr(mss, 'memory')
+        mss = default.get_service('code_snapshot', 'snapshot_service')
+        assert hasattr(mss.storage, 'memory')
     finally:
         if env_source in os.environ:
             os.environ.pop(env_source, None)
@@ -46,9 +48,9 @@ def test_default_file_code_snapshot_service_with_os_env(default):
     try:
         os.environ[env_source] = 'file'
         os.environ[env_path] = 'tmp/'
-        fss = default.get_storage_instance('code_snapshot', 'snapshot_service')
-        assert hasattr(fss, 'path')
-        assert fss.path == 'tmp/'
+        fss = default.get_service('code_snapshot', 'snapshot_service')
+        assert hasattr(fss.storage, 'path')
+        assert fss.storage.path == 'tmp/'
     finally:
         for env in [env_source, env_path]:
             if env in os.environ:
@@ -69,14 +71,14 @@ def test_default_mongo_code_snapshot_service_with_os_env(default):
         os.environ[env_db] = 'test'
         os.environ[env_collection] = 'snapshot'
         os.environ[env_config_path] = 'config/test_conn.ini'
-        mss = default.get_storage_instance('code_snapshot', 'snapshot_service')
-        assert hasattr(mss, 'mongodb')
+        mss = default.get_service('code_snapshot', 'snapshot_service')
     finally:
         for env in [env_source, env_db, env_collection, env_config_path]:
             if env in os.environ:
                 os.environ.pop(env, None)
-        if mss is not None and not mss.mongodb.closed:
-            mss.mongodb.close()
+        if mss is not None and not mss.storage.mongodb.closed():
+            mss.storage.mongodb.close()
+    assert hasattr(mss.storage, 'mongodb')
 
 
 def test_default_memory_delivery_service_with_os_env(default):
@@ -86,8 +88,8 @@ def test_default_memory_delivery_service_with_os_env(default):
     env_source = 'CODEPACK_DELIVERY_SOURCE'
     try:
         os.environ[env_source] = 'memory'
-        mds = default.get_storage_instance('delivery', 'delivery_service')
-        assert hasattr(mds, 'memory')
+        mds = default.get_service('delivery', 'delivery_service')
+        assert hasattr(mds.storage, 'memory')
     finally:
         if env_source in os.environ:
             os.environ.pop(env_source, None)
@@ -102,9 +104,9 @@ def test_default_file_delivery_service_with_os_env(default):
     try:
         os.environ[env_source] = 'file'
         os.environ[env_path] = 'tmp/'
-        fds = default.get_storage_instance('delivery', 'delivery_service')
-        assert hasattr(fds, 'path')
-        assert fds.path == 'tmp/'
+        fds = default.get_service('delivery', 'delivery_service')
+        assert hasattr(fds.storage, 'path')
+        assert fds.storage.path == 'tmp/'
     finally:
         for env in [env_source, env_path]:
             if env in os.environ:
@@ -125,14 +127,14 @@ def test_default_mongo_delivery_service_with_os_env(default):
         os.environ[env_db] = 'test'
         os.environ[env_collection] = 'delivery'
         os.environ[env_config_path] = 'config/test_conn.ini'
-        mds = default.get_storage_instance('delivery', 'delivery_service')
-        assert hasattr(mds, 'mongodb')
+        mds = default.get_service('delivery', 'delivery_service')
     finally:
         for env in [env_source, env_db, env_collection, env_config_path]:
             if env in os.environ:
                 os.environ.pop(env, None)
-        if mds is not None and not mds.mongodb.closed:
-            mds.mongodb.close()
+        if mds is not None and not mds.storage.mongodb.closed():
+            mds.storage.mongodb.close()
+    assert hasattr(mds.storage, 'mongodb')
 
 
 def test_default_memory_code_storage_service_with_os_env(default):
@@ -142,9 +144,9 @@ def test_default_memory_code_storage_service_with_os_env(default):
     env_source = 'CODEPACK_CODE_SOURCE'
     try:
         os.environ[env_source] = 'memory'
-        mss = default.get_storage_instance('code', 'storage_service')
-        assert hasattr(mss, 'memory')
-        assert mss.item_type == Code
+        mss = default.get_service('code', 'storage_service')
+        assert hasattr(mss.storage, 'memory')
+        assert mss.storage.item_type == Code
     finally:
         if env_source in os.environ:
             os.environ.pop(env_source, None)
@@ -159,10 +161,10 @@ def test_default_file_code_storage_service_with_os_env(default):
     try:
         os.environ[env_source] = 'file'
         os.environ[env_path] = 'tmp/'
-        fss = default.get_storage_instance('code', 'storage_service')
-        assert hasattr(fss, 'path')
-        assert fss.path == 'tmp/'
-        assert fss.item_type == Code
+        fss = default.get_service('code', 'storage_service')
+        assert hasattr(fss.storage, 'path')
+        assert fss.storage.path == 'tmp/'
+        assert fss.storage.item_type == Code
     finally:
         for env in [env_source, env_path]:
             if env in os.environ:
@@ -183,15 +185,15 @@ def test_default_mongo_code_storage_service_with_os_env(default):
         os.environ[env_db] = 'test'
         os.environ[env_collection] = 'codes'
         os.environ[env_config_path] = 'config/test_conn.ini'
-        mss = default.get_storage_instance('code', 'storage_service')
-        assert hasattr(mss, 'mongodb')
-        assert mss.item_type == Code
+        mss = default.get_service('code', 'storage_service')
     finally:
         for env in [env_source, env_db, env_collection, env_config_path]:
             if env in os.environ:
                 os.environ.pop(env, None)
-        if mss is not None and not mss.mongodb.closed:
-            mss.mongodb.close()
+        if mss is not None and not mss.storage.mongodb.closed():
+            mss.storage.mongodb.close()
+    assert hasattr(mss.storage, 'mongodb')
+    assert mss.storage.item_type == Code
 
 
 def test_if_default_services_have_single_instance_for_each_service(default, testdir_snapshot_service):
@@ -205,12 +207,19 @@ def test_if_default_services_have_single_instance_for_each_service(default, test
     try:
         code1 = Code(add2)
         code2 = Code(add3)
-        assert isinstance(code1.service['delivery'], MemoryDeliveryService)
-        assert isinstance(code1.service['snapshot'], FileSnapshotService)
-        assert isinstance(code1.service['storage'], MongoStorageService)
-        assert isinstance(code2.service['delivery'], MemoryDeliveryService)
-        assert isinstance(code2.service['snapshot'], FileSnapshotService)
-        assert isinstance(code2.service['storage'], MongoStorageService)
+        assert isinstance(code1.service['delivery'], DeliveryService)
+        assert isinstance(code1.service['snapshot'], SnapshotService)
+        assert isinstance(code1.service['storage'], StorageService)
+        assert isinstance(code2.service['delivery'], DeliveryService)
+        assert isinstance(code2.service['snapshot'], SnapshotService)
+        assert isinstance(code2.service['storage'], StorageService)
+
+        assert isinstance(code1.service['delivery'].storage, MemoryStorage)
+        assert isinstance(code1.service['snapshot'].storage, FileStorage)
+        assert isinstance(code1.service['storage'].storage, MongoStorage)
+        assert isinstance(code2.service['delivery'].storage, MemoryStorage)
+        assert isinstance(code2.service['snapshot'].storage, FileStorage)
+        assert isinstance(code2.service['storage'].storage, MongoStorage)
 
         assert (code1.service['delivery']) == (code2.service['delivery'])
         assert (code1.service['snapshot']) == (code2.service['snapshot'])

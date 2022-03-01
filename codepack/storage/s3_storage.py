@@ -1,58 +1,44 @@
+from codepack.interface import S3
 from codepack.storage import Storage, Storable
-from shutil import rmtree
-from glob import glob
-import os
 from typing import Type, Union
+from posixpath import join
 
 
-class FileStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number', path: str = '.'):
+class S3Storage(Storage):
+    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number',
+                 s3: Union[S3, dict] = None, bucket: str = None, path: str = '', *args, **kwargs):
         super().__init__(item_type=item_type, key=key)
+        self.s3 = None
+        self.bucket = None
         self.path = None
-        self.new_path = None
-        self.init(path=path)
+        self.new_connection = None
+        self.init(s3=s3, bucket=bucket, path=path, *args, **kwargs)
 
-    def init(self, path: str = '.'):
+    def init(self, s3: Union[S3, dict] = None, bucket: str = None, path: str = None, *args, **kwargs):
+        self.bucket = bucket
         self.path = path
-        if os.path.exists(path):
-            self.new_path = False
+        if isinstance(s3, S3):
+            self.s3 = S3
+            self.new_connection = False
+        elif isinstance(s3, dict):
+            self.s3 = S3(s3, *args, **kwargs)
+            self.new_connection = True
         else:
-            self.new_path = True
-            self.mkdir(path)
+            raise TypeError(type(s3))
 
     def close(self):
-        if self.new_path:
-            self.rmdir(self.path)
-
-    @staticmethod
-    def mkdir(path: str):
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-    @staticmethod
-    def rmdir(path: str):
-        if os.path.exists(path):
-            rmtree(path)
-
-    @staticmethod
-    def empty_dir(path: str):
-        for item in glob(os.path.join(path, '*')):
-            if os.path.isfile(item):
-                os.remove(item)
-            elif os.path.isdir(item):
-                rmtree(item)
-            else:
-                raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
+        if self.new_connection:
+            self.s3.close()
+        self.s3 = None
 
     def exist(self, key: Union[str, list], summary: str = ''):
         if isinstance(key, str):
-            path = self.item_type.get_path(key=key, path=self.path)
-            return os.path.exists(path)
+            path = self.item_type.get_path(key=key, path=self.path, posix=True)
+            return self.s3.exist(bucket=self.bucket, key=path)
         elif isinstance(key, list):
             _summary, ret = self._validate_summary(summary=summary)
             for k in key:
-                path = self.item_type.get_path(key=k, path=self.path)
-                exists = os.path.exists(path)
+                exists = self.exist(key=k, summary=summary)
                 if _summary == 'and' and not exists:
                     return False
                 elif _summary == 'or' and exists:
@@ -61,50 +47,56 @@ class FileStorage(Storage):
                     ret.append(exists)
             return ret
         else:
-            raise TypeError(key)  # pragma: no cover
+            raise TypeError(key)
 
     def remove(self, key: Union[str, list]):
         if isinstance(key, str):
-            os.remove(path=self.item_type.get_path(key=key, path=self.path))
+            path = self.item_type.get_path(key=key, path=self.path, posix=True)
+            self.s3.delete(bucket=self.bucket, key=path)
         elif isinstance(key, list):
             for k in key:
-                path = self.item_type.get_path(key=k, path=self.path)
-                os.remove(path)
+                self.remove(key=k)
         else:
-            raise TypeError(key)  # pragma: no cover
+            raise TypeError(key)
 
-    def search(self, key: str, value: object, projection: list = None, to_dict: bool = None):
+    def search(self, key: str, value: object, projection: list = None, to_dict: bool = False):
         ret = list()
-        for filename in glob(self.path + '*.json'):
-            item = self.item_type.from_file(filename)
-            d = item.to_dict()
-            if d[key] != value:
+        if projection:
+            to_dict = True
+        all_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, ''))
+        all_obj_keys = [obj['Key'] for obj in all_obj_info]
+        for k in all_obj_keys:
+            try:
+                instance = self.item_type.from_json(self.s3.download(bucket=self.bucket, key=k))
+                d = instance.to_dict()
+                if d[key] == value:
+                    if projection:
+                        ret.append({k: d[k] for k in set(projection).union({self.key})})
+                    elif to_dict:
+                        ret.append(d)
+                    else:
+                        ret.append(instance)
+            except Exception:
                 continue
-            if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
-            elif to_dict:
-                ret.append(d)
-            else:
-                ret.append(item)
         return ret
 
     def save(self, item: Union[Storable, list], update: bool = False):
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
-            path = item.get_path(key=item_key, path=self.path)
+            path = item.get_path(key=item_key, path=self.path, posix=True)
             if update:
                 if self.exist(key=item_key):
                     self.remove(key=item_key)
-                item.to_file(path)
+                self.s3.upload(bucket=self.bucket, key=path, data=item.to_json())
             elif self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:
-                item.to_file(path)
+                self.s3.upload(bucket=self.bucket, key=path, data=item.to_json())
         elif isinstance(item, list):
             for i in item:
                 self.save(item=i, update=update)
         else:
-            raise TypeError(item)  # pragma: no cover
+            raise TypeError(item)
 
     def update(self, key: Union[str, list], values: dict):
         if len(values) > 0:
@@ -127,10 +119,11 @@ class FileStorage(Storage):
         if isinstance(key, str):
             if projection:
                 to_dict = True
-            path = self.item_type.get_path(key=key, path=self.path)
-            if not self.exist(key=key):
+            path = self.item_type.get_path(key=key, path=self.path, posix=True)
+            ret_json = self.s3.download(bucket=self.bucket, key=path)
+            if ret_json is None:
                 return None
-            ret_instance = self.item_type.from_file(path)
+            ret_instance = self.item_type.from_json(ret_json)
             if projection:
                 d = ret_instance.to_dict()
                 return {k: d[k] for k in set(projection).union({self.key})}
@@ -146,4 +139,4 @@ class FileStorage(Storage):
                     ret.append(tmp)
             return ret
         else:
-            raise TypeError(key)  # pragma: no cover
+            raise TypeError(key)

@@ -37,14 +37,14 @@ class CodePack(CodePackBase):
     def init_service(self, snapshot_service=None, storage_service=None, argpack_service=None, config_path=None):
         self.service = dict()
         self.service['snapshot'] =\
-            snapshot_service if snapshot_service else Default.get_storage_instance('codepack_snapshot', 'snapshot_service',
-                                                                                   config_path=config_path)
+            snapshot_service if snapshot_service else Default.get_service('codepack_snapshot', 'snapshot_service',
+                                                                          config_path=config_path)
         self.service['storage'] =\
-            storage_service if storage_service else Default.get_storage_instance('codepack', 'storage_service',
-                                                                                 config_path=config_path)
+            storage_service if storage_service else Default.get_service('codepack', 'storage_service',
+                                                                        config_path=config_path)
         self.service['argpack'] = \
-            argpack_service if argpack_service else Default.get_storage_instance('argpack', 'storage_service',
-                                                                                 config_path=config_path)
+            argpack_service if argpack_service else Default.get_service('argpack', 'storage_service',
+                                                                        config_path=config_path)
 
     def make_argpack(self):
         return ArgPack(self)

@@ -87,18 +87,20 @@ class Default:
         return _alias[alias]
 
     @classmethod
-    def get_storage_instance(cls, section: str, instance_type: str, config_path: str = None, alias_path: str = None):
-        key = '%s_%s' % (section, instance_type)
+    def get_service(cls, section: str, service_type: str, config_path: str = None, alias_path: str = None):
+        key = '%s_%s' % (section, service_type)
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
-            alias = cls.get_alias_from_source(source=source, suffix=instance_type)
-            c = cls.get_class_from_alias(alias, config_path=config_path, alias_path=alias_path)
+            storage_alias = cls.get_alias_from_source(source=source, suffix='storage')
+            storage_class = cls.get_class_from_alias(storage_alias, config_path=config_path, alias_path=alias_path)
+            service_class = cls.get_class_from_alias(service_type, config_path=config_path, alias_path=alias_path)
             item_type = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
-            _instance = c(item_type=item_type, **storage_config)
+            storage_instance = storage_class(item_type=item_type, **storage_config)
+            service_instance = service_class(storage=storage_instance)
             if config_path is None and alias_path is None:
-                cls.instances[key] = _instance
-            return _instance
+                cls.instances[key] = service_instance
+            return service_instance
         else:
             return cls.instances[key]
 

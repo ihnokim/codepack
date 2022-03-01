@@ -8,9 +8,8 @@ class Engine(metaclass=abc.ABCMeta):
         self.callback = callback
         self.interval = interval
         self.snapshot_service =\
-            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot',
-                                                                                   'snapshot_service',
-                                                                                   config_path=config_path)
+            snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service',
+                                                                          config_path=config_path)
 
     @abc.abstractmethod
     def start(self):
