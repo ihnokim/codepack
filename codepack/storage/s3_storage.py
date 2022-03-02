@@ -18,7 +18,7 @@ class S3Storage(Storage):
         self.bucket = bucket
         self.path = path
         if isinstance(s3, S3):
-            self.s3 = S3
+            self.s3 = s3
             self.new_connection = False
         elif isinstance(s3, dict):
             self.s3 = S3(s3, *args, **kwargs)
