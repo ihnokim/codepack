@@ -1,6 +1,7 @@
 from codepack.service.service import Service
 from codepack.snapshot import Snapshot
 from typing import Union
+from codepack.snapshot import State
 
 
 class SnapshotService(Service):
@@ -12,7 +13,10 @@ class SnapshotService(Service):
     def save(self, snapshot: Snapshot):
         if self.storage.exist(key=snapshot.serial_number):
             existing_snapshot = self.storage.load(key=snapshot.serial_number)
-            self.storage.update(key=snapshot.serial_number, values=existing_snapshot.diff(snapshot))
+            diff = existing_snapshot.diff(snapshot)
+            if 'state' in diff and isinstance(diff['state'], State):
+                diff['state'] = diff['state'].name
+            self.storage.update(key=snapshot.serial_number, values=diff)
         else:
             self.storage.save(item=snapshot)
 
