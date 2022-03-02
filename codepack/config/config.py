@@ -65,9 +65,9 @@ class Config:
             ret['topic'] = self.get_value(section=section, key='topic', config=config)
             conn_config_path = self.get_conn_config_path(config_path=config_path)
             ret['kafka'] = self.parse_config(section='kafka', config_path=conn_config_path)
-        elif ret['source'] == 'docker':
+        elif ret['source'] in {'docker', 's3'}:
             conn_config_path = self.get_conn_config_path(config_path=config_path)
-            ret['docker'] = self.parse_config(section='docker', config_path=conn_config_path)
+            ret[ret['source']] = self.parse_config(section=ret['source'], config_path=conn_config_path)
         else:
             raise NotImplementedError("'%s' is not implemented" % ret['source'])
         if config:
