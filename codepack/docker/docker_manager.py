@@ -4,12 +4,13 @@ from shutil import rmtree
 from typing import Union
 from docker import DockerClient
 from codepack.interface import Docker
+import json
 
 
 class DockerManager:
     CONTAINER_WORKDIR = '/usr/src/codepack'
 
-    def __init__(self, docker: Union[Docker, DockerClient, dict] = None, path: str = './'):
+    def __init__(self, docker: Union[Docker, DockerClient, dict] = None, path: str = './', run_opt: str = None):
         if docker is None:
             self.docker = Docker()
         elif isinstance(docker, dict):
@@ -17,6 +18,10 @@ class DockerManager:
         else:
             self.docker = docker
         self.path = path
+        if run_opt:
+            self.run_opt = json.loads(run_opt)
+        else:
+            self.run_opt = dict()
 
     def get_image(self, image: str):
         ret = None
@@ -38,7 +43,8 @@ class DockerManager:
             volumes = list()
         return self.docker.containers.run(image=image,
                                           volumes=['%s:%s' % (os.path.abspath(self.path), self.CONTAINER_WORKDIR)] + volumes,
-                                          working_dir=self.CONTAINER_WORKDIR, auto_remove=True, name=id(self), **kwargs)
+                                          working_dir=self.CONTAINER_WORKDIR, auto_remove=True, name=id(self),
+                                          **self.run_opt, **kwargs)
 
     @staticmethod
     def extract_requirements_from_file(path: str):

@@ -9,11 +9,13 @@ import os
 
 
 class Worker(KafkaStorage):
-    def __init__(self, consumer=None, interval=1, callback=None, supervisor=None, docker_manager=None, consumer_config=None):
+    def __init__(self, consumer=None, interval=1, script='run_snapshot.py', callback=None,
+                 supervisor=None, docker_manager=None, consumer_config=None):
         KafkaStorage.__init__(self, consumer=consumer, consumer_config=consumer_config)
         self.interval = interval
         self.supervisor = supervisor
         self.docker_manager = None
+        self.script = script
         self.callback = callback
         if self.supervisor and not self.callback:
             if isinstance(self.supervisor, str) or isinstance(self.supervisor, Supervisor):
@@ -47,7 +49,8 @@ class Worker(KafkaStorage):
                 snapshot = CodeSnapshot.from_dict(msg.value)
                 self.run_snapshot(snapshot=snapshot)
 
-    def run_snapshot(self, snapshot: CodeSnapshot, script: str = 'run_snapshot.py'):
+    def run_snapshot(self, snapshot: CodeSnapshot):
+        full_filepath = None
         code = Code.from_snapshot(snapshot)
         try:
             if code.image:
@@ -57,9 +60,8 @@ class Worker(KafkaStorage):
                     filepath = '%s.json' % code.serial_number
                     full_filepath = os.path.join(self.docker_manager.path, filepath)
                     snapshot.to_file(full_filepath)
-                    ret = self.docker_manager.run(image=code.image, command=['python', script, filepath])
+                    ret = self.docker_manager.run(image=code.image, command=['python', self.script, filepath])
                     print(ret.decode('utf-8').strip())
-                    self.docker_manager.remove_file_if_exists(path=full_filepath)
                 if self.callback:
                     self.callback({'state': code.get_state(), 'serial_number': code.serial_number})
             else:
@@ -69,6 +71,9 @@ class Worker(KafkaStorage):
             print(e)  # log.error(e)
             if code is not None:
                 code.update_state('ERROR')
+        finally:
+            if full_filepath:
+                self.docker_manager.remove_file_if_exists(path=full_filepath)
 
     def inform_supervisor_of_termination(self, x):
         if x['state'] == 'TERMINATED':
