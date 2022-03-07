@@ -9,6 +9,7 @@ class Config:
     PREFIX = 'CODEPACK'
     LABEL_CONFIG_DIR = '%s_CONFIG_DIR' % PREFIX
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
+    LABEL_LOG_DIR = '%s_LOG_DIR' % PREFIX
 
     def __init__(self, config_path: str = None):
         self.config_path = config_path
@@ -26,6 +27,15 @@ class Config:
     def get_logger(config_path: str, name: str = None):
         with open(config_path, 'r') as f:
             config = json.load(f)
+            if Config.LABEL_LOG_DIR in os.environ and 'handlers' in config:
+                for handler in config['handlers'].values():
+                    for k, v in handler.items():
+                        if k == 'filename':
+                            logdir = os.environ[Config.LABEL_LOG_DIR]
+                            logfile = os.path.join(logdir, v)
+                            if not os.path.exists(logdir):
+                                os.makedirs(logdir)
+                            handler.update(filename=logfile)
             dictConfig(config)
         return logging.getLogger(name=name)
 
