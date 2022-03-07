@@ -1,11 +1,15 @@
 from configparser import ConfigParser
 import os
+import logging
+from logging.config import dictConfig
+import json
 
 
 class Config:
     PREFIX = 'CODEPACK'
     LABEL_CONFIG_DIR = '%s_CONFIG_DIR' % PREFIX
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
+    LABEL_LOG_DIR = '%s_LOG_DIR' % PREFIX
 
     def __init__(self, config_path: str = None):
         self.config_path = config_path
@@ -18,6 +22,22 @@ class Config:
             return None
         items = cp.items(section)
         return {item[0]: item[1] for item in items}
+
+    @staticmethod
+    def get_logger(config_path: str, name: str = None):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+            if Config.LABEL_LOG_DIR in os.environ and 'handlers' in config:
+                for handler in config['handlers'].values():
+                    for k, v in handler.items():
+                        if k == 'filename':
+                            logdir = os.environ[Config.LABEL_LOG_DIR]
+                            logfile = os.path.join(logdir, v)
+                            if not os.path.exists(logdir):
+                                os.makedirs(logdir)
+                            handler.update(filename=logfile)
+            dictConfig(config)
+        return logging.getLogger(name=name)
 
     def get_config(self, section: str, config_path: str = None, ignore_error: bool = False):
         _config_path = config_path
@@ -44,7 +64,7 @@ class Config:
             ret = os.environ.get(env, None)
         else:
             raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
-        if key == 'path' and section in {'conn', 'alias'}:
+        if key == 'path' and section in {'conn', 'alias', 'logger'}:
             ret = cls.get_config_path(ret)
         return ret
 
@@ -91,3 +111,9 @@ class Config:
     def get_conn_config_path(self, config_path: str):
         conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
         return self.get_value(section='conn', key='path', config=conn_config)
+
+    def get_logger_config(self, config_path: str = None):
+        logger_config = self.get_config(section='logger', config_path=config_path, ignore_error=True)
+        if 'path' in logger_config:
+            logger_config['path'] = self.get_value(section='logger', key='path', config=logger_config)
+        return logger_config

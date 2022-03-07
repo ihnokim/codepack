@@ -162,3 +162,25 @@ class Default:
             return _instance
         else:
             return cls.instances[key]
+
+    @classmethod
+    def get_logger(cls, name: str = None, config_path: str = None):
+        key = 'logger.%s' % (name if name else 'root')
+        if config_path or key not in cls.instances:
+            if config_path:
+                _config = cls._get_config(config_path=config_path)
+            elif not cls.config:
+                cls.init_config()
+                _config = cls.config
+            else:
+                _config = cls.config
+            logger_config = _config.get_logger_config()
+            _name = logger_config.get('name', None)
+            if name is not None:
+                _name = name
+            logger = _config.get_logger(config_path=logger_config['path'], name=_name)
+            if config_path is None:
+                cls.instances[key] = logger
+            return logger
+        else:
+            return cls.instances[key]

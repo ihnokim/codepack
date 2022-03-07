@@ -66,21 +66,21 @@ async def update(codepack: CodePackJSON):
 
 @router.get('/remove/{id}')
 async def remove(id: str):
-    storage_service = Default.get_storage_instance('codepack', 'storage_service')
+    storage_service = Default.get_service('codepack', 'storage_service')
     storage_service.remove(id)
     return {'id': id}
 
 
 @router.get('/load/{id}')
 async def load(id: str):
-    storage_service = Default.get_storage_instance('codepack', 'storage_service')
+    storage_service = Default.get_service('codepack', 'storage_service')
     codepack = storage_service.load(id)
     return {'codepack': codepack.to_json()}
 
 
 @router.get('/state/{serial_number}')
 async def state(serial_number: str):
-    snapshot_service = Default.get_storage_instance('codepack_snapshot', 'snapshot_service')
+    snapshot_service = Default.get_service('codepack_snapshot', 'snapshot_service')
     tmp = snapshot_service.load(serial_number=serial_number)
     if tmp:
         codepack_snapshot = CodePackSnapshot.from_dict(tmp)
@@ -93,7 +93,7 @@ async def state(serial_number: str):
 
 @router.get('/result/{serial_number}')
 async def result(serial_number: str):
-    snapshot_service = Default.get_storage_instance('codepack_snapshot', 'snapshot_service')
+    snapshot_service = Default.get_service('codepack_snapshot', 'snapshot_service')
     snapshot = snapshot_service.load(serial_number=serial_number)
     _result = None
     if snapshot and snapshot['subscribe']:
