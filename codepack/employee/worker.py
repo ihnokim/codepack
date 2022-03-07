@@ -1,10 +1,11 @@
-import requests
 from codepack import Code
 from codepack.snapshot import CodeSnapshot
 from codepack.employee.supervisor import Supervisor
 from codepack.storage import KafkaStorage
 from codepack.config import Default
 from codepack.docker import DockerManager
+from codepack.callback.functions import inform_supervisor_of_termination
+from functools import partial
 import os
 
 
@@ -19,11 +20,10 @@ class Worker(KafkaStorage):
         self.callback = callback
         if self.supervisor and not self.callback:
             if isinstance(self.supervisor, str) or isinstance(self.supervisor, Supervisor):
-                self.callback = self.inform_supervisor_of_termination
+                self.callback = partial(inform_supervisor_of_termination, supervisor=self.supervisor)
             else:
                 self.close()
                 raise TypeError(type(self.supervisor))
-        self.register(callback=self.callback)
         self.init_docker_manager(docker_manager=docker_manager)
 
     def init_docker_manager(self, docker_manager):
@@ -33,9 +33,6 @@ class Worker(KafkaStorage):
             self.docker_manager = docker_manager
         else:
             raise TypeError(type(docker_manager))
-
-    def register(self, callback):
-        self.callback = callback
 
     def start(self):
         self.consumer.consume(self.work, timeout_ms=int(float(self.interval) * 1000))
@@ -52,6 +49,7 @@ class Worker(KafkaStorage):
     def run_snapshot(self, snapshot: CodeSnapshot):
         full_filepath = None
         code = Code.from_snapshot(snapshot)
+        code.register_callback(callback=self.callback)
         try:
             if code.image:
                 state = code.check_dependency()
@@ -62,22 +60,13 @@ class Worker(KafkaStorage):
                     snapshot.to_file(full_filepath)
                     ret = self.docker_manager.run(image=code.image, command=['python', self.script, filepath])
                     print(ret.decode('utf-8').strip())
-                if self.callback:
-                    self.callback({'state': code.get_state(), 'serial_number': code.serial_number})
+                code.run_callback()
             else:
-                code.register(callback=self.callback)
                 code(*snapshot.args, **snapshot.kwargs)
         except Exception as e:
-            print(e)  # log.error(e)
+            print(e)
             if code is not None:
-                code.update_state('ERROR')
+                code.update_state('ERROR', args=snapshot.args, kwargs=snapshot.kwargs, message=str(e))
         finally:
             if full_filepath:
                 self.docker_manager.remove_file_if_exists(path=full_filepath)
-
-    def inform_supervisor_of_termination(self, x):
-        if x['state'] == 'TERMINATED':
-            if isinstance(self.supervisor, str):
-                requests.get(self.supervisor + '/organize/%s' % x['serial_number'])
-            elif isinstance(self.supervisor, Supervisor):
-                self.supervisor.organize(x['serial_number'])
