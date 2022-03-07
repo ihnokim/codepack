@@ -1,29 +1,26 @@
-import inspect
 from collections.abc import Iterable, Callable
-import dill
 from codepack.config import Default
 from codepack.base import CodeBase
-import re
-import ast
-from collections import OrderedDict
+from functools import partial
+from codepack.callback import Callback
+from typing import Union, Callable as Function
 from codepack.dependency import Dependency, DependencyManager
 from codepack.snapshot import CodeSnapshot
 
 
 class Code(CodeBase):
-    def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, snapshot_service=None, storage_service=None,
-                 state=None, callback=None, image=None, owner='unknown'):
+    def __init__(self, function: Function = None, source: str = None, id: str = None, serial_number: str = None,
+                 dependency=None, config_path: str = None,
+                 delivery_service=None, snapshot_service=None, storage_service=None,
+                 state=None, callback: Union[list, Function[[dict], None], Callback] = None,
+                 image: str = None, owner: str = 'unknown'):
         super().__init__(id=id, serial_number=serial_number)
-        self.function = None
-        self.source = None
-        self.description = None
         self.parents = None
         self.children = None
         self.dependency = None
         self.config_path = None
         self.service = None
-        self.callback = None
+        self.callbacks = dict()
         self.init_service(delivery_service=delivery_service,
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
@@ -33,7 +30,7 @@ class Code(CodeBase):
             self.id = self.function.__name__
         self.init_linkage()
         self.init_dependency(dependency=dependency)
-        self.register(callback=callback)
+        self.register_callback(callback=callback)
         self.image = image
         self.owner = owner
         self.update_state(state)
@@ -59,37 +56,47 @@ class Code(CodeBase):
             storage_service if storage_service else Default.get_service('code', 'storage_service',
                                                                         config_path=config_path)
 
-    def register(self, callback):
-        self.callback = callback
+    def register_callback(self, callback: Union[list, Function[[dict], None], Callback], name: Union[list, str] = None):
+        if isinstance(callback, list):
+            if isinstance(name, list):
+                if len(callback) != len(name):
+                    raise IndexError('len(callback) != len(name): %s != %s' % (len(callback), len(name)))
+                else:
+                    for c, n in zip(callback, name):
+                        self.register_callback(callback=c, name=n)
+            elif isinstance(name, str):
+                if len(callback) == 1:
+                    self.register_callback(callback=callback[0], name=name)
+                else:
+                    raise IndexError('len(callback) != len(name): %s != 1' % len(callback))
+            else:
+                raise TypeError(type(name))
+        elif isinstance(callback, Callable):
+            if isinstance(name, list):
+                _name = name[0]
+            elif isinstance(name, str):
+                _name = name
+            elif name is None:
+                if isinstance(callback, partial):
+                    _name = callback.func.__name__
+                elif isinstance(callback, Callback):
+                    _name = callback.function.__name__
+                else:
+                    _name = callback.__name__
+            else:
+                raise TypeError(type(name))
+            self.callbacks[_name] = callback
+        elif callback is None:
+            pass
+        else:
+            raise TypeError(type(callback))
 
-    @staticmethod
-    def get_source(function):
-        assert isinstance(function, Callable), "'function' should be an instance of Callable"
-        assert function.__name__ != '<lambda>', "Invalid function '<lambda>'"
-        assert hasattr(function, '__code__'), "'function' should have an attribute '__code__'"
-        assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>"
-        source = None
-        for test in [inspect.getsource, dill.source.getsource]:
-            try:
-                source = test(function)
-            except Exception:  # pragma: no cover
-                pass  # pragma: no cover
-            if source is not None:
-                break
-        return source
-
-    @staticmethod
-    def get_function(source):
-        pat = re.compile('^(\\s*def\\s.+[(].*[)].*[:])|(\\s*async\\s+def\\s.+[(].*[)].*[:])')
-        assert pat.match(source), "'source' is not a function"
-        tree = ast.parse(source, mode='exec')
-        n_function = sum(isinstance(exp, ast.FunctionDef) for exp in tree.body)
-        # needs to count all other instances, and assert that there is only one FunctionDef
-        assert n_function == 1, "'source' should contain only one function."
-        namespace = dict()
-        # code = compile(tree, filename='blah', mode='exec')
-        exec(source, namespace)
-        return namespace[tree.body[0].name]
+    def run_callback(self, state: str = None, message: str = None):
+        for callback in self.callbacks.values():
+            d = {'serial_number': self.serial_number, 'state': state if state else self.get_state()}
+            if message:
+                d['message'] = message
+            callback(d)
     
     def set_function(self, function=None, source=None):
         if source:
@@ -149,16 +156,7 @@ class Code(CodeBase):
         self.serial_number = serial_number
 
     def get_args(self):
-        ret = OrderedDict()
-        argspec = inspect.getfullargspec(self.function)
-        args = argspec.args
-        defaults = dict(zip(args[-len(argspec.defaults):], argspec.defaults)) if argspec.defaults else dict()
-        for arg in args:
-            if arg in defaults:
-                ret[arg] = defaults[arg]
-            else:
-                ret[arg] = None
-        return ret
+        return super().get_args(function=self.function)
 
     def print_args(self):
         ret = '('
@@ -191,13 +189,13 @@ class Code(CodeBase):
     def __repr__(self):
         return self.__str__()  # pragma: no cover
 
-    def update_state(self, state, timestamp=None, args=None, kwargs=None):
+    def update_state(self, state: str, timestamp: float = None,
+                     args: tuple = None, kwargs: dict = None, message: str = None):
         if state:
             snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
             snapshot['state'] = state
             self.service['snapshot'].save(snapshot)
-            if self.callback:
-                self.callback({'serial_number': self.serial_number, 'state': state})
+            self.run_callback(state=state, message=message)
 
     def get_state(self):
         ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'state'})
@@ -251,7 +249,7 @@ class Code(CodeBase):
                 ret = self._run(*args, **kwargs)
                 self.update_state('TERMINATED', args=args, kwargs=kwargs)
         except Exception as e:
-            self.update_state('ERROR', args=args, kwargs=kwargs)
+            self.update_state('ERROR', args=args, kwargs=kwargs, message=str(e))
             raise e
         return ret
 
