@@ -12,10 +12,11 @@
             "formatter": "default"
         },
         "file": {
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "ERROR",
             "formatter": "default",
-            "filename": "log/error.log"
+            "filename": "error.log",
+            "when": "midnight"
         }
     },
     "loggers": {
