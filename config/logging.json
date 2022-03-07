@@ -1,0 +1,33 @@
+{
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s[%(lineno)s]: %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "INFO",
+            "formatter": "default"
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "level": "ERROR",
+            "formatter": "default",
+            "filename": "log/error.log"
+        }
+    },
+    "loggers": {
+        "default-logger": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": true
+        },
+        "error-logger": {
+            "level": "ERROR",
+            "handlers": ["console", "file"],
+            "propagate": true
+        }
+    }
+}
