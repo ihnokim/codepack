@@ -69,6 +69,9 @@ class Code(CodeBase):
                     self.register_callback(callback=callback[0], name=name)
                 else:
                     raise IndexError('len(callback) != len(name): %s != 1' % len(callback))
+            elif name is None:
+                for c in callback:
+                    self.register_callback(callback=c)
             else:
                 raise TypeError(type(name))
         elif isinstance(callback, Callable):

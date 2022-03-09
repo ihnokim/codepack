@@ -11,7 +11,7 @@ class CallbackService(Service):
 
     def push(self, callback: Callable, context: dict = None):
         cb = Callback(function=callback, context=context)
-        self.storage.save(cb)
+        self.storage.save(cb, update=True)
 
     def pull(self, name: str):
         cb = self.storage.load(key=name)
