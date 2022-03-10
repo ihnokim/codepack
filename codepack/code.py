@@ -193,9 +193,9 @@ class Code(CodeBase):
         return self.__str__()  # pragma: no cover
 
     def update_state(self, state: str, timestamp: float = None,
-                     args: tuple = None, kwargs: dict = None, message: str = None):
+                     args: tuple = None, kwargs: dict = None, message: str = ''):
         if state:
-            snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
+            snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp, message=message)
             snapshot['state'] = state
             self.service['snapshot'].save(snapshot)
             self.run_callback(state=state, message=message)
