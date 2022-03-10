@@ -1,3 +1,4 @@
+from codepack.manager.manager import Manager
 import os
 from docker.errors import ImageNotFound
 from shutil import rmtree
@@ -7,7 +8,7 @@ from codepack.interface import Docker
 import json
 
 
-class DockerManager:
+class DockerManager(Manager):
     CONTAINER_WORKDIR = '/usr/src/codepack'
 
     def __init__(self, docker: Union[Docker, DockerClient, dict] = None, path: str = './', run_opt: str = None):
@@ -38,11 +39,13 @@ class DockerManager:
     def push_image(self, image: str):
         return self.docker.images.push(image)
 
-    def run(self, image: str, volumes: list = None, **kwargs):
+    def run(self, image: str, command: Union[str, list] = None, path: str = None, volumes: list = None, **kwargs):
         if volumes is None:
             volumes = list()
+        _path = path if path else self.path
         return self.docker.containers.run(image=image,
-                                          volumes=['%s:%s' % (os.path.abspath(self.path), self.CONTAINER_WORKDIR)] + volumes,
+                                          command=command,
+                                          volumes=['%s:%s' % (os.path.abspath(_path), self.CONTAINER_WORKDIR)] + volumes,
                                           working_dir=self.CONTAINER_WORKDIR, auto_remove=True, name=id(self),
                                           **self.run_opt, **kwargs)
 
@@ -114,28 +117,29 @@ class DockerManager:
             ret += line + '\n'
         return ret
 
-    def build_image(self, tag, base_image, args=None, envs=None, requirements=None, pip_options=None, tmp_dir=None):
+    def build_image(self, tag, base_image, args=None, envs=None, requirements=None, pip_options=None,
+                    tmp_dir: str = None, path: str = None):
         if not tmp_dir:
             tmp_dir = str(id(self))
-        path = os.path.join(self.path, tmp_dir)
+        _path = os.path.join(path if path else self.path, tmp_dir)
         new_path = False
         image = None
         logs = None
         try:
             if self.get_image(base_image) is None:
                 return None, None
-            if not os.path.exists(path):
-                os.makedirs(path)
+            if not os.path.exists(_path):
+                os.makedirs(_path)
                 new_path = True
-            self.make_dockerfile(base_image=base_image, path=path, args=args, envs=envs,
+            self.make_dockerfile(base_image=base_image, path=_path, args=args, envs=envs,
                                  requirements=requirements, pip_options=pip_options)
-            image, logs = self.docker.images.build(path=path, tag=tag)
+            image, logs = self.docker.images.build(path=_path, tag=tag)
         finally:
             if new_path:
-                rmtree(path)
+                rmtree(_path)
             else:
-                self.remove_file_if_exists(os.path.join(path, 'requirements.txt'))
-                self.remove_file_if_exists(os.path.join(path, 'Dockerfile'))
+                self.remove_file_if_exists(os.path.join(_path, 'requirements.txt'))
+                self.remove_file_if_exists(os.path.join(_path, 'Dockerfile'))
             return image, logs
 
     @staticmethod
