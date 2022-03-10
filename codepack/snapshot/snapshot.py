@@ -63,7 +63,7 @@ class Snapshot(Storable):
         return self.attr.items()
 
     def keys(self):
-        return self.atttr.keys()
+        return self.attr.keys()
 
     def values(self):
         return self.attr.values()
