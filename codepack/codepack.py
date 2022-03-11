@@ -190,7 +190,6 @@ class CodePack(CodePackBase):
 
     @classmethod
     def from_dict(cls, d):
-        p = parser('Code(id: {id}, function: {function}, args: {args}, receive: {receive}, image: {image}, owner: {owner})')
         root = None
         stack = list()
         codes = dict()
@@ -198,13 +197,13 @@ class CodePack(CodePackBase):
         for i, line in enumerate(d['structure'].split('\n')):  # os.linesep
             split_idx = line.index('Code')
             hierarchy = len(line[1: split_idx-1])
-            attr = p.parse(line[split_idx:])
+            code_str = line[split_idx:]
+            p = parser(Code.blueprint(code_str))
+            attr = p.parse(code_str).named
             if attr['id'] not in codes:
-                if attr['image'] == 'None' or attr['image'] == 'null':
-                    _image = None
-                else:
-                    _image = attr['image']
-                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']], image=_image, owner=attr['owner'])
+                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']],
+                                         env=attr.get('env', None), image=attr.get('image', None),
+                                         owner=attr.get('owner', None))
             code = codes[attr['id']]
             receive[code.id] = literal_eval(attr['receive'])
             if i == 0:

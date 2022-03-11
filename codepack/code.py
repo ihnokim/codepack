@@ -13,7 +13,7 @@ class Code(CodeBase):
                  dependency=None, config_path: str = None,
                  delivery_service=None, snapshot_service=None, storage_service=None,
                  state=None, callback: Union[list, Function[[dict], None], Callback] = None,
-                 image: str = None, owner: str = 'unknown'):
+                 env: str = None, image: str = None, owner: str = None):
         super().__init__(id=id, serial_number=serial_number)
         self.parents = None
         self.children = None
@@ -21,6 +21,9 @@ class Code(CodeBase):
         self.config_path = None
         self.service = None
         self.callbacks = dict()
+        self.env = None
+        self.image = None
+        self.owner = owner
         self.init_service(delivery_service=delivery_service,
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
@@ -31,8 +34,9 @@ class Code(CodeBase):
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register_callback(callback=callback)
-        self.image = image
-        self.owner = owner
+        self.set_str_attr(key='env', value=env)
+        self.set_str_attr(key='image', value=image)
+        self.set_str_attr(key='owner', value=owner)
         self.update_state(state)
 
     def init_linkage(self):
@@ -55,6 +59,13 @@ class Code(CodeBase):
         self.service['storage'] =\
             storage_service if storage_service else Default.get_service('code', 'storage_service',
                                                                         config_path=config_path)
+
+    def set_str_attr(self, key: str, value: str):
+        if value is None or value == 'None' or value == 'null':
+            _value = None
+        else:
+            _value = value
+        setattr(self, key, _value)
 
     def register_callback(self, callback: Union[list, Function[[dict], None], Callback], name: Union[list, str] = None):
         if isinstance(callback, list):
@@ -172,19 +183,27 @@ class Code(CodeBase):
         ret += ')'
         return ret
 
+    @classmethod
+    def blueprint(cls, s):
+        ret = 'Code(id: {id}, function: {function}, args: {args}, receive: {receive}'
+        for additional_item in ['env', 'image', 'owner', 'state']:
+            if ', %s:' % additional_item in s:
+                ret += ', %s: {%s}' % (additional_item, additional_item)
+        ret += ')'
+        return ret
+
     def get_info(self, state=True):
-        ret = '%s(id: %s, function: %s, args: %s, receive: %s, image: %s, owner: %s'
+        ret = '%s(id: %s, function: %s, args: %s, receive: %s' % (self.__class__.__name__,
+                                                                  self.id, self.function.__name__,
+                                                                  self.print_args(), self.dependency.get_args())
+        for additional_item in ['env', 'image', 'owner']:
+            item = getattr(self, additional_item)
+            if item:
+                ret += ', %s: %s' % (additional_item, item)
         if state:
-            ret += ', state: %s)'
-            return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(), self.dependency.get_args(),
-                          self.image, self.owner,
-                          self.get_state())
-        else:
-            ret += ')'
-            return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(), self.dependency.get_args(),
-                          self.image, self.owner)
+            ret += ', state: %s' % self.get_state()
+        ret += ')'
+        return ret
 
     def __str__(self):
         return self.get_info(state=False)  # pragma: no cover
@@ -261,13 +280,15 @@ class Code(CodeBase):
         d['_id'] = self.id
         d['source'] = self.source
         d['description'] = self.description
+        d['env'] = self.env
         d['image'] = self.image
         d['owner'] = self.owner
         return d
 
     @classmethod
     def from_dict(cls, d):
-        return cls(id=d['_id'], source=d['source'], image=d.get('image', None), owner=d.get('owner', 'unknown'))
+        return cls(id=d['_id'], source=d['source'],
+                   env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None))
 
     def to_snapshot(self, *args, **kwargs):
         return CodeSnapshot(self, *args, **kwargs)
@@ -276,4 +297,4 @@ class Code(CodeBase):
     def from_snapshot(cls, snapshot):
         return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
                    state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
-                   image=snapshot['image'], owner=snapshot['owner'])
+                   env=snapshot['env'], image=snapshot['image'], owner=snapshot['owner'])

@@ -53,8 +53,10 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
         assert dependency['arg'] == code3_dependency.arg
     assert 'image' in snapshot_dict1
     assert snapshot_dict1['image'] is 'test-image'
+    assert 'env' in snapshot_dict1
+    assert snapshot_dict1['env'] is None
     assert 'owner' in snapshot_dict1
-    assert snapshot_dict1['owner'] is 'unknown'
+    assert snapshot_dict1['owner'] is None
     snapshot2 = CodeSnapshot.from_dict(snapshot_dict1)
     assert snapshot1.id == snapshot2.id
     assert snapshot1.serial_number == snapshot2.serial_number

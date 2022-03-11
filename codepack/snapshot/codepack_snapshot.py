@@ -22,7 +22,7 @@ class CodePackSnapshot(Snapshot):
             _source = None
             _structure = None
             _subscribe = None
-            _owner = 'unknown'
+            _owner = None
         super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp, owner=_owner)
         self.__setitem__('codes', _codes)
         self.__setitem__('source', _source)

@@ -16,14 +16,33 @@ def test_print_args(default_os_env):
 
 
 def test_print_info(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add3)
+    code1 = Code(add2, env='test-env')
+    code2 = Code(add3, image='test-image', owner='admin')
     code1 >> code2
     code2.receive('b') << code1
-    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}, image: None, owner: unknown, state: UNKNOWN)"
-    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, image: None, owner: unknown, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}, image: None, owner: unknown)"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, image: None, owner: unknown)"
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                               " env: test-env, state: UNKNOWN)"
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " image: test-image, owner: admin, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}, env: test-env)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                                          " image: test-image, owner: admin)"
+    code1.image = 'test-image2'
+    code1.owner = 'admin2'
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                               " env: test-env, image: test-image2, owner: admin2, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                                          " env: test-env, image: test-image2, owner: admin2)"
+    code2.owner = None
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " image: test-image, state: UNKNOWN)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                                          " image: test-image)"
+    code2.image = None
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " state: UNKNOWN)"
+    assert code2.get_info(
+        state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'})"
 
 
 def test_get_function_from_source(default_os_env):
