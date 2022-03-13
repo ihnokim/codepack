@@ -1,7 +1,7 @@
 from codepack import Code
 from codepack.snapshot import CodeSnapshot
 from codepack.employee.supervisor import Supervisor
-from codepack.storage import KafkaStorage
+from codepack.storage import KafkaStorage, FileStorage
 from codepack.config import Default
 from codepack.manager import DockerManager, InterpreterManager
 from codepack.service import CallbackService
@@ -70,26 +70,32 @@ class Worker(KafkaStorage):
                 self.run_snapshot(snapshot=snapshot)
 
     def run_snapshot(self, snapshot: CodeSnapshot):
-        full_filepath = None
+        snapshot_path = None
+        cb_id = None
         code = Code.from_snapshot(snapshot)
         code.register_callback(callback=self.callback)
         try:
             if code.image or code.env:
                 state = code.check_dependency()
                 cb_id = self.callback_service.push(self.callback)
-                code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
+                # code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
                 if state == 'READY':
                     filepath = '%s.json' % code.serial_number
+                    snapshot_path = os.path.join(self.path, filepath)
+                    script_path = os.path.join(self.path, self.script)
+                    snapshot.to_file(snapshot_path)
                     if code.env:
-                        full_filepath = os.path.join(self.path, filepath)
-                        snapshot.to_file(full_filepath)
-                        self.interpreter_manager.run(env=code.env, command=['python', self.script, full_filepath, '-c', cb_id])
+                        _command = ['python', script_path, snapshot_path, '-c', cb_id]
+                        if isinstance(self.callback_service.storage, FileStorage):
+                            _command.append('-p')
+                            _command.append(self.callback_service.storage.path)
+                        self.interpreter_manager.run(env=code.env, command=_command)
                     else:  # if code.image:
-                        full_filepath = os.path.join(self.docker_manager.path, filepath)
-                        snapshot.to_file(full_filepath)
-                        ret = self.docker_manager.run(image=code.image,
-                                                      command=['python', self.script, filepath, '-c', cb_id],
-                                                      path=self.docker_manager.path)
+                        _command = ['python', self.script, filepath, '-c', cb_id]
+                        if isinstance(self.callback_service.storage, FileStorage):
+                            _command.append('-p')
+                            _command.append('.')
+                        ret = self.docker_manager.run(image=code.image, command=_command, path=self.path)
                         print(ret.decode('utf-8').strip())
             else:
                 code(*snapshot.args, **snapshot.kwargs)
@@ -98,5 +104,7 @@ class Worker(KafkaStorage):
             if code is not None:
                 code.update_state('ERROR', args=snapshot.args, kwargs=snapshot.kwargs, message=str(e))
         finally:
-            if full_filepath:
-                self.docker_manager.remove_file_if_exists(path=full_filepath)
+            if snapshot_path:
+                self.docker_manager.remove_file_if_exists(path=snapshot_path)
+            if cb_id and self.callback_service.exist(name=cb_id):
+                self.callback_service.remove(name=cb_id)
