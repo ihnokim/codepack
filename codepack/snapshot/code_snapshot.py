@@ -3,13 +3,14 @@ from codepack.dependency import Dependency
 
 
 class CodeSnapshot(Snapshot):
-    def __init__(self, code=None, args=None, kwargs=None, timestamp=None):
+    def __init__(self, code=None, args: tuple = None, kwargs: dict = None, timestamp: float = None, message: str = ''):
         if code:
             _id = code.id
             _serial_number = code.serial_number
             _state = code.get_state()
             _source = code.source
             _dependency = code.dependency
+            _env = code.env
             _image = code.image
             _owner = code.owner
         else:
@@ -18,10 +19,11 @@ class CodeSnapshot(Snapshot):
             _state = None
             _source = None
             _dependency = None
+            _env = None
             _image = None
-            _owner = 'unknown'
+            _owner = None
         super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp,
-                         image=_image, owner=_owner)
+                         env=_env, image=_image, owner=_owner, message=message)
         self.__setitem__('source', _source)
         self.set_args(args=args, kwargs=kwargs)
         self.set_dependency(dependency=_dependency)

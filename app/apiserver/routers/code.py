@@ -66,12 +66,16 @@ async def load(id: str):
 @router.get('/state/{serial_number}')
 async def state(serial_number: str):
     snapshot_service = Default.get_service('code_snapshot', 'snapshot_service')
-    ret = snapshot_service.load(serial_number=serial_number, projection={'state'})
-    if ret:
-        _state = ret['state']
+    snapshot = snapshot_service.load(serial_number=serial_number, projection={'state', 'message'})
+    ret = {'serial_number': serial_number}
+    if snapshot:
+        _state = snapshot['state']
+        if snapshot['message']:
+            ret['message'] = snapshot['message']
     else:
         _state = 'UNKNOWN'
-    return {'seriual_number': serial_number, 'state': _state}
+    ret['state'] = _state
+    return ret
 
 
 @router.get('/result/{serial_number}')

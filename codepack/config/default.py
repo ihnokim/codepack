@@ -28,7 +28,7 @@ class Default:
         return Config(config_path=config_path)
 
     @classmethod
-    def _get_storage_config(cls, section: str, config_path: str = None):
+    def get_config(cls, config_path: str = None):
         if config_path:
             _config = cls._get_config(config_path=config_path)
         elif not cls.config:
@@ -36,6 +36,11 @@ class Default:
             _config = cls.config
         else:
             _config = cls.config
+        return _config
+
+    @classmethod
+    def _get_storage_config(cls, section: str, config_path: str = None):
+        _config = cls.get_config(config_path=config_path)
         return _config.get_storage_config(section=section)
 
     @classmethod
@@ -157,6 +162,26 @@ class Default:
             storage_config.pop('source')
             c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
             _instance = c(**storage_config)
+            if config_path is None and alias_path is None:
+                cls.instances[key] = _instance
+            return _instance
+        else:
+            return cls.instances[key]
+
+    @classmethod
+    def get_interpreter_manager(cls, section: str = 'interpreter_manager', config_path: str = None, alias_path: str = None):
+        key = section
+        if config_path or alias_path or key not in cls.instances:
+            config_instance = cls.get_config(config_path=config_path)
+            config = config_instance.get_config(section=section, config_path=config_path, ignore_error=True)
+            kwargs = dict()
+            kwargs['path'] = config_instance.get_value(section=section, key='path', config=config)
+            if config:
+                for k in config:
+                    if k not in kwargs:
+                        kwargs[k] = config_instance.get_value(section=section, key=k, config=config)
+            c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            _instance = c(**kwargs)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
             return _instance

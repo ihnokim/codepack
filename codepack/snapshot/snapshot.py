@@ -46,7 +46,8 @@ class Snapshot(Storable):
         ret = dict()
         for k, v in self.attr.items():
             ret[k] = v
-        ret['state'] = ret['state'].name
+        if isinstance(ret['state'], State):
+            ret['state'] = ret['state'].name
         ret['_id'] = ret['serial_number']
         return ret
 
@@ -63,7 +64,7 @@ class Snapshot(Storable):
         return self.attr.items()
 
     def keys(self):
-        return self.atttr.keys()
+        return self.attr.keys()
 
     def values(self):
         return self.attr.values()
