@@ -20,3 +20,6 @@ class CallbackService(Service):
 
     def remove(self, name: str):
         self.storage.remove(key=name)
+
+    def exist(self, name: str):
+        return self.storage.exist(key=name)
