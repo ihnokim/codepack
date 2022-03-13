@@ -49,9 +49,9 @@ class MySQL(SQLInterface):
             rows = cursor.fetchall()
             cursor.close()
             if commit:
-                self.session.commit()
+                self.commit()
         except Exception as e:
-            self.session.rollback()
+            self.rollback()
             raise e
         if cursorclass in [pymysql.cursors.DictCursor, pymysql.cursors.SSDictCursor]:
             return rows
