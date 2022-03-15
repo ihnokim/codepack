@@ -78,7 +78,6 @@ class Worker(KafkaStorage):
             if code.image or code.env:
                 state = code.check_dependency()
                 cb_id = self.callback_service.push(self.callback)
-                # code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
                 if state == 'READY':
                     filepath = '%s.json' % code.serial_number
                     snapshot_path = os.path.join(self.path, filepath)
@@ -97,6 +96,8 @@ class Worker(KafkaStorage):
                             _command.append('.')
                         ret = self.docker_manager.run(image=code.image, command=_command, path=self.path)
                         print(ret.decode('utf-8').strip())
+                else:
+                    code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
             else:
                 code(*snapshot.args, **snapshot.kwargs)
         except Exception as e:
