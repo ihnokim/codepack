@@ -9,10 +9,13 @@ class Config:
     PREFIX = 'CODEPACK'
     LABEL_CONFIG_DIR = '%s_CONFIG_DIR' % PREFIX
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
-    LABEL_LOG_DIR = '%s_LOG_DIR' % PREFIX
+    LABEL_LOGGER_LOG_DIR = '%s_LOGGER_LOG_DIR' % PREFIX
 
     def __init__(self, config_path: str = None):
-        self.config_path = config_path
+        if config_path:
+            self.config_path = self.get_config_path(config_path)
+        else:
+            self.config_path = None
 
     @staticmethod
     def parse_config(section: str, config_path: str, ignore_error: bool = False):
@@ -27,11 +30,11 @@ class Config:
     def get_logger(config_path: str, name: str = None):
         with open(config_path, 'r') as f:
             config = json.load(f)
-            if Config.LABEL_LOG_DIR in os.environ and 'handlers' in config:
+            if Config.LABEL_LOGGER_LOG_DIR in os.environ and 'handlers' in config:
                 for handler in config['handlers'].values():
                     for k, v in handler.items():
                         if k == 'filename':
-                            logdir = os.environ[Config.LABEL_LOG_DIR]
+                            logdir = os.environ[Config.LABEL_LOGGER_LOG_DIR]
                             logfile = os.path.join(logdir, v)
                             if not os.path.exists(logdir):
                                 os.makedirs(logdir)
@@ -42,13 +45,13 @@ class Config:
     def get_config(self, section: str, config_path: str = None, ignore_error: bool = False):
         _config_path = config_path
         if not _config_path:
-            _config_path = self.config_path
-        if not _config_path:
             tmp = os.environ.get(self.LABEL_CONFIG_PATH, None)
             if tmp:
                 _config_path = self.get_config_path(tmp)
+        if not _config_path:
+            _config_path = self.config_path
         if _config_path:
-            return self.parse_config(section=section, config_path=_config_path)
+            return self.parse_config(section=section, config_path=self.get_config_path(_config_path))
         elif ignore_error:
             return None
         else:
@@ -57,11 +60,11 @@ class Config:
 
     @classmethod
     def get_value(cls, section: str, key: str, config: dict = None):
-        env = '%s_%s_%s' % (cls.PREFIX, section.upper(), key.upper())
-        if config:
-            ret = config[key]
-        elif env in os.environ:
+        env = cls.os_env(key=section, value=key)
+        if env in os.environ:
             ret = os.environ.get(env, None)
+        elif config:
+            ret = config[key]
         else:
             raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
         if key == 'path' and section in {'conn', 'alias', 'logger'}:
@@ -94,6 +97,17 @@ class Config:
             for k in config:
                 if k not in ret:
                     ret[k] = self.get_value(section=section, key=k, config=config)
+        for key, value in {k: v for k, v in os.environ.items() if self.os_env(key=section) in k}.items():
+            k = key.replace(self.os_env(key=section), '').lower()
+            if k not in ret:
+                ret[k] = self.get_value(section=section, key=k)
+        return ret
+
+    @classmethod
+    def os_env(cls, key: str, value: str = None):
+        ret = '%s_%s_' % (cls.PREFIX, key.replace('_', '').upper())
+        if value:
+            ret += value.upper()
         return ret
 
     @classmethod
@@ -114,6 +128,7 @@ class Config:
 
     def get_logger_config(self, config_path: str = None):
         logger_config = self.get_config(section='logger', config_path=config_path, ignore_error=True)
-        if 'path' in logger_config:
-            logger_config['path'] = self.get_value(section='logger', key='path', config=logger_config)
+        if not logger_config:
+            logger_config = dict()
+        logger_config['path'] = self.get_value(section='logger', key='path', config=logger_config)
         return logger_config

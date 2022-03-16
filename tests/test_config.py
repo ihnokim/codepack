@@ -19,17 +19,93 @@ def test_default_config_with_os_env(default_os_env):
 
 def test_config_path():
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-    code = Code(add2, config_path='config/test.ini')
-    ret = code(1, 2)
-    os.environ.pop('CODEPACK_CONFIG_DIR')
+    try:
+        code = Code(add2, config_path='config/test.ini')
+        ret = code(1, 2)
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_DIR')
     assert ret == 3
+
+
+def test_config_path_priority():
+    config = Config()
+    with pytest.raises(AttributeError):
+        _config = config.get_config(section='logger')
+    _config = config.get_config(section='logger', ignore_error=True)
+    assert _config is None
+    with pytest.raises(AssertionError):
+        Config(config_path='test.ini')
+    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+    config = Config(config_path='test.ini')
+    assert config.config_path == os.path.join('config', 'test.ini')
+    _config = config.get_config(section='logger')
+    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    os.environ['CODEPACK_CONFIG_PATH'] = 'codepack.ini'
+    _config = config.get_config(section='logger')
+    assert _config == {'name': 'error-logger', 'path': 'logging.json'}
+    _config = config.get_config(section='logger', config_path='test.ini')
+    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    os.environ.pop('CODEPACK_CONFIG_PATH')
+    os.environ.pop('CODEPACK_CONFIG_DIR')
+
+
+def test_config_get_value_priority():
+    config = Config('config/test.ini')
+    _config = config.get_config(section='logger')
+    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    with pytest.raises(AssertionError):
+        Config.get_value('logger', 'name')
+    name = Config.get_value('logger', 'name', _config)
+    assert name == 'default-logger'
+    os.environ['CODEPACK_LOGGER_NAME'] = 'test-logger'
+    name = Config.get_value('logger', 'name', _config)
+    assert name == 'test-logger'
+    os.environ.pop('CODEPACK_LOGGER_NAME')
+    os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
+    config = Config()
+    _config = config.get_config(section='logger')
+    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    name = Config.get_value('logger', 'name', _config)
+    assert name == 'default-logger'
+    os.environ['CODEPACK_LOGGER_NAME'] = 'test-logger'
+    name = Config.get_value('logger', 'name', _config)
+    assert name == 'test-logger'
+    os.environ.pop('CODEPACK_LOGGER_NAME')
+    os.environ.pop('CODEPACK_CONFIG_PATH')
+
+
+def test_get_storage_config_priority():
+    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+    config = Config('test.ini')
+    storage_config = config.get_storage_config('worker')
+    ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
+           'path': 'scripts', 'script': 'run_snapshot.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
+           'topic': 'test'}
+    assert storage_config == ref
+    os.environ['CODEPACK_WORKER_SCRIPT'] = 'test_script.py'
+    os.environ['CODEPACK_WORKER_TOPIC'] = 'test2'
+    storage_config = config.get_storage_config('worker')
+    ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
+           'path': 'scripts', 'script': 'test_script.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
+           'topic': 'test2'}
+    assert storage_config == ref
+    os.environ['CODEPACK_WORKER_TEST_KEY'] = 'test'
+    storage_config = config.get_storage_config('worker')
+    ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
+           'path': 'scripts', 'script': 'test_script.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
+           'topic': 'test2', 'test_key': 'test'}
+    assert storage_config == ref
+    os.environ.pop('CODEPACK_CONFIG_DIR')
+    os.environ.pop('CODEPACK_WORKER_SCRIPT')
+    os.environ.pop('CODEPACK_WORKER_TOPIC')
+    os.environ.pop('CODEPACK_WORKER_TEST_KEY')
 
 
 def test_default_memory_code_snapshot_service_with_os_env(default):
     config = Config()
     with pytest.raises(AssertionError):
         config.get_storage_config('code_snapshot')
-    env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
+    env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
     try:
         os.environ[env_source] = 'memory'
         mss = default.get_service('code_snapshot', 'snapshot_service')
@@ -43,8 +119,8 @@ def test_default_file_code_snapshot_service_with_os_env(default):
     config = Config()
     with pytest.raises(AssertionError):
         config.get_storage_config('code_snapshot')
-    env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
-    env_path = 'CODEPACK_CODE_SNAPSHOT_PATH'
+    env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
+    env_path = 'CODEPACK_CODESNAPSHOT_PATH'
     try:
         os.environ[env_source] = 'file'
         os.environ[env_path] = 'tmp/'
@@ -61,9 +137,9 @@ def test_default_mongo_code_snapshot_service_with_os_env(default):
     config = Config()
     with pytest.raises(AssertionError):
         config.get_storage_config('code_snapshot')
-    env_source = 'CODEPACK_CODE_SNAPSHOT_SOURCE'
-    env_db = 'CODEPACK_CODE_SNAPSHOT_DB'
-    env_collection = 'CODEPACK_CODE_SNAPSHOT_COLLECTION'
+    env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
+    env_db = 'CODEPACK_CODESNAPSHOT_DB'
+    env_collection = 'CODEPACK_CODESNAPSHOT_COLLECTION'
     env_config_path = 'CODEPACK_CONN_PATH'
     mss = None
     try:
@@ -198,8 +274,8 @@ def test_default_mongo_code_storage_service_with_os_env(default):
 
 def test_if_default_services_have_single_instance_for_each_service(default, testdir_snapshot_service):
     os.environ['CODEPACK_DELIVERY_SOURCE'] = 'memory'
-    os.environ['CODEPACK_CODE_SNAPSHOT_SOURCE'] = 'file'
-    os.environ['CODEPACK_CODE_SNAPSHOT_PATH'] = testdir_snapshot_service
+    os.environ['CODEPACK_CODESNAPSHOT_SOURCE'] = 'file'
+    os.environ['CODEPACK_CODESNAPSHOT_PATH'] = testdir_snapshot_service
     os.environ['CODEPACK_CODE_SOURCE'] = 'mongodb'
     os.environ['CODEPACK_CODE_DB'] = 'test'
     os.environ['CODEPACK_CODE_COLLECTION'] = 'codes'
@@ -230,7 +306,7 @@ def test_if_default_services_have_single_instance_for_each_service(default, test
         assert id(code1.service['storage']) == id(code2.service['storage'])
     finally:
         for env in ['CODEPACK_DELIVERY_SOURCE',
-                    'CODEPACK_CODE_SNAPSHOT_SOURCE', 'CODEPACK_CODE_SNAPSHOT_PATH',
+                    'CODEPACK_CODESNAPSHOT_SOURCE', 'CODEPACK_CODESNAPSHOT_PATH',
                     'CODEPACK_CODE_SOURCE', 'CODEPACK_CODE_DB', 'CODEPACK_CODE_COLLECTION',
                     'CODEPACK_CONN_PATH']:
             os.environ.pop(env, None)
@@ -240,7 +316,7 @@ def test_config_dir():
     path = Config.get_value(section='?', key='path', config={'path': 'config/alias.ini'})
     assert path == 'config/alias.ini'
     with pytest.raises(AssertionError):
-        path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
+        Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
     path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
     assert path == os.path.join('config', 'alias.ini')
