@@ -87,5 +87,16 @@ async def unregister(id: str):
         raise TypeError(common.scheduler)
 
 
+@router.get('/alive')
+async def alive():
+    if isinstance(common.scheduler, str):
+        return redirect_to_remote_scheduler(requests.get, 'scheduler/alive')
+    elif isinstance(common.scheduler, Scheduler):
+        is_alive = common.scheduler.is_running()
+        return {'alive': is_alive}
+    else:
+        raise TypeError(common.scheduler)
+
+
 def redirect_to_remote_scheduler(method, url, **kwargs):
     return method(os.path.join(common.scheduler, url), **kwargs).json()

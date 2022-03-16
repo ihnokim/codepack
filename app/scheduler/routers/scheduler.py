@@ -56,3 +56,9 @@ async def register_by_snapshot(params: SnapshotJSONJob):
 async def unregister(id: str):
     common.scheduler.remove_job(job_id=id)
     return {'id': id}
+
+
+@router.get('/alive')
+async def alive():
+    is_alive = common.scheduler.is_running()
+    return {'alive': is_alive}
