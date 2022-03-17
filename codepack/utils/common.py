@@ -4,6 +4,7 @@ from collections.abc import Callable
 class Common:
     def __init__(self):
         self.variables = dict()
+        self._destroy = dict()
 
     def __getitem__(self, item):
         return self.variables[item]
