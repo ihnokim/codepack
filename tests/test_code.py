@@ -168,7 +168,7 @@ def test_dependency_error_propagation(default_os_env):
     assert code1.get_state() == 'ERROR'
     ret = code3(1, 2, 3)
     assert ret is None
-    assert code3.get_state() == 'ERROR'
+    assert code3.get_state() == 'WAITING'
 
 
 def test_validate_dependency_result(default_os_env):

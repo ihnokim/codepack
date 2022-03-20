@@ -82,13 +82,17 @@ async def load(id: str):
 async def state(serial_number: str):
     snapshot_service = Default.get_service('codepack_snapshot', 'snapshot_service')
     tmp = snapshot_service.load(serial_number=serial_number)
+    ret = {'serial_number': serial_number}
     if tmp:
         codepack_snapshot = CodePackSnapshot.from_dict(tmp)
         codepack = CodePack.from_snapshot(codepack_snapshot)
         _state = codepack.get_state()
+        if _state == 'ERROR':
+            ret['message'] = codepack.get_message()
     else:
         _state = 'UNKNOWN'
-    return {'serial_number': serial_number, 'state': _state}
+    ret['state'] = _state
+    return ret
 
 
 @router.get('/result/{serial_number}')
