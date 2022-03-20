@@ -103,6 +103,16 @@ class CodePack(CodePackBase):
                 return State(max_state).name
         return 'UNKNOWN'
 
+    def get_message(self):
+        messages = self.root.service['snapshot'] \
+            .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'id', 'message'})
+        ret = dict()
+        if messages:
+            for message in messages:
+                if message['message']:
+                    ret[message['id']] = message['message']
+        return ret
+
     def save(self, update=False):
         self.service['storage'].save(item=self, update=update)
 

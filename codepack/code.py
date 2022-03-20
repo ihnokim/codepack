@@ -226,6 +226,13 @@ class Code(CodeBase):
         else:
             return 'UNKNOWN'
 
+    def get_message(self):
+        ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'message'})
+        if ret:
+            return ret['message']
+        else:
+            return ''
+
     def send_result(self, item, timestamp=None):
         self.service['delivery'].send(id=self.id, serial_number=self.serial_number, item=item, timestamp=timestamp)
 
