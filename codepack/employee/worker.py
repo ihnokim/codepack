@@ -7,13 +7,15 @@ from codepack.manager import DockerManager, InterpreterManager
 from codepack.service import CallbackService
 from codepack.callback.functions import inform_supervisor_of_termination
 from functools import partial
+import logging
 import os
+import sys
 
 
 class Worker(KafkaStorage):
     def __init__(self, consumer=None, interval=1, path=None, script='run_snapshot.py', callback=None,
                  supervisor=None, docker_manager=None, interpreter_manager=None,
-                 callback_service=None, consumer_config=None):
+                 callback_service=None, consumer_config=None, logger=None):
         KafkaStorage.__init__(self, consumer=consumer, consumer_config=consumer_config)
         self.interval = interval
         self.supervisor = supervisor
@@ -23,6 +25,18 @@ class Worker(KafkaStorage):
         self.path = path
         self.script = script
         self.callback = callback
+        if logger:
+            if isinstance(logger, logging.Logger):
+                self.logger = logger
+            elif isinstance(logger, str):
+                self.logger = Default.get_logger(logger)
+            else:
+                raise TypeError(logger)
+        else:
+            self.logger = None
+        if self.logger:
+            sys.stdout.write = partial(self.log, self.logger.info)
+        print('initializing worker...')
         if self.supervisor and not self.callback:
             if isinstance(self.supervisor, str) or isinstance(self.supervisor, Supervisor):
                 self.callback = partial(inform_supervisor_of_termination, supervisor=self.supervisor)
@@ -32,6 +46,12 @@ class Worker(KafkaStorage):
         self.init_docker_manager(docker_manager=docker_manager)
         self.init_interpreter_manager(interpreter_manager=interpreter_manager)
         self.init_callback_service(callback_service=callback_service)
+
+    @staticmethod
+    def log(function, message):
+        _message = message.strip()
+        if _message:
+            function(_message)
 
     def init_docker_manager(self, docker_manager):
         if docker_manager is None:
@@ -58,10 +78,12 @@ class Worker(KafkaStorage):
             raise TypeError(type(callback_service))
 
     def start(self):
+        print('starting worker...')
         self.consumer.consume(self.work, timeout_ms=int(float(self.interval) * 1000))
 
     def stop(self):
-        pass
+        print('stopping worker...')
+        self.close()
 
     def work(self, buffer):
         for tp, msgs in buffer.items():
@@ -88,12 +110,18 @@ class Worker(KafkaStorage):
                         if isinstance(self.callback_service.storage, FileStorage):
                             _command.append('-p')
                             _command.append(self.callback_service.storage.path)
+                        if self.logger:
+                            _command.append('-l')
+                            _command.append(self.logger.name)
                         self.interpreter_manager.run(env=code.env, command=_command)
                     else:  # if code.image:
                         _command = ['python', self.script, filepath, '-c', cb_id]
                         if isinstance(self.callback_service.storage, FileStorage):
                             _command.append('-p')
                             _command.append('.')
+                        if self.logger:
+                            _command.append('-l')
+                            _command.append(self.logger.name)
                         ret = self.docker_manager.run(image=code.image, command=_command, path=self.path)
                         print(ret.decode('utf-8').strip())
                 else:
@@ -101,7 +129,10 @@ class Worker(KafkaStorage):
             else:
                 code(*snapshot.args, **snapshot.kwargs)
         except Exception as e:
-            print(e)
+            if self.logger:
+                self.logger.error(e)
+            else:
+                print(e)
             if code is not None:
                 code.update_state('ERROR', args=snapshot.args, kwargs=snapshot.kwargs, message=str(e))
         finally:

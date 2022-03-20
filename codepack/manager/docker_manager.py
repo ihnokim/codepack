@@ -1,4 +1,5 @@
 from codepack.manager.manager import Manager
+from codepack.config import Config
 import os
 from docker.errors import ImageNotFound
 from shutil import rmtree
@@ -9,7 +10,8 @@ import json
 
 
 class DockerManager(Manager):
-    CONTAINER_WORKDIR = '/usr/src/codepack'
+    CONTAINER_WORK_DIR = '/usr/src/codepack'
+    CONTAINER_LOG_DIR = '/usr/logs'
 
     def __init__(self, docker: Union[Docker, DockerClient, dict] = None, path: str = './', run_opt: str = None):
         if docker is None:
@@ -39,15 +41,20 @@ class DockerManager(Manager):
     def push_image(self, image: str):
         return self.docker.images.push(image)
 
-    def run(self, image: str, command: Union[str, list] = None, path: str = None, volumes: list = None, **kwargs):
+    def run(self, image: str, command: Union[str, list] = None, path: str = None,
+            volumes: list = None, environment: list = None, **kwargs):
         if volumes is None:
             volumes = list()
+        if environment is None:
+            environment = list()
         _path = path if path else self.path
-        return self.docker.containers.run(image=image,
-                                          command=command,
-                                          volumes=['%s:%s' % (os.path.abspath(_path), self.CONTAINER_WORKDIR)] + volumes,
-                                          working_dir=self.CONTAINER_WORKDIR, auto_remove=True, name=id(self),
-                                          **self.run_opt, **kwargs)
+        return self.docker.containers\
+            .run(image=image, command=command,
+                 volumes=volumes + ['%s:%s' % (os.path.abspath(_path), self.CONTAINER_WORK_DIR),
+                                    '%s:%s' % (os.path.abspath(Config.get_log_dir()), self.CONTAINER_LOG_DIR)],
+                 environment=environment + ['%s=%s' % (Config.LABEL_LOGGER_LOG_DIR, self.CONTAINER_LOG_DIR)],
+                 working_dir=self.CONTAINER_WORK_DIR, auto_remove=True, name=id(self),
+                 **self.run_opt, **kwargs)
 
     @staticmethod
     def extract_requirements_from_file(path: str):
