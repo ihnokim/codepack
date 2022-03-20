@@ -30,17 +30,21 @@ class Config:
     def get_logger(config_path: str, name: str = None):
         with open(config_path, 'r') as f:
             config = json.load(f)
-            if Config.LABEL_LOGGER_LOG_DIR in os.environ and 'handlers' in config:
+            if 'handlers' in config:
                 for handler in config['handlers'].values():
                     for k, v in handler.items():
                         if k == 'filename':
-                            logdir = os.environ[Config.LABEL_LOGGER_LOG_DIR]
-                            logfile = os.path.join(logdir, v)
-                            if not os.path.exists(logdir):
-                                os.makedirs(logdir)
-                            handler.update(filename=logfile)
+                            log_dir = Config.get_log_dir()
+                            log_file = os.path.join(log_dir, v)
+                            if not os.path.exists(log_dir):
+                                os.makedirs(log_dir)
+                            handler.update(filename=log_file)
             dictConfig(config)
         return logging.getLogger(name=name)
+
+    @staticmethod
+    def get_log_dir():
+        return os.environ.get(Config.LABEL_LOGGER_LOG_DIR, 'logs')
 
     def get_config(self, section: str, config_path: str = None, ignore_error: bool = False):
         _config_path = config_path
