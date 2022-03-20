@@ -39,12 +39,12 @@ def test_config_path_priority():
     config = Config(config_path='test.ini')
     assert config.config_path == os.path.join('config', 'test.ini')
     _config = config.get_config(section='logger')
-    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    assert _config == {'name': 'default-logger', 'path': 'logging.json', 'log_dir': 'logs'}
     os.environ['CODEPACK_CONFIG_PATH'] = 'codepack.ini'
     _config = config.get_config(section='logger')
-    assert _config == {'name': 'error-logger', 'path': 'logging.json'}
+    assert _config == {'name': 'error-logger', 'path': 'logging.json', 'log_dir': 'logs'}
     _config = config.get_config(section='logger', config_path='test.ini')
-    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    assert _config == {'name': 'default-logger', 'path': 'logging.json', 'log_dir': 'logs'}
     os.environ.pop('CODEPACK_CONFIG_PATH')
     os.environ.pop('CODEPACK_CONFIG_DIR')
 
@@ -52,7 +52,7 @@ def test_config_path_priority():
 def test_config_get_value_priority():
     config = Config('config/test.ini')
     _config = config.get_config(section='logger')
-    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    assert _config == {'name': 'default-logger', 'path': 'logging.json', 'log_dir': 'logs'}
     with pytest.raises(AssertionError):
         Config.get_value('logger', 'name')
     name = Config.get_value('logger', 'name', _config)
@@ -64,7 +64,7 @@ def test_config_get_value_priority():
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
     config = Config()
     _config = config.get_config(section='logger')
-    assert _config == {'name': 'default-logger', 'path': 'logging.json'}
+    assert _config == {'name': 'default-logger', 'path': 'logging.json', 'log_dir': 'logs'}
     name = Config.get_value('logger', 'name', _config)
     assert name == 'default-logger'
     os.environ['CODEPACK_LOGGER_NAME'] = 'test-logger'
@@ -80,20 +80,20 @@ def test_get_storage_config_priority():
     storage_config = config.get_storage_config('worker')
     ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
            'path': 'scripts', 'script': 'run_snapshot.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
-           'topic': 'test'}
+           'topic': 'test', 'logger': 'worker-logger'}
     assert storage_config == ref
     os.environ['CODEPACK_WORKER_SCRIPT'] = 'test_script.py'
     os.environ['CODEPACK_WORKER_TOPIC'] = 'test2'
     storage_config = config.get_storage_config('worker')
     ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
            'path': 'scripts', 'script': 'test_script.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
-           'topic': 'test2'}
+           'topic': 'test2', 'logger': 'worker-logger'}
     assert storage_config == ref
     os.environ['CODEPACK_WORKER_TEST_KEY'] = 'test'
     storage_config = config.get_storage_config('worker')
     ref = {'group_id': 'codepack_worker', 'interval': '1', 'kafka': {'bootstrap_servers': 'localhost:9092'},
            'path': 'scripts', 'script': 'test_script.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
-           'topic': 'test2', 'test_key': 'test'}
+           'topic': 'test2', 'test_key': 'test', 'logger': 'worker-logger'}
     assert storage_config == ref
     os.environ.pop('CODEPACK_CONFIG_DIR')
     os.environ.pop('CODEPACK_WORKER_SCRIPT')

@@ -11,11 +11,18 @@
             "level": "INFO",
             "formatter": "default"
         },
-        "file": {
+        "error-file": {
             "class": "logging.handlers.TimedRotatingFileHandler",
             "level": "ERROR",
             "formatter": "default",
             "filename": "error.log",
+            "when": "midnight"
+        },
+        "worker": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "level": "INFO",
+            "formatter": "default",
+            "filename": "worker.log",
             "when": "midnight"
         }
     },
@@ -27,7 +34,12 @@
         },
         "error-logger": {
             "level": "ERROR",
-            "handlers": ["console", "file"],
+            "handlers": ["console", "error-file"],
+            "propagate": true
+        },
+        "worker-logger": {
+            "level": "INFO",
+            "handlers": ["console", "worker"],
             "propagate": true
         }
     }
