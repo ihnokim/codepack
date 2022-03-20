@@ -43,9 +43,7 @@ class DependencyManager(MemoryStorage, Iterable):
 
     def validate(self, snapshot):
         for s in snapshot:
-            if s['state'] == 'ERROR':
-                return 'ERROR'
-            elif s['state'] != 'TERMINATED':
+            if s['state'] != 'TERMINATED':
                 return 'WAITING'
         if len(self) != len(snapshot):
             return 'WAITING'
