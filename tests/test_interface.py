@@ -208,3 +208,51 @@ def test_mysql_insert_many(mock_client):
     with pytest.raises(AttributeError):
         m.insert_many(db='codepack', table='table1', rows=rows)
     mock_client().rollback.assert_called_once()
+
+
+@patch('pymysql.connect')
+def test_mysql_delete(mock_client):
+    mysql_config = {'host': 'localhost', 'port': 3306, 'user': 'admin', 'passwd': 'test', 'charset': 'utf8',
+                    'cursorclass': 'pymysql.cursors.DictCursor'}
+    m = MySQL(config=mysql_config)
+    m.delete(db='codepack', table='table1',
+             test_key1='test_value1', test_key2=1.23, test_key3=123, test_key4=['a', 'b', 'c'])
+    mock_client().cursor.assert_called_once()
+    mock_client().cursor().execute.assert_called_once_with("delete from codepack.table1 "
+                                                           "where test_key1 = 'test_value1' and test_key2 = 1.23 and "
+                                                           "test_key3 = 123 and test_key4 in ('a', 'b', 'c')")
+    mock_client().cursor().fetchall.assert_called_once()
+    mock_client().cursor().close.assert_called_once()
+    mock_client().commit.assert_not_called()
+    m.delete(db='codepack', table='table1',
+             test_key1='test_value1', test_key2=1.23, test_key3=123, test_key4=['a', 'b', 'c'], commit=True)
+    assert mock_client().cursor().fetchall.call_count == 2
+    assert mock_client().cursor().close.call_count == 2
+    mock_client().commit.assert_called_once()
+    mock_client().rollback.assert_not_called()
+    mock_client().cursor.return_value = None
+    with pytest.raises(AttributeError):
+        m.delete(db='codepack', table='table1',
+                 test_key1='test_value1', test_key2=1.23, test_key3=123, test_key4=['a', 'b', 'c'])
+    mock_client().rollback.assert_called_once()
+
+
+@patch('pymysql.connect')
+def test_mysql_call(mock_client):
+    mysql_config = {'host': 'localhost', 'port': 3306, 'user': 'admin', 'passwd': 'test', 'charset': 'utf8',
+                    'cursorclass': 'pymysql.cursors.DictCursor'}
+    m = MySQL(config=mysql_config)
+    m.call(db='codepack', procedure='test_procedure', test_key1='test_value1', test_key2=1.23, test_key3=123)
+    mock_client().cursor.assert_called_once()
+    mock_client().cursor().execute.assert_called_once_with("call codepack.test_procedure("
+                                                           "@test_key1 := 'test_value1', "
+                                                           "@test_key2 := '1.23', "
+                                                           "@test_key3 := '123')")
+    mock_client().cursor().fetchall.assert_called_once()
+    mock_client().cursor().close.assert_called_once()
+    mock_client().commit.assert_not_called()
+    mock_client().rollback.assert_not_called()
+    mock_client().cursor.return_value = None
+    with pytest.raises(AttributeError):
+        m.call(db='codepack', procedure='test_procedure', test_key1='test_value1', test_key2=1.23, test_key3=123)
+    mock_client().rollback.assert_called_once()
