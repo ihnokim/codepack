@@ -126,7 +126,7 @@ class Config:
             raise FileNotFoundError("'%s' does not exist" % ret)
         return ret
 
-    def get_conn_config_path(self, config_path: str):
+    def get_conn_config_path(self, config_path: str = None):
         conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
         return self.get_value(section='conn', key='path', config=conn_config)
 
