@@ -4,6 +4,13 @@
 .. image:: https://coveralls.io/repos/github/ihnokim/codepack/badge.svg
   :target: https://coveralls.io/github/ihnokim/codepack
   :alt: Code Coverage
+.. image:: https://img.shields.io/pypi/v/codepack
+  :target: https://pypi.org/project/codepack/
+  :alt: PyPI - Package Version
+.. image:: https://img.shields.io/pypi/pyversions/codepack
+  :target: https://pypi.org/project/codepack/
+  :alt: PyPI - Python Version
+
 
 CodePack
 --------
