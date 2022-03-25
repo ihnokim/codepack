@@ -1,4 +1,4 @@
-from codepack.storage import MemoryStorage
+from codepack.storage.memory_storage import MemoryStorage
 from codepack.dependency.dependency import Dependency
 from collections.abc import Iterable
 

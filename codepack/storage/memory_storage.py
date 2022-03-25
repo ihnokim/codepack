@@ -1,4 +1,5 @@
-from codepack.storage import Storage, Storable
+from codepack.storage.storage import Storage
+from codepack.storage.storable import Storable
 from typing import Type, Union
 
 

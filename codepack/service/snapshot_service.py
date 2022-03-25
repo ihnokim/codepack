@@ -1,7 +1,7 @@
 from codepack.service.service import Service
-from codepack.snapshot import Snapshot
+from codepack.snapshot.snapshot import Snapshot
+from codepack.snapshot.state import State
 from typing import Union
-from codepack.snapshot import State
 
 
 class SnapshotService(Service):

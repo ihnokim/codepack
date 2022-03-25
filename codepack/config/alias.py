@@ -1,5 +1,5 @@
+from codepack.config.config import Config
 from importlib import import_module
-from codepack.config import Config
 import os
 
 

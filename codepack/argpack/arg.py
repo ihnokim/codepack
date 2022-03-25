@@ -1,8 +1,8 @@
-from codepack.storage import Storable
+from codepack.storage.storable import Storable
 
 
 class Arg(Storable):
-    def __init__(self, code=None, kwargs=None):
+    def __init__(self, code=None, kwargs: dict = None):
         Storable.__init__(self)
         self.kwargs = dict()
         if kwargs:

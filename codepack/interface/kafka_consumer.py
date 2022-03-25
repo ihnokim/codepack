@@ -1,5 +1,5 @@
+from codepack.interface.interface import Interface
 from kafka import KafkaConsumer as Kafka
-from codepack.interface import Interface
 from copy import deepcopy
 import json
 

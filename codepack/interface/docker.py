@@ -1,5 +1,5 @@
+from codepack.interface.interface import Interface
 from docker import DockerClient
-from codepack.interface import Interface
 
 
 class Docker(Interface):

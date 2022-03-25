@@ -1,5 +1,5 @@
-from codepack.engine import Engine
-from codepack.utils import Looper
+from codepack.engine.engine import Engine
+from codepack.utils.looper import Looper
 
 
 class NonBlockingEngine(Engine):

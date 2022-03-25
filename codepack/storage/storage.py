@@ -1,5 +1,5 @@
 import abc
-from codepack.storage import Storable
+from codepack.storage.storable import Storable
 from typing import Type, Union
 
 

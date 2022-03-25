@@ -1,6 +1,6 @@
+from codepack.interface.interface import Interface
 import boto3
 from botocore.config import Config
-from codepack.interface import Interface
 from typing import Union
 
 

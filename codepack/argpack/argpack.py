@@ -1,9 +1,9 @@
-from codepack.argpack import Arg
-from codepack.storage import Storable
+from codepack.argpack.arg import Arg
+from codepack.storage.storable import Storable
 
 
 class ArgPack(Storable):
-    def __init__(self, codepack=None, id=None, args=None):
+    def __init__(self, codepack=None, id: str = None, args: dict = None):
         _id = None
         if codepack:
             _id = codepack.id

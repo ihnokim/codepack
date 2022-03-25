@@ -1,4 +1,4 @@
-from codepack.engine import Engine
+from codepack.engine.engine import Engine
 import time
 
 

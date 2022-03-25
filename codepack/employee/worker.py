@@ -1,10 +1,12 @@
-from codepack import Code
-from codepack.snapshot import CodeSnapshot
+from codepack.code import Code
+from codepack.snapshot.code_snapshot import CodeSnapshot
 from codepack.employee.supervisor import Supervisor
-from codepack.storage import KafkaStorage, FileStorage
-from codepack.config import Default
-from codepack.manager import DockerManager, InterpreterManager
-from codepack.service import CallbackService
+from codepack.storage.kafka_storage import KafkaStorage
+from codepack.storage.file_storage import FileStorage
+from codepack.config.default import Default
+from codepack.manager.docker_manager import DockerManager
+from codepack.manager.interpreter_manager import InterpreterManager
+from codepack.service.callback_service import CallbackService
 from codepack.callback.functions import inform_supervisor_of_termination
 from functools import partial
 import logging

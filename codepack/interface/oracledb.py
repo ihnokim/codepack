@@ -1,5 +1,5 @@
+from codepack.interface.sql_interface import SQLInterface
 import cx_Oracle
-from codepack.interface import SQLInterface
 from functools import partial
 
 

@@ -1,11 +1,12 @@
-from collections.abc import Iterable, Callable
-from codepack.config import Default
-from codepack.base import CodeBase
-from functools import partial
-from codepack.callback import Callback
-from typing import Union, Callable as Function
-from codepack.dependency import Dependency, DependencyManager
+from codepack.config.default import Default
+from codepack.base.code_base import CodeBase
+from codepack.dependency.dependency import Dependency
+from codepack.dependency.dependency_manager import DependencyManager
 from codepack.snapshot import CodeSnapshot
+from codepack.callback.callback import Callback
+from collections.abc import Iterable, Callable
+from functools import partial
+from typing import Union, Callable as Function
 
 
 class Code(CodeBase):

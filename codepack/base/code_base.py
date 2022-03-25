@@ -1,5 +1,5 @@
-from codepack.storage import Storable
-from codepack.snapshot import Snapshotable
+from codepack.storage.storable import Storable
+from codepack.snapshot.snapshotable import Snapshotable
 from collections.abc import Callable
 from collections import OrderedDict
 import abc

@@ -1,6 +1,6 @@
+from codepack.config.config import Config
 import abc
 import sshtunnel
-from codepack.config import Config
 from copy import deepcopy
 
 

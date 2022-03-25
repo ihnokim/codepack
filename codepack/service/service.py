@@ -1,5 +1,5 @@
+from codepack.storage.storage import Storage
 import abc
-from codepack.storage import Storage
 
 
 class Service(metaclass=abc.ABCMeta):

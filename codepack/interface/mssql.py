@@ -1,5 +1,5 @@
+from codepack.interface.sql_interface import SQLInterface
 import pymssql
-from codepack.interface import SQLInterface
 
 
 class MSSQL(SQLInterface):

@@ -1,12 +1,13 @@
-from codepack.base import CodeBase, CodePackBase
-from codepack import Code
-from queue import Queue
-from codepack.config import Default
-from codepack.snapshot import State
+from codepack.code import Code
+from codepack.base.code_base import CodeBase
+from codepack.base.codepack_base import CodePackBase
+from codepack.snapshot.codepack_snapshot import CodePackSnapshot
+from codepack.argpack.argpack import ArgPack
+from codepack.config.default import Default
+from codepack.snapshot.state import State
 from parse import compile as parser
 from ast import literal_eval
-from codepack.snapshot import CodePackSnapshot
-from codepack.argpack import ArgPack
+from queue import Queue
 
 
 class CodePack(CodePackBase):

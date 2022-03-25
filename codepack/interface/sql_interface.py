@@ -1,6 +1,6 @@
+from codepack.interface.interface import Interface
 import abc
 import numpy as np
-from codepack.interface import Interface
 
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):

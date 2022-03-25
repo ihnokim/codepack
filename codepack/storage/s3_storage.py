@@ -1,5 +1,6 @@
-from codepack.interface import S3
-from codepack.storage import Storage, Storable
+from codepack.interface.s3 import S3
+from codepack.storage.storage import Storage
+from codepack.storage.storable import Storable
 from typing import Type, Union
 from posixpath import join
 

@@ -1,5 +1,5 @@
+from codepack.config.default import Default
 import abc
-from codepack.config import Default
 
 
 class Engine(metaclass=abc.ABCMeta):

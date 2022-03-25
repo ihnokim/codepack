@@ -1,5 +1,5 @@
-from codepack.storage import Storable
-from codepack.base import CodeBase
+from codepack.storage.storable import Storable
+from codepack.base.code_base import CodeBase
 from functools import partial
 from collections.abc import Callable
 

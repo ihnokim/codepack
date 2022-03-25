@@ -1,5 +1,5 @@
-from codepack.snapshot import Snapshot
-from codepack.argpack import ArgPack
+from codepack.snapshot.snapshot import Snapshot
+from codepack.argpack.argpack import ArgPack
 from copy import deepcopy
 
 

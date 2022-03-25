@@ -1,11 +1,11 @@
 from codepack.manager.manager import Manager
-from codepack.config import Config
+from codepack.config.config import Config
+from codepack.interface.docker import Docker
 import os
 from docker.errors import ImageNotFound
 from shutil import rmtree
 from typing import Union
 from docker import DockerClient
-from codepack.interface import Docker
 import json
 
 

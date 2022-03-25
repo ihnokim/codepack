@@ -1,4 +1,4 @@
-from codepack.storage import Storable
+from codepack.storage.storable import Storable
 
 
 class Dependency(Storable):

@@ -1,7 +1,8 @@
-from codepack import Code, CodePack
-from codepack.config import Default
-from codepack.snapshot import CodeSnapshot
-from codepack.storage import KafkaStorage
+from codepack.code import Code
+from codepack.codepack import CodePack
+from codepack.config.default import Default
+from codepack.snapshot.code_snapshot import CodeSnapshot
+from codepack.storage.kafka_storage import KafkaStorage
 
 
 class Supervisor(KafkaStorage):

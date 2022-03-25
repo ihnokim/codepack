@@ -1,5 +1,5 @@
-from codepack.snapshot import Snapshot
-from codepack.dependency import Dependency
+from codepack.snapshot.snapshot import Snapshot
+from codepack.dependency.dependency import Dependency
 
 
 class CodeSnapshot(Snapshot):

@@ -1,5 +1,7 @@
-from codepack.interface import KafkaConsumer, KafkaProducer
-from codepack.storage import Storage, Storable
+from codepack.interface.kafka_consumer import KafkaConsumer
+from codepack.interface.kafka_producer import KafkaProducer
+from codepack.storage.storage import Storage
+from codepack.storage.storage import Storable
 from typing import Type, Union
 
 
