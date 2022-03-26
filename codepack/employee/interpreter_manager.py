@@ -1,4 +1,4 @@
-from codepack.manager.manager import Manager
+from codepack.employee.manager import Manager
 import os
 from typing import Union
 import json
