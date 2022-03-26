@@ -12,9 +12,11 @@ def test_dynamodb_init(mock_client):
     assert len(arg_list) == 1
     args, kwargs = arg_list[0]
     assert 'config' in kwargs and 'test_key1' in kwargs and 'test_key2' in kwargs
-    assert isinstance(kwargs['config'], Config)
     assert kwargs['test_key1'] == 'test_value1'
     assert kwargs['test_key2'] == 'test_value2'
+    assert isinstance(kwargs['config'], Config)
+    assert kwargs['config'].retries == {'max_attempts': 3}
+    assert 'config' in d.config and d.config['config'] == kwargs['config']
     assert d.session is mock_client()
     d.close()
     assert d.closed()
