@@ -104,7 +104,9 @@ def testdir_file_storage():
 
 @pytest.fixture(scope='function', autouse=True)
 def init_default():
-    Default.init()
+    Default.alias = None
+    Default.config = None
+    Default.instances = dict()
 
 
 @pytest.fixture(scope='function', autouse=False)

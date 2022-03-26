@@ -1,7 +1,7 @@
 from codepack.config.config import Config
 from codepack.config.alias import Alias
 import os
-from inspect import getfullargspec
+import inspect
 
 
 class Default:
@@ -140,7 +140,7 @@ class Default:
             c = cls.get_class_from_alias(section, alias_path=alias_path)
             employee_config = dict()
             for k, v in storage_config.items():
-                if k in getfullargspec(c.__init__).args:
+                if k in inspect.getfullargspec(c.__init__).args:
                     employee_config[k] = v
                 else:
                     kafka_config[k] = v
@@ -159,6 +159,9 @@ class Default:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             storage_config.pop('source')
             c = cls.get_class_from_alias(section, alias_path=alias_path)
+            if 'path' not in storage_config:
+                default_dir = os.path.dirname(os.path.abspath(inspect.getfile(c)))
+                storage_config['path'] = os.path.join(default_dir, 'scripts')
             _instance = c(**storage_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance

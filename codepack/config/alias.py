@@ -53,10 +53,14 @@ class Alias:
         name = tokens[-1]
         return self.get_class(module, name)
 
-    def get_default_alias(self):
-        default_config_dir = os.path.dirname(os.path.abspath(inspect.getfile(self.__class__)))
+    @classmethod
+    def get_default_alias(cls):
+        default_config_dir = os.path.dirname(os.path.abspath(inspect.getfile(cls)))
         default_alias_path = os.path.join(default_config_dir, 'default', 'alias.ini')
         if os.path.isfile(default_alias_path):
-            return Config.parse_config(section='alias', config_path=default_alias_path)
+            try:
+                return Config.parse_config(section='alias', config_path=default_alias_path)
+            except Exception:
+                return None
         else:
             return None

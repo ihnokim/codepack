@@ -1,6 +1,12 @@
+from unittest.mock import patch
 from codepack.config import Default
 import os
 from codepack.storage import MemoryStorage
+from codepack.service import DeliveryService
+from codepack.scheduler import MongoScheduler
+from codepack.employee import Worker, Supervisor, DockerManager, InterpreterManager
+import inspect
+import logging
 
 
 def test_default_init_with_nothing():
@@ -119,3 +125,57 @@ def test_default_get_class_from_alias():
     finally:
         os.environ.pop('CODEPACK_CONFIG_DIR', None)
         os.environ.pop('CODEPACK_CONFIG_PATH', None)
+
+
+def test_get_default_service():
+    service = Default.get_service('delivery', 'delivery_service')
+    assert isinstance(service, DeliveryService) and isinstance(service.storage, MemoryStorage)
+
+
+def test_get_default_scheduler(fake_mongodb):
+    try:
+        os.environ['CODEPACK_CONN_PATH'] = 'config/test_conn.ini'
+        scheduler = Default.get_scheduler()
+        assert isinstance(scheduler, MongoScheduler)
+        assert scheduler.db == 'codepack'
+        assert scheduler.collection == 'scheduler'
+        assert scheduler.supervisor is None
+    finally:
+        os.environ.pop('CODEPACK_CONN_PATH', None)
+
+
+@patch('docker.DockerClient')
+def test_get_default_docker_manager(mock_client):
+    try:
+        os.environ['CODEPACK_CONN_PATH'] = 'config/test_conn.ini'
+        docker_manager = Default.get_docker_manager()
+        mock_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
+        assert isinstance(docker_manager, DockerManager)
+        default_dir = os.path.dirname(os.path.abspath(inspect.getfile(DockerManager)))
+        assert docker_manager.path == os.path.join(default_dir, 'scripts')
+        assert docker_manager.run_opt == {'dns': ['8.8.8.8']}
+    finally:
+        os.environ.pop('CODEPACK_CONN_PATH', None)
+
+
+def test_get_default_interpreter_manager():
+    try:
+        os.environ['CODEPACK_CONN_PATH'] = 'config/test_conn.ini'
+        interpreter_manager = Default.get_interpreter_manager()
+        assert isinstance(interpreter_manager, InterpreterManager)
+        assert interpreter_manager.path == '${HOME}/anaconda3/envs'
+        assert interpreter_manager.run_opt == {}
+    finally:
+        os.environ.pop('CODEPACK_CONN_PATH', None)
+
+
+def test_get_default_logger():
+    logger = Default.get_logger()
+    assert isinstance(logger, logging.Logger)
+    assert logger.name == 'default-logger'
+    assert len(logger.handlers) == 1
+    assert logger.handlers[0].get_name() == 'console'
+    logger2 = Default.get_logger('worker-logger')
+    assert isinstance(logger2, logging.Logger)
+    assert logger2.name == 'worker-logger'
+    assert len(logger2.handlers) == 2
