@@ -1,5 +1,5 @@
 from codepack.interface.interface import Interface
-from docker import DockerClient
+import docker
 
 
 class Docker(Interface):
@@ -8,7 +8,7 @@ class Docker(Interface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args, **kwargs):
-        self.session = DockerClient(*args, **self.config, **kwargs)
+        self.session = docker.DockerClient(*args, **self.config, **kwargs)
         self._closed = False
         return self.session
 

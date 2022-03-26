@@ -1,5 +1,5 @@
 from codepack.interface.interface import Interface
-from kafka import KafkaConsumer as Kafka
+import kafka
 from copy import deepcopy
 import json
 
@@ -15,9 +15,9 @@ class KafkaConsumer(Interface):
         if 'topic' in self.config:
             _config = deepcopy(self.config)
             _topic = _config.pop('topic')
-            self.session = Kafka(_topic, *args, **_config, **kwargs)
+            self.session = kafka.KafkaConsumer(_topic, *args, **_config, **kwargs)
         else:
-            self.session = Kafka(*args, **self.config, **kwargs)
+            self.session = kafka.KafkaConsumer(*args, **self.config, **kwargs)
         self._closed = False
         return self.session
 
@@ -26,6 +26,7 @@ class KafkaConsumer(Interface):
         return getattr(self.session, item)
 
     def consume(self, callback, *args, **kwargs):
+        assert not self.closed(), "connection is closed"
         while True:
             try:
                 buffer = self.session.poll(*args, **kwargs)

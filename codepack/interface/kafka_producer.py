@@ -1,5 +1,5 @@
 from codepack.interface.interface import Interface
-from kafka import KafkaProducer as Kafka
+import kafka
 import json
 
 
@@ -11,7 +11,7 @@ class KafkaProducer(Interface):
     def connect(self, *args, **kwargs):
         if 'value_serializer' not in self.config and 'value_serializer' not in kwargs:
             kwargs['value_serializer'] = lambda x: json.dumps(x).encode('utf-8')
-        self.session = Kafka(*args, **self.config, **kwargs)
+        self.session = kafka.KafkaProducer(**self.config, **kwargs)
         self._closed = False
         return self.session
 
@@ -20,6 +20,7 @@ class KafkaProducer(Interface):
         return getattr(self.session, item)
 
     def produce(self, *args, **kwargs):
+        assert not self.closed(), "connection is closed"
         self.session.send(*args, **kwargs)
         self.session.flush()
 
