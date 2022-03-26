@@ -109,7 +109,7 @@ def init_default():
 
 @pytest.fixture(scope='function', autouse=False)
 def default():
-    os.environ['CODEPACK_ALIAS_PATH'] = 'config/alias.ini'
+    os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/config/default/alias.ini'
     Default.init()
     yield Default
     Default.init()

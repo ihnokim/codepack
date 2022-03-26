@@ -63,14 +63,17 @@ class Config:
                                  % self.LABEL_CONFIG_PATH)
 
     @classmethod
-    def get_value(cls, section: str, key: str, config: dict = None):
+    def get_value(cls, section: str, key: str, config: dict = None, ignore_error: bool = False):
         env = cls.os_env(key=section, value=key)
         if env in os.environ:
             ret = os.environ.get(env, None)
         elif config:
             ret = config[key]
         else:
-            raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
+            if ignore_error:
+                return None
+            else:
+                raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
         if key == 'path' and section in {'conn', 'alias', 'logger'}:
             ret = cls.get_config_path(ret)
         return ret

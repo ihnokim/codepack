@@ -313,11 +313,13 @@ def test_if_default_services_have_single_instance_for_each_service(default, test
 
 
 def test_config_dir():
-    path = Config.get_value(section='?', key='path', config={'path': 'config/alias.ini'})
-    assert path == 'config/alias.ini'
+    path = Config.get_value(section='?', key='path', config={'path': 'config/test_conn.ini'})
+    assert path == 'config/test_conn.ini'
     with pytest.raises(AssertionError):
-        Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
-    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-    path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
-    assert path == os.path.join('config', 'alias.ini')
-    os.environ.pop('CODEPACK_CONFIG_DIR', None)
+        Config.get_value(section='conn', key='path', config={'path': 'test_conn.ini'})
+    try:
+        os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+        path = Config.get_value(section='conn', key='path', config={'path': 'test_conn.ini'})
+        assert path == os.path.join('config', 'test_conn.ini')
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_DIR', None)
