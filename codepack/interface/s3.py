@@ -10,7 +10,9 @@ class S3(Interface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args, **kwargs):
-        self.session = boto3.client(config=Config(retries=dict(max_attempts=3)), *args, **self.config, **kwargs)
+        if 'config' not in self.config and 'config' not in kwargs:
+            self.config['config'] = Config(retries=dict(max_attempts=3))
+        self.session = boto3.client(*args, **self.config, **kwargs)
         self._closed = False
         return self.session
 
