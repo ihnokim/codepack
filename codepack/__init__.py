@@ -11,6 +11,9 @@ from .plugin.snapshot_service import SnapshotService
 from .plugin.delivery_service import DeliveryService
 from .plugin.callback_service import CallbackService
 from .plugin.scheduler import Scheduler
+from .plugin.blocking_engine import BlockingEngine
+from .plugin.non_blocking_engine import NonBlockingEngine
+
 
 from .snapshot.state import State
 from .snapshot.snapshot import Snapshot

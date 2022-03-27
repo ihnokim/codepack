@@ -1,4 +1,4 @@
-from codepack.engine.engine import Engine
+from codepack.plugin.engine import Engine
 from codepack.utils.looper import Looper
 
 

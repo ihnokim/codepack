@@ -1,6 +1,5 @@
-from codepack import Code
+from codepack import Code, BlockingEngine, NonBlockingEngine
 from tests import *
-from codepack.engine import BlockingEngine, NonBlockingEngine
 import time
 
 
