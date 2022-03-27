@@ -1,4 +1,4 @@
-from codepack.dependency import Dependency
+from codepack import Dependency
 
 
 def test_eq():

@@ -1,5 +1,4 @@
-from codepack.service import DeliveryService
-from codepack.delivery import Delivery
+from codepack import DeliveryService, Delivery
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 import os
 

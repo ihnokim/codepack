@@ -1,7 +1,7 @@
 from codepack.codepack import CodePack
 from codepack.argpack.argpack import ArgPack
 from codepack.snapshot.codepack_snapshot import CodePackSnapshot
-from codepack.employee.supervisor import Supervisor
+from codepack.plugin.supervisor import Supervisor
 import abc
 from apscheduler.schedulers.background import BackgroundScheduler, BlockingScheduler
 import requests

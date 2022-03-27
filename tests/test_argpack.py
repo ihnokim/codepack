@@ -1,5 +1,4 @@
-from codepack import Code, CodePack
-from codepack.snapshot import CodePackSnapshot
+from codepack import Code, CodePack, CodePackSnapshot
 from tests import *
 import pytest
 

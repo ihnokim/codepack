@@ -1,4 +1,4 @@
-from codepack.delivery import Delivery
+from codepack import Delivery
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage, S3Storage
 import pytest
 import json

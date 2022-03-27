@@ -1,5 +1,5 @@
-from codepack.scheduler.scheduler import Scheduler
-from codepack.scheduler.jobstore.mongo_jobstore import MongoJobStore
+from codepack.plugin.scheduler import Scheduler
+from codepack.plugin.jobstore.mongo_jobstore import MongoJobStore
 from codepack.storage.mongo_storage import MongoStorage
 
 

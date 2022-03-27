@@ -1,11 +1,9 @@
-from unittest.mock import patch
-from codepack.config import Default
-import os
 from codepack.storage import MemoryStorage, MongoStorage
-from codepack.service import DeliveryService, CallbackService, SnapshotService
-from codepack.scheduler import MongoScheduler
-from codepack.employee import Worker, Supervisor, DockerManager, InterpreterManager
+from codepack import DeliveryService, CallbackService, SnapshotService,\
+    MongoScheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
+from unittest.mock import patch
 from collections.abc import Callable
+import os
 import inspect
 import logging
 

@@ -1,6 +1,6 @@
 def inform_supervisor_of_termination(x, supervisor):
     import requests
-    from codepack.employee.supervisor import Supervisor
+    from codepack.plugin.supervisor import Supervisor
     if x['state'] == 'TERMINATED':
         if isinstance(supervisor, str):
             requests.get(supervisor + '/organize/%s' % x['serial_number'])

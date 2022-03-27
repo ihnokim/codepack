@@ -4,7 +4,7 @@ from codepack.service import CallbackService
 from codepack.storage import FileStorage
 from codepack.callback import Callback
 from codepack.config import Default
-from codepack.employee import Worker
+from codepack.plugin import Worker
 import argparse
 import sys
 from functools import partial

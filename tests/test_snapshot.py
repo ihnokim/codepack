@@ -1,6 +1,4 @@
-from codepack.snapshot import Snapshot
-from codepack.snapshot import CodeSnapshot
-from codepack import Code, CodePack
+from codepack import Code, CodePack, Snapshot, CodeSnapshot
 from tests import *
 from datetime import datetime
 import pytest

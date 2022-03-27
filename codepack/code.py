@@ -1,8 +1,7 @@
 from codepack.config.default import Default
 from codepack.base.code_base import CodeBase
 from codepack.dependency.dependency import Dependency
-from codepack.dependency.dependency_manager import DependencyManager
-from codepack.snapshot import CodeSnapshot
+from codepack.plugin.dependency_manager import DependencyManager
 from codepack.callback.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
@@ -299,7 +298,7 @@ class Code(CodeBase):
                    env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None))
 
     def to_snapshot(self, *args, **kwargs):
-        return CodeSnapshot(self, *args, **kwargs)
+        return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
 
     @classmethod
     def from_snapshot(cls, snapshot):

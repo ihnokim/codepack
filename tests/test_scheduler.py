@@ -1,5 +1,4 @@
-from codepack import Code, CodePack
-from codepack.scheduler import MongoScheduler
+from codepack import Code, CodePack, MongoScheduler
 from tests import *
 
 

@@ -1,4 +1,4 @@
-from codepack.employee.manager import Manager
+from codepack.plugin.manager import Manager
 from codepack.config.config import Config
 from codepack.interface.docker import Docker
 import os
