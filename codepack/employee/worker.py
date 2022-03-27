@@ -4,8 +4,8 @@ from codepack.employee.supervisor import Supervisor
 from codepack.storage.kafka_storage import KafkaStorage
 from codepack.storage.file_storage import FileStorage
 from codepack.config.default import Default
-from codepack.manager.docker_manager import DockerManager
-from codepack.manager.interpreter_manager import InterpreterManager
+from codepack.employee.docker_manager import DockerManager
+from codepack.employee.interpreter_manager import InterpreterManager
 from codepack.service.callback_service import CallbackService
 from codepack.callback.functions import inform_supervisor_of_termination
 from functools import partial

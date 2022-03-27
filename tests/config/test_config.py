@@ -8,8 +8,37 @@ from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 
 
 def test_no_config():
-    with pytest.raises(AssertionError):
-        Code(add2)
+    code = Code(add2)
+    assert 'delivery' in code.service and isinstance(code.service['delivery'], DeliveryService)
+    assert 'snapshot' in code.service and isinstance(code.service['snapshot'], SnapshotService)
+    assert 'storage' in code.service and isinstance(code.service['storage'], StorageService)
+    assert isinstance(code.service['delivery'].storage, MemoryStorage)
+    assert isinstance(code.service['snapshot'].storage, MemoryStorage)
+    assert isinstance(code.service['storage'].storage, MemoryStorage)
+
+
+def test_some_os_env(fake_mongodb):
+    try:
+        os.environ['CODEPACK_DELIVERY_SOURCE'] = 'mongodb'
+        os.environ['CODEPACK_DELIVERY_DB'] = 'codepack'
+        os.environ['CODEPACK_DELIVERY_COLLECTION'] = 'test'
+        with pytest.raises(AssertionError):
+            Code(add2)
+        os.environ['CODEPACK_CONN_PATH'] = 'config/test_conn.ini'
+        code = Code(add2)
+        assert 'delivery' in code.service and isinstance(code.service['delivery'], DeliveryService)
+        assert 'snapshot' in code.service and isinstance(code.service['snapshot'], SnapshotService)
+        assert 'storage' in code.service and isinstance(code.service['storage'], StorageService)
+        assert isinstance(code.service['delivery'].storage, MongoStorage)
+        assert isinstance(code.service['snapshot'].storage, MemoryStorage)
+        assert isinstance(code.service['storage'].storage, MemoryStorage)
+        assert code.service['delivery'].storage.db == 'codepack'
+        assert code.service['delivery'].storage.collection == 'test'
+    finally:
+        os.environ.pop('CODEPACK_DELIVERY_SOURCE', None)
+        os.environ.pop('CODEPACK_DELIVERY_DB', None)
+        os.environ.pop('CODEPACK_DELIVERY_COLLECTION', None)
+        os.environ.pop('CODEPACK_CONN_PATH', None)
 
 
 def test_default_config_with_os_env(default_os_env):
@@ -29,10 +58,8 @@ def test_config_path():
 
 def test_config_path_priority():
     config = Config()
-    with pytest.raises(AttributeError):
-        _config = config.get_config(section='logger')
     _config = config.get_config(section='logger', ignore_error=True)
-    assert _config is None
+    assert _config == {'log_dir': 'logs', 'name': 'default-logger'}
     with pytest.raises(AssertionError):
         Config(config_path='test.ini')
     os.environ['CODEPACK_CONFIG_DIR'] = 'config'
@@ -53,8 +80,8 @@ def test_config_get_value_priority():
     config = Config('config/test.ini')
     _config = config.get_config(section='logger')
     assert _config == {'name': 'default-logger', 'path': 'logging.json', 'log_dir': 'logs'}
-    with pytest.raises(AssertionError):
-        Config.get_value('logger', 'name')
+    default_value = Config.get_value('logger', 'name')
+    assert default_value == 'default-logger'
     name = Config.get_value('logger', 'name', _config)
     assert name == 'default-logger'
     os.environ['CODEPACK_LOGGER_NAME'] = 'test-logger'
@@ -103,8 +130,8 @@ def test_get_storage_config_priority():
 
 def test_default_memory_code_snapshot_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code_snapshot')
+    storage_config = config.get_storage_config('code_snapshot')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
     try:
         os.environ[env_source] = 'memory'
@@ -117,8 +144,8 @@ def test_default_memory_code_snapshot_service_with_os_env(default):
 
 def test_default_file_code_snapshot_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code_snapshot')
+    storage_config = config.get_storage_config('code_snapshot')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
     env_path = 'CODEPACK_CODESNAPSHOT_PATH'
     try:
@@ -135,8 +162,8 @@ def test_default_file_code_snapshot_service_with_os_env(default):
 
 def test_default_mongo_code_snapshot_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code_snapshot')
+    storage_config = config.get_storage_config('code_snapshot')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODESNAPSHOT_SOURCE'
     env_db = 'CODEPACK_CODESNAPSHOT_DB'
     env_collection = 'CODEPACK_CODESNAPSHOT_COLLECTION'
@@ -159,8 +186,8 @@ def test_default_mongo_code_snapshot_service_with_os_env(default):
 
 def test_default_memory_delivery_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('delivery')
+    storage_config = config.get_storage_config('delivery')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_DELIVERY_SOURCE'
     try:
         os.environ[env_source] = 'memory'
@@ -173,8 +200,8 @@ def test_default_memory_delivery_service_with_os_env(default):
 
 def test_default_file_delivery_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('delivery')
+    storage_config = config.get_storage_config('delivery')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_DELIVERY_SOURCE'
     env_path = 'CODEPACK_DELIVERY_PATH'
     try:
@@ -191,8 +218,8 @@ def test_default_file_delivery_service_with_os_env(default):
 
 def test_default_mongo_delivery_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('delivery')
+    storage_config = config.get_storage_config('delivery')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_DELIVERY_SOURCE'
     env_db = 'CODEPACK_DELIVERY_DB'
     env_collection = 'CODEPACK_DELIVERY_COLLECTION'
@@ -215,8 +242,8 @@ def test_default_mongo_delivery_service_with_os_env(default):
 
 def test_default_memory_code_storage_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code')
+    storage_config = config.get_storage_config('code')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODE_SOURCE'
     try:
         os.environ[env_source] = 'memory'
@@ -230,8 +257,8 @@ def test_default_memory_code_storage_service_with_os_env(default):
 
 def test_default_file_code_storage_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code')
+    storage_config = config.get_storage_config('code')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODE_SOURCE'
     env_path = 'CODEPACK_CODE_PATH'
     try:
@@ -249,8 +276,8 @@ def test_default_file_code_storage_service_with_os_env(default):
 
 def test_default_mongo_code_storage_service_with_os_env(default):
     config = Config()
-    with pytest.raises(AssertionError):
-        config.get_storage_config('code')
+    storage_config = config.get_storage_config('code')
+    assert storage_config == {'source': 'memory'}
     env_source = 'CODEPACK_CODE_SOURCE'
     env_db = 'CODEPACK_CODE_DB'
     env_collection = 'CODEPACK_CODE_COLLECTION'
@@ -313,11 +340,13 @@ def test_if_default_services_have_single_instance_for_each_service(default, test
 
 
 def test_config_dir():
-    path = Config.get_value(section='?', key='path', config={'path': 'config/alias.ini'})
-    assert path == 'config/alias.ini'
+    path = Config.get_value(section='?', key='path', config={'path': 'config/test_conn.ini'})
+    assert path == 'config/test_conn.ini'
     with pytest.raises(AssertionError):
-        Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
-    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-    path = Config.get_value(section='alias', key='path', config={'path': 'alias.ini'})
-    assert path == os.path.join('config', 'alias.ini')
-    os.environ.pop('CODEPACK_CONFIG_DIR', None)
+        Config.get_value(section='conn', key='path', config={'path': 'test_conn.ini'})
+    try:
+        os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+        path = Config.get_value(section='conn', key='path', config={'path': 'test_conn.ini'})
+        assert path == os.path.join('config', 'test_conn.ini')
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_DIR', None)

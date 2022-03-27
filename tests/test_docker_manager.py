@@ -1,4 +1,4 @@
-from codepack.manager import DockerManager
+from codepack.employee import DockerManager
 
 
 def test_make_dockerfile(testdir_docker_manager):

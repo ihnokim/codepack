@@ -1,7 +1,7 @@
 from codepack.config.config import Config
 from codepack.config.alias import Alias
 import os
-from inspect import getfullargspec
+import inspect
 
 
 class Default:
@@ -16,7 +16,7 @@ class Default:
     @classmethod
     def init(cls, config_path: str = None, alias_path: str = None):
         cls.init_config(config_path=config_path)
-        cls.init_alias(config_path=config_path, alias_path=alias_path)
+        cls.init_alias(alias_path=alias_path)
         cls.init_instances()
 
     @classmethod
@@ -44,15 +44,13 @@ class Default:
         return _config.get_storage_config(section=section)
 
     @classmethod
-    def init_alias(cls, config_path: str = None, alias_path: str = None):
-        cls.alias = cls._get_alias(config_path=config_path, alias_path=alias_path)
+    def init_alias(cls, alias_path: str = None):
+        cls.alias = cls._get_alias(alias_path=alias_path)
 
     @staticmethod
-    def _get_alias(config_path: str = None, alias_path: str = None):
+    def _get_alias(alias_path: str = None):
         if alias_path:
             return Alias(data=alias_path)
-        elif config_path:
-            return Alias(data=config_path)
         else:
             return Alias()
 
@@ -62,11 +60,11 @@ class Default:
 
     @classmethod
     def set_config(cls, config: Config):
-        cls.config = config
+        cls.config = config  # pragma: no cover
 
     @classmethod
     def set_alias(cls, alias: Alias):
-        cls.alias = alias
+        cls.alias = alias  # pragma: no cover
 
     @staticmethod
     def get_alias_from_source(source: str, prefix: str = None, suffix: str = None):
@@ -81,9 +79,9 @@ class Default:
         return ret
 
     @classmethod
-    def get_class_from_alias(cls, alias: str, config_path: str = None, alias_path: str = None):
-        if config_path or alias_path:
-            _alias = cls._get_alias(config_path=config_path, alias_path=alias_path)
+    def get_class_from_alias(cls, alias: str, alias_path: str = None):
+        if alias_path:
+            _alias = cls._get_alias(alias_path=alias_path)
         elif not cls.alias:
             cls.init_alias()
             _alias = cls.alias
@@ -98,9 +96,9 @@ class Default:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
             storage_alias = cls.get_alias_from_source(source=source, suffix='storage')
-            storage_class = cls.get_class_from_alias(storage_alias, config_path=config_path, alias_path=alias_path)
-            service_class = cls.get_class_from_alias(service_type, config_path=config_path, alias_path=alias_path)
-            item_type = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
+            service_class = cls.get_class_from_alias(service_type, alias_path=alias_path)
+            item_type = cls.get_class_from_alias(section, alias_path=alias_path)
             storage_instance = storage_class(item_type=item_type, **storage_config)
             service_instance = service_class(storage=storage_instance)
             if config_path is None and alias_path is None:
@@ -116,7 +114,7 @@ class Default:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
             alias = cls.get_alias_from_source(source=source, suffix=section)
-            c = cls.get_class_from_alias(alias, config_path=config_path, alias_path=alias_path)
+            c = cls.get_class_from_alias(alias, alias_path=alias_path)
             if 'CODEPACK_SCHEDULER_SUPERVISOR' in os.environ:
                 storage_config['supervisor'] = os.environ['CODEPACK_SCHEDULER_SUPERVISOR']
             _instance = c(**storage_config)
@@ -139,10 +137,10 @@ class Default:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             storage_config.pop('source')
             kafka_config = storage_config.pop('kafka')
-            c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            c = cls.get_class_from_alias(section, alias_path=alias_path)
             employee_config = dict()
             for k, v in storage_config.items():
-                if k in getfullargspec(c.__init__).args:
+                if k in inspect.getfullargspec(c.__init__).args:
                     employee_config[k] = v
                 else:
                     kafka_config[k] = v
@@ -160,7 +158,10 @@ class Default:
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             storage_config.pop('source')
-            c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            c = cls.get_class_from_alias(section, alias_path=alias_path)
+            if 'path' not in storage_config:
+                default_dir = os.path.dirname(os.path.abspath(inspect.getfile(c)))
+                storage_config['path'] = os.path.join(default_dir, 'scripts')
             _instance = c(**storage_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
@@ -180,7 +181,7 @@ class Default:
                 for k in config:
                     if k not in kwargs:
                         kwargs[k] = config_instance.get_value(section=section, key=k, config=config)
-            c = cls.get_class_from_alias(section, config_path=config_path, alias_path=alias_path)
+            c = cls.get_class_from_alias(section, alias_path=alias_path)
             _instance = c(**kwargs)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
