@@ -1,7 +1,6 @@
-from codepack.scheduler import Scheduler
-from codepack.config import Default
-from codepack.storage import Storage
-from codepack.service import Service
+from codepack import Scheduler, Default
+from codepack.storage.storage import Storage
+from codepack.plugin.service import Service
 from fastapi import FastAPI, Request
 from .routers import code, codepack, argpack, scheduler
 from .dependencies import common
@@ -70,5 +69,3 @@ def destroy_scheduler(x):
     if isinstance(x, Scheduler):
         if x.is_running():
             x.stop()
-        if hasattr(x, 'mongodb'):
-            x.mongodb.close()

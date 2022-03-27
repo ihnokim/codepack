@@ -1,5 +1,4 @@
-from codepack import Code
-from codepack.service import StorageService
+from codepack import Code, StorageService
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 from tests import *
 import os

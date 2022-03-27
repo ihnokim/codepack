@@ -1,18 +1,23 @@
+from codepack.interface.mongodb import MongoDB
 from apscheduler.jobstores.mongodb import *
 from datetime import datetime, timezone
+from typing import Union
 
 
 class MongoJobStore(MongoDBJobStore):
-    def __init__(self, db,
-                 collection,
-                 client=None,
-                 pickle_protocol=pickle.HIGHEST_PROTOCOL,
-                 **connect_args):
+    def __init__(self, mongodb: Union[MongoDB, dict], db: str, collection: str,
+                 pickle_protocol=pickle.HIGHEST_PROTOCOL, *args, **kwargs):
+        if isinstance(mongodb, MongoDB):
+            _client = mongodb.session
+        elif isinstance(mongodb, dict):
+            _mongodb = MongoDB(mongodb, *args, **kwargs)
+            _client = _mongodb.session
+        else:
+            raise TypeError(type(mongodb))  # pragma: no cover
         super().__init__(database=db,
                          collection=collection,
-                         client=client,
-                         pickle_protocol=pickle_protocol,
-                         **connect_args)
+                         client=_client,
+                         pickle_protocol=pickle_protocol)
 
     def add_job(self, job):
         utc_timestamp = datetime_to_utc_timestamp(job.next_run_time)

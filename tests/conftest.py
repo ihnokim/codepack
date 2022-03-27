@@ -2,10 +2,9 @@ import pytest
 from codepack.interface import MongoDB
 import os
 import mongomock
-from codepack.config import Config, Default
+from codepack import Config, Default, Delivery
 from shutil import rmtree
 from glob import glob
-from codepack.delivery import Delivery
 
 
 def mkdir(directory):

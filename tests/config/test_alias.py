@@ -1,7 +1,6 @@
-from codepack.config import Alias
-import os
-from codepack.service import StorageService
+from codepack import Alias, StorageService
 from codepack.storage import MemoryStorage
+import os
 import pytest
 import configparser
 

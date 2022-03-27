@@ -1,8 +1,6 @@
+from codepack import Default, Code, CodeSnapshot
 from fastapi import APIRouter
 from ..models.code import CodeID, CodeJSON, SnapshotJSON
-from codepack.config import Default
-from codepack import Code
-from codepack.snapshot import CodeSnapshot
 from ..dependencies import common
 
 

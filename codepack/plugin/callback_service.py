@@ -1,4 +1,4 @@
-from codepack.service.service import Service
+from codepack.plugin.service import Service
 from codepack.callback.callback import Callback
 from collections.abc import Callable
 

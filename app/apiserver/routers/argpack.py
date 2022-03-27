@@ -1,7 +1,6 @@
+from codepack import Default, ArgPack
 from fastapi import APIRouter
 from ..models.argpack import ArgPackJSON
-from codepack.config import Default
-from codepack.argpack import ArgPack
 
 
 router = APIRouter(

@@ -1,8 +1,5 @@
-from codepack.service import SnapshotService
+from codepack import Code, SnapshotService, Snapshot, CodeSnapshot
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage
-from codepack.snapshot import Snapshot
-from codepack.snapshot import CodeSnapshot
-from codepack import Code
 from datetime import datetime
 from tests import *
 import os

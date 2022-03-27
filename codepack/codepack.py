@@ -1,7 +1,6 @@
 from codepack.code import Code
 from codepack.base.code_base import CodeBase
 from codepack.base.codepack_base import CodePackBase
-from codepack.snapshot.codepack_snapshot import CodePackSnapshot
 from codepack.argpack.argpack import ArgPack
 from codepack.config.default import Default
 from codepack.snapshot.state import State
@@ -255,7 +254,7 @@ class CodePack(CodePackBase):
         return ret
 
     def to_snapshot(self, *args, **kwargs):
-        return CodePackSnapshot(self, *args, **kwargs)
+        return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
 
     @classmethod
     def from_snapshot(cls, snapshot):

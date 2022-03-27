@@ -1,10 +1,8 @@
-from codepack import Code
+from codepack import Code, Config, DeliveryService, SnapshotService, StorageService
+from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 from tests import *
-from codepack.config import Config
 import pytest
 import os
-from codepack.service import DeliveryService, SnapshotService, StorageService
-from codepack.storage import MemoryStorage, FileStorage, MongoStorage
 
 
 def test_no_config():

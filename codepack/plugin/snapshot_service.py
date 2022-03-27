@@ -1,6 +1,7 @@
-from codepack.service.service import Service
+from codepack.plugin.service import Service
 from codepack.snapshot.snapshot import Snapshot
 from codepack.snapshot.state import State
+from codepack.snapshot.snapshotable import Snapshotable
 from typing import Union
 
 
@@ -28,3 +29,6 @@ class SnapshotService(Service):
 
     def search(self, key: str, value: object, projection: list = None):
         return self.storage.search(key=key, value=value, projection=projection, to_dict=True)
+
+    def convert_to_snapshot(self, item: Snapshotable, *args, **kwargs):
+        return self.storage.item_type(item, *args, **kwargs)

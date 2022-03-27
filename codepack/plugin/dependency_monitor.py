@@ -3,7 +3,7 @@ from codepack.dependency.dependency import Dependency
 from collections.abc import Iterable
 
 
-class DependencyManager(MemoryStorage, Iterable):
+class DependencyMonitor(MemoryStorage, Iterable):
     def __init__(self, code, item_type=Dependency):
         MemoryStorage.__init__(self, item_type=item_type)
         self.code = code
