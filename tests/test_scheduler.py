@@ -1,5 +1,27 @@
-from codepack import Code, CodePack, MongoScheduler
+from codepack import Code, CodePack, Default, Scheduler
+from codepack.storage.mongo_jobstore import MongoJobStore
+from unittest.mock import patch
 from tests import *
+import os
+
+
+@patch('pymongo.MongoClient')
+def test_get_default_mongo_scheduler(mock_client):
+    try:
+        os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+        os.environ['CODEPACK_CONFIG_PATH'] = 'test.ini'
+        scheduler = Default.get_scheduler()
+        assert isinstance(scheduler, Scheduler)
+        assert 'codepack' in scheduler.jobstores
+        jobstore = scheduler.jobstores['codepack']
+        assert isinstance(jobstore, MongoJobStore)
+        assert scheduler.supervisor == 'http://localhost:8000'
+        mock_client.assert_called_once_with(host='localhost', port=27017)
+        mock_client().__getitem__.assert_called_once_with('codepack')
+        mock_client().__getitem__().__getitem__.assert_called_once_with('scheduler')
+    finally:
+        os.environ.pop('CODEPACK_CONN_DIR', None)
+        os.environ.pop('CODEPACK_CONN_PATH', None)
 
 
 def test_mongo_jobstore_codepack_snapshot(default_os_env, fake_mongodb):
@@ -10,7 +32,8 @@ def test_mongo_jobstore_codepack_snapshot(default_os_env, fake_mongodb):
     job_id = 'job_test'
     db = 'test'
     collection = 'scheduler'
-    scheduler = MongoScheduler(db=db, collection=collection, mongodb=fake_mongodb, blocking=False)
+    jobstore = MongoJobStore(mongodb=fake_mongodb, db=db, collection=collection)
+    scheduler = Scheduler(jobstore=jobstore, blocking=False)
     scheduler.add_codepack(job_id=job_id, codepack=codepack, argpack=argpack, trigger='interval', seconds=30)
     scheduler.start()
     assert fake_mongodb[db][collection].count_documents({'_id': codepack.id}) == 0

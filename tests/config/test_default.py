@@ -1,6 +1,6 @@
-from codepack.storage import MemoryStorage, MongoStorage
+from codepack.storage import MemoryStorage, MongoStorage, MemoryJobStore, MongoJobStore
 from codepack import DeliveryService, CallbackService, SnapshotService,\
-    MongoScheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
+    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
 from unittest.mock import patch
 from collections.abc import Callable
 import os
@@ -131,16 +131,38 @@ def test_get_default_service():
     assert isinstance(service, DeliveryService) and isinstance(service.storage, MemoryStorage)
 
 
-def test_get_default_scheduler(fake_mongodb):
+def test_get_default_scheduler():
+    scheduler = Default.get_scheduler()
+    assert isinstance(scheduler, Scheduler)
+    assert 'codepack' in scheduler.jobstores
+    jobstore = scheduler.jobstores['codepack']
+    assert isinstance(jobstore, MemoryJobStore)
+    assert scheduler.supervisor is None
+
+
+@patch('pymongo.MongoClient')
+def test_get_default_scheduler_with_some_os_env(mock_client):
     try:
         os.environ['CODEPACK_CONN_PATH'] = 'config/test_conn.ini'
+        os.environ['CODEPACK_SCHEDULER_SOURCE'] = 'mongodb'
+        os.environ['CODEPACK_SCHEDULER_DB'] = 'test_db'
+        os.environ['CODEPACK_SCHEDULER_COLLECTION'] = 'test_collection'
+        os.environ['CODEPACK_SCHEDULER_SUPERVISOR'] = 'dummy_supervisor'
         scheduler = Default.get_scheduler()
-        assert isinstance(scheduler, MongoScheduler)
-        assert scheduler.db == 'codepack'
-        assert scheduler.collection == 'scheduler'
-        assert scheduler.supervisor is None
+        assert isinstance(scheduler, Scheduler)
+        assert 'codepack' in scheduler.jobstores
+        jobstore = scheduler.jobstores['codepack']
+        assert isinstance(jobstore, MongoJobStore)
+        assert scheduler.supervisor == 'dummy_supervisor'
+        mock_client.assert_called_once_with(host='localhost', port=27017)
+        mock_client().__getitem__.assert_called_once_with('test_db')
+        mock_client().__getitem__().__getitem__.assert_called_once_with('test_collection')
     finally:
         os.environ.pop('CODEPACK_CONN_PATH', None)
+        os.environ.pop('CODEPACK_SCHEDULER_SOURCE', None)
+        os.environ.pop('CODEPACK_SCHEDULER_DB', None)
+        os.environ.pop('CODEPACK_SCHEDULER_COLLECTION', None)
+        os.environ.pop('CODEPACK_SCHEDULER_SUPERVISOR', None)
 
 
 @patch('docker.DockerClient')
@@ -155,7 +177,7 @@ def test_get_default_worker(mock_kafka_consumer, mock_docker_client):
         args, kwargs = arg_list[0]
         assert kwargs.get('bootstrap_servers', '') == 'localhost:9092'
         assert isinstance(kwargs.get('value_deserializer', ''), Callable)
-        assert len(args) == 1 and args[0] == 'test'
+        assert len(args) == 1 and args[0] == 'codepack'
         assert worker.messenger.consumer.session is mock_kafka_consumer()
         mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
         assert worker.docker_manager.docker.session == mock_docker_client()

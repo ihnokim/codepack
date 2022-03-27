@@ -113,11 +113,21 @@ class Default:
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
-            alias = cls.get_alias_from_source(source=source, suffix=section)
-            c = cls.get_class_from_alias(alias, alias_path=alias_path)
+            # conn_config = storage_config.pop(source, dict())
+            jobstore_alias = cls.get_alias_from_source(source=source, suffix='jobstore')
+            jobstore_class = cls.get_class_from_alias(jobstore_alias, alias_path=alias_path)
+            scheduler_class = cls.get_class_from_alias(section, alias_path=alias_path)
             if 'CODEPACK_SCHEDULER_SUPERVISOR' in os.environ:
                 storage_config['supervisor'] = os.environ['CODEPACK_SCHEDULER_SUPERVISOR']
-            _instance = c(**storage_config)
+            scheduler_config = dict()
+            remaining_config = dict()
+            for k, v in storage_config.items():
+                if k in inspect.getfullargspec(scheduler_class.__init__).args:
+                    scheduler_config[k] = v
+                else:
+                    remaining_config[k] = v
+            jobstore_instance = jobstore_class(**remaining_config)
+            _instance = scheduler_class(jobstore=jobstore_instance, **scheduler_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
             return _instance
@@ -134,12 +144,12 @@ class Default:
         else:
             raise NotImplementedError("'%s' is unknown")
         if config_path or alias_path or key not in cls.instances:
-            storage_config = cls._get_storage_config(section=section, config_path=config_path)  # {'source:' ~~}
+            storage_config = cls._get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
             storage_alias = cls.get_alias_from_source(source=source, suffix='messenger')
             storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
-            conn_config = storage_config.pop(source)  # kafka_config = {'bootstrap_~~: ~~'}
-            c = cls.get_class_from_alias(section, alias_path=alias_path)  # c = Worker
+            conn_config = storage_config.pop(source)
+            c = cls.get_class_from_alias(section, alias_path=alias_path)
             employee_config = dict()
             for k, v in storage_config.items():
                 if k in inspect.getfullargspec(c.__init__).args:

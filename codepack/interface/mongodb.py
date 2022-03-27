@@ -1,5 +1,5 @@
 from codepack.interface.interface import Interface
-from pymongo import MongoClient
+import pymongo
 
 
 class MongoDB(Interface):
@@ -12,7 +12,7 @@ class MongoDB(Interface):
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
         if 'connect' in _config:
             _config['connect'] = self.eval_bool(_config['connect'])
-        self.session = MongoClient(host=host, port=port, *args, **_config, **kwargs)
+        self.session = pymongo.MongoClient(host=host, port=port, *args, **_config, **kwargs)
         self._closed = False
         return self.session
 

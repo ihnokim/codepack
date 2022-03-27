@@ -2,19 +2,19 @@ from codepack.codepack import CodePack
 from codepack.argpack.argpack import ArgPack
 from codepack.snapshot.codepack_snapshot import CodePackSnapshot
 from codepack.plugin.supervisor import Supervisor
-import abc
 from apscheduler.schedulers.background import BackgroundScheduler, BlockingScheduler
 import requests
 import json
 
 
-class Scheduler(metaclass=abc.ABCMeta):
+class Scheduler:
     supervisor = None
 
-    def __init__(self, callback=None, blocking=False, supervisor=None):
+    def __init__(self, callback=None, jobstore=None, blocking=False, supervisor=None):
         self.scheduler = None
         self.jobstores = dict()
-        self.jobstores['codepack'] = self.get_jobstore()
+        if jobstore:
+            self.jobstores['codepack'] = jobstore
         self.callback = None
         self.init_scheduler(blocking=blocking)
         self.register(callback)
@@ -44,10 +44,6 @@ class Scheduler(metaclass=abc.ABCMeta):
 
     def is_running(self):
         return self.scheduler.running
-
-    @abc.abstractmethod
-    def get_jobstore(self):
-        """get jobstore"""
 
     def stop(self):
         self.scheduler.shutdown()

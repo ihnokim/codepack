@@ -69,5 +69,3 @@ def destroy_scheduler(x):
     if isinstance(x, Scheduler):
         if x.is_running():
             x.stop()
-        if hasattr(x, 'mongodb'):
-            x.mongodb.close()
