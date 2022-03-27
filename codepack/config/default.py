@@ -134,18 +134,20 @@ class Default:
         else:
             raise NotImplementedError("'%s' is unknown")
         if config_path or alias_path or key not in cls.instances:
-            storage_config = cls._get_storage_config(section=section, config_path=config_path)
-            storage_config.pop('source')
-            kafka_config = storage_config.pop('kafka')
-            c = cls.get_class_from_alias(section, alias_path=alias_path)
+            storage_config = cls._get_storage_config(section=section, config_path=config_path)  # {'source:' ~~}
+            source = storage_config.pop('source')
+            storage_alias = cls.get_alias_from_source(source=source, suffix='messenger')
+            storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
+            conn_config = storage_config.pop(source)  # kafka_config = {'bootstrap_~~: ~~'}
+            c = cls.get_class_from_alias(section, alias_path=alias_path)  # c = Worker
             employee_config = dict()
             for k, v in storage_config.items():
                 if k in inspect.getfullargspec(c.__init__).args:
                     employee_config[k] = v
                 else:
-                    kafka_config[k] = v
-            employee_config[kafka_type] = kafka_config
-            _instance = c(**employee_config)
+                    conn_config[k] = v
+            storage_instance = storage_class(**{kafka_type: conn_config})
+            _instance = c(messenger=storage_instance, **employee_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
             return _instance

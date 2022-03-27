@@ -1,7 +1,7 @@
 from codepack.code import Code
 from codepack.snapshot.code_snapshot import CodeSnapshot
 from codepack.plugin.supervisor import Supervisor
-from codepack.storage.kafka_storage import KafkaStorage
+from codepack.plugin.employee import Employee
 from codepack.storage.file_storage import FileStorage
 from codepack.config.default import Default
 from codepack.plugin.docker_manager import DockerManager
@@ -14,11 +14,11 @@ import os
 import sys
 
 
-class Worker(KafkaStorage):
-    def __init__(self, consumer=None, interval=1, path=None, script='run_snapshot.py', callback=None,
+class Worker(Employee):
+    def __init__(self, messenger, interval=1, path=None, script='run_snapshot.py', callback=None,
                  supervisor=None, docker_manager=None, interpreter_manager=None,
-                 callback_service=None, consumer_config=None, logger=None):
-        KafkaStorage.__init__(self, consumer=consumer, consumer_config=consumer_config)
+                 callback_service=None, logger=None):
+        super().__init__(messenger=messenger)
         self.interval = interval
         self.supervisor = supervisor
         self.docker_manager = None
@@ -81,7 +81,7 @@ class Worker(KafkaStorage):
 
     def start(self):
         print('starting worker...')
-        self.consumer.consume(self.work, timeout_ms=int(float(self.interval) * 1000))
+        self.messenger.receive(callback=self.work, timeout_ms=int(float(self.interval) * 1000))
 
     def stop(self):
         print('stopping worker...')

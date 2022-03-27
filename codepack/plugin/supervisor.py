@@ -2,12 +2,12 @@ from codepack.code import Code
 from codepack.codepack import CodePack
 from codepack.config.default import Default
 from codepack.snapshot.code_snapshot import CodeSnapshot
-from codepack.storage.kafka_storage import KafkaStorage
+from codepack.plugin.employee import Employee
 
 
-class Supervisor(KafkaStorage):
-    def __init__(self, producer=None, topic=None, snapshot_service=None, producer_config=None):
-        KafkaStorage.__init__(self, producer=producer, topic=topic, producer_config=producer_config)
+class Supervisor(Employee):
+    def __init__(self, messenger, snapshot_service=None):
+        super().__init__(messenger=messenger)
         self.snapshot_service =\
             snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service')
 
@@ -18,7 +18,7 @@ class Supervisor(KafkaStorage):
                 _kwargs = kwargs.to_dict()
             else:
                 _kwargs = kwargs
-            self.producer.produce(self.topic, value=code.to_snapshot(args=args, kwargs=_kwargs).to_dict())
+            self.messenger.send(item=code.to_snapshot(args=args, kwargs=_kwargs).to_dict())
         else:
             raise TypeError(type(code))
 
