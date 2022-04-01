@@ -130,7 +130,7 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     assert ret is None
     assert cp1.get_state() == 'ERROR'
     snapshot1 = cp1.to_snapshot(argpack=argpack)
-    assert snapshot1.owner == 'unknown'
+    assert snapshot1.owner is None
     snapshot1['owner'] = 'codepack'
     assert snapshot1.owner == 'codepack'
     cp2 = CodePack.from_snapshot(snapshot1)
@@ -146,7 +146,7 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     # assert cp1.get_structure() == cp2.get_structure()
     assert cp1.subscribe == cp2.subscribe
     assert set(cp1.codes.keys()) == set(cp2.codes.keys())
-    assert cp1.owner == 'unknown'
+    assert cp1.owner is None
     assert cp2.owner == 'codepack'
     for code_id in cp1.codes.keys():
         code1 = cp1.codes[code_id]
