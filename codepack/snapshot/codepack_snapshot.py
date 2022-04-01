@@ -1,10 +1,15 @@
 from codepack.snapshot.snapshot import Snapshot
 from codepack.argpack.argpack import ArgPack
 from copy import deepcopy
+from typing import TypeVar, Optional, Union
+
+
+CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')
 
 
 class CodePackSnapshot(Snapshot):
-    def __init__(self, codepack=None, argpack=None, timestamp=None):
+    def __init__(self, codepack: Optional[CodePack] = None, argpack: Optional[Union[ArgPack, dict]] = None,
+                 timestamp: Optional[float] = None) -> None:
         if codepack:
             _id = codepack.id
             _serial_number = codepack.serial_number
@@ -30,7 +35,7 @@ class CodePackSnapshot(Snapshot):
         self.__setitem__('subscribe', _subscribe)
         self.set_argpack(argpack=argpack)
 
-    def set_argpack(self, argpack=None):
+    def set_argpack(self, argpack: Optional[Union[ArgPack, dict]] = None) -> None:
         if isinstance(argpack, ArgPack):
             tmp = argpack.to_dict()
         elif isinstance(argpack, dict):
@@ -44,7 +49,7 @@ class CodePackSnapshot(Snapshot):
         self.__setitem__('argpack', tmp)
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> 'CodePackSnapshot':
         ret = cls()
         for k, v in d.items():
             if k != '_id':

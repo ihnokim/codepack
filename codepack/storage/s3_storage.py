@@ -1,13 +1,14 @@
 from codepack.interface.s3 import S3
 from codepack.storage.storage import Storage
 from codepack.storage.storable import Storable
-from typing import Type, Union
+from typing import Type, Union, Optional, Any
 from posixpath import join
 
 
 class S3Storage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number',
-                 s3: Union[S3, dict] = None, bucket: str = None, path: str = '', *args, **kwargs):
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number',
+                 s3: Optional[Union[S3, dict]] = None,
+                 bucket: Optional[str] = None, path: str = '', *args: Any, **kwargs: Any) -> None:
         super().__init__(item_type=item_type, key=key)
         self.s3 = None
         self.bucket = None
@@ -15,7 +16,8 @@ class S3Storage(Storage):
         self.new_connection = None
         self.init(s3=s3, bucket=bucket, path=path, *args, **kwargs)
 
-    def init(self, s3: Union[S3, dict] = None, bucket: str = None, path: str = None, *args, **kwargs):
+    def init(self, s3: Optional[Union[S3, dict]] = None,
+             bucket: Optional[str] = None, path: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         self.bucket = bucket
         self.path = path
         if isinstance(s3, S3):
@@ -27,12 +29,12 @@ class S3Storage(Storage):
         else:
             raise TypeError(type(s3))
 
-    def close(self):
+    def close(self) -> None:
         if self.new_connection:
             self.s3.close()
         self.s3 = None
 
-    def exist(self, key: Union[str, list], summary: str = ''):
+    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
         if isinstance(key, str):
             path = self.item_type.get_path(key=key, path=self.path, posix=True)
             return self.s3.exist(bucket=self.bucket, key=path)
@@ -50,7 +52,7 @@ class S3Storage(Storage):
         else:
             raise TypeError(key)
 
-    def remove(self, key: Union[str, list]):
+    def remove(self, key: Union[str, list]) -> None:
         if isinstance(key, str):
             path = self.item_type.get_path(key=key, path=self.path, posix=True)
             self.s3.delete(bucket=self.bucket, key=path)
@@ -60,7 +62,7 @@ class S3Storage(Storage):
         else:
             raise TypeError(key)
 
-    def search(self, key: str, value: object, projection: list = None, to_dict: bool = False):
+    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         ret = list()
         if projection:
             to_dict = True
@@ -81,7 +83,7 @@ class S3Storage(Storage):
                 continue
         return ret
 
-    def save(self, item: Union[Storable, list], update: bool = False):
+    def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
             path = item.get_path(key=item_key, path=self.path, posix=True)
@@ -99,7 +101,7 @@ class S3Storage(Storage):
         else:
             raise TypeError(item)
 
-    def update(self, key: Union[str, list], values: dict):
+    def update(self, key: Union[str, list], values: dict) -> None:
         if len(values) > 0:
             item = self.load(key=key, to_dict=True)
             if isinstance(item, dict):
@@ -116,7 +118,8 @@ class S3Storage(Storage):
             else:
                 raise TypeError(type(item))  # pragma: no cover
 
-    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
+            -> Optional[Union[Storable, dict, list]]:
         if isinstance(key, str):
             if projection:
                 to_dict = True

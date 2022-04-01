@@ -2,14 +2,15 @@ from codepack.interface.interface import Interface
 import kafka
 from copy import deepcopy
 import json
+from typing import Any, Callable
 
 
 class KafkaConsumer(Interface):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(config)
         self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
+    def connect(self, *args: Any, **kwargs: Any) -> kafka.KafkaConsumer:
         if 'value_deserializer' not in self.config and 'value_deserializer' not in kwargs:
             kwargs['value_deserializer'] = lambda x: json.loads(x.decode('utf-8'))
         if 'topic' in self.config:
@@ -21,11 +22,11 @@ class KafkaConsumer(Interface):
         self._closed = False
         return self.session
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         assert not self.closed(), "connection is closed"
         return getattr(self.session, item)
 
-    def consume(self, callback, *args, **kwargs):
+    def consume(self, callback: Callable, *args: Any, **kwargs: Any) -> None:
         assert not self.closed(), "connection is closed"
         while True:
             try:
@@ -35,7 +36,7 @@ class KafkaConsumer(Interface):
             except KeyboardInterrupt:
                 break
 
-    def close(self):
+    def close(self) -> None:
         self.session.close()
         if not self.closed():
             if self.ssh_config and self.ssh is not None:

@@ -1,13 +1,14 @@
 from codepack.interface.interface import Interface
 import pymongo
+from typing import Any
 
 
 class MongoDB(Interface):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(config)
         self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
+    def connect(self, *args: Any, **kwargs: Any) -> pymongo.mongo_client.MongoClient:
         host, port = self.bind(host=self.config['host'], port=self.config['port'])
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
         if 'connect' in _config:
@@ -16,15 +17,15 @@ class MongoDB(Interface):
         self._closed = False
         return self.session
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         assert not self.closed(), "connection is closed"
         return self.session[item]
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         assert not self.closed(), "connection is closed"
         return self.__getitem__(item)
 
-    def close(self):
+    def close(self) -> None:
         self.session.close()
         if not self.closed():
             if self.ssh_config and self.ssh is not None:

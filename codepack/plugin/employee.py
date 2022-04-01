@@ -3,8 +3,8 @@ import abc
 
 
 class Employee(metaclass=abc.ABCMeta):
-    def __init__(self, messenger: Messenger):
+    def __init__(self, messenger: Messenger) -> None:
         self.messenger = messenger
 
-    def close(self):
+    def close(self) -> None:
         self.messenger.close()

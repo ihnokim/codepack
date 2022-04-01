@@ -3,17 +3,17 @@ from codepack.storage.storable import Storable
 from shutil import rmtree
 from glob import glob
 import os
-from typing import Type, Union
+from typing import Type, Union, Optional, Any
 
 
 class FileStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number', path: str = '.'):
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number', path: str = '.') -> None:
         super().__init__(item_type=item_type, key=key)
         self.path = None
         self.new_path = None
         self.init(path=path)
 
-    def init(self, path: str = '.'):
+    def init(self, path: str = '.') -> None:
         self.path = path
         if os.path.exists(path):
             self.new_path = False
@@ -21,22 +21,22 @@ class FileStorage(Storage):
             self.new_path = True
             self.mkdir(path)
 
-    def close(self):
+    def close(self) -> None:
         if self.new_path:
             self.rmdir(self.path)
 
     @staticmethod
-    def mkdir(path: str):
+    def mkdir(path: str) -> None:
         if not os.path.exists(path):
             os.makedirs(path)
 
     @staticmethod
-    def rmdir(path: str):
+    def rmdir(path: str) -> None:
         if os.path.exists(path):
             rmtree(path)
 
     @staticmethod
-    def empty_dir(path: str):
+    def empty_dir(path: str) -> None:
         for item in glob(os.path.join(path, '*')):
             if os.path.isfile(item):
                 os.remove(item)
@@ -45,7 +45,7 @@ class FileStorage(Storage):
             else:
                 raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
 
-    def exist(self, key: Union[str, list], summary: str = ''):
+    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
         if isinstance(key, str):
             path = self.item_type.get_path(key=key, path=self.path)
             return os.path.exists(path)
@@ -64,7 +64,7 @@ class FileStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def remove(self, key: Union[str, list]):
+    def remove(self, key: Union[str, list]) -> None:
         if isinstance(key, str):
             os.remove(path=self.item_type.get_path(key=key, path=self.path))
         elif isinstance(key, list):
@@ -74,7 +74,7 @@ class FileStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def search(self, key: str, value: object, projection: list = None, to_dict: bool = None):
+    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: Optional[bool] = None) -> list:
         ret = list()
         for filename in glob(self.path + '*.json'):
             item = self.item_type.from_file(filename)
@@ -89,7 +89,7 @@ class FileStorage(Storage):
                 ret.append(item)
         return ret
 
-    def save(self, item: Union[Storable, list], update: bool = False):
+    def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
             path = item.get_path(key=item_key, path=self.path)
@@ -107,7 +107,7 @@ class FileStorage(Storage):
         else:
             raise TypeError(item)  # pragma: no cover
 
-    def update(self, key: Union[str, list], values: dict):
+    def update(self, key: Union[str, list], values: dict) -> None:
         if len(values) > 0:
             item = self.load(key=key, to_dict=True)
             if isinstance(item, dict):
@@ -124,7 +124,8 @@ class FileStorage(Storage):
             else:
                 raise TypeError(type(item))  # pragma: no cover
 
-    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
+            -> Optional[Union[Storable, dict, list]]:
         if isinstance(key, str):
             if projection:
                 to_dict = True

@@ -1,22 +1,23 @@
 import abc
+from typing import Any
 
 
 class Messenger(metaclass=abc.ABCMeta):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     @abc.abstractmethod
-    def init(self, *args, **kwargs):
+    def init(self, *args: Any, **kwargs: Any) -> None:
         """initialize storage"""
 
     @abc.abstractmethod
-    def close(self):
+    def close(self) -> None:
         """close storage"""
 
     @abc.abstractmethod
-    def send(self, item: object, *args, **kwargs):
+    def send(self, item: Any, *args: Any, **kwargs: Any) -> Any:
         """send item"""
 
     @abc.abstractmethod
-    def receive(self, *args, **kwargs):
+    def receive(self, *args: Any, **kwargs: Any) -> Any:
         """receive item"""

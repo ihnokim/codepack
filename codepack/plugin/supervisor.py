@@ -3,26 +3,34 @@ from codepack.codepack import CodePack
 from codepack.config.default import Default
 from codepack.snapshot.code_snapshot import CodeSnapshot
 from codepack.plugin.employee import Employee
+from codepack.argpack.arg import Arg
+from codepack.argpack.argpack import ArgPack
+from typing import TypeVar, Optional, Union
+
+
+Messenger = TypeVar('Messenger', bound='codepack.storage.messenger.Messenger')
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugin.snapshot_service.SnapshotService')
 
 
 class Supervisor(Employee):
-    def __init__(self, messenger, snapshot_service=None):
+    def __init__(self, messenger: Messenger, snapshot_service: Optional[SnapshotService] = None) -> None:
         super().__init__(messenger=messenger)
         self.snapshot_service =\
             snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service')
 
-    def run_code(self, code, args=None, kwargs=None):
+    def run_code(self, code: Code, args: Optional[tuple] = None, kwargs: Optional[Union[Arg, dict]] = None) -> str:
         if isinstance(code, Code):
             code.update_state('READY')
-            if kwargs and not isinstance(kwargs, dict):
+            if kwargs and isinstance(kwargs, Arg):
                 _kwargs = kwargs.to_dict()
             else:
                 _kwargs = kwargs
             self.messenger.send(item=code.to_snapshot(args=args, kwargs=_kwargs).to_dict())
         else:
             raise TypeError(type(code))
+        return code.serial_number
 
-    def run_codepack(self, codepack, argpack=None):
+    def run_codepack(self, codepack: CodePack, argpack: Optional[Union[ArgPack, dict]] = None) -> str:
         if isinstance(codepack, CodePack):
             codepack.save_snapshot(argpack=argpack)
             codepack.init_code_state(state='READY', argpack=argpack)
@@ -31,8 +39,9 @@ class Supervisor(Employee):
                 self.run_code(code=code, kwargs=_kwargs)
         else:
             raise TypeError(type(codepack))
+        return codepack.serial_number
 
-    def organize(self, serial_number=None):
+    def organize(self, serial_number: Optional[str] = None) -> None:
         for snapshot in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
             dependent_serial_numbers = [snapshot['serial_number'] for snapshot in snapshot['dependency']]
