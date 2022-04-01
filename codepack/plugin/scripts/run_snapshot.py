@@ -1,10 +1,10 @@
 from codepack import Code
-from codepack.snapshot import CodeSnapshot
-from codepack.service import CallbackService
+from codepack import CodeSnapshot
+from codepack import CallbackService
 from codepack.storage import FileStorage
-from codepack.callback import Callback
-from codepack.config import Default
-from codepack.plugin import Worker
+from codepack import Callback
+from codepack import Default
+from codepack import Worker
 import argparse
 import sys
 from functools import partial
