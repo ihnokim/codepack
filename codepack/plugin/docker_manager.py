@@ -4,16 +4,21 @@ from codepack.interface.docker import Docker
 import os
 from docker.errors import ImageNotFound
 from shutil import rmtree
-from typing import Union
+from typing import Any, Union, Optional, TypeVar, Generator
 from docker import DockerClient
 import json
+
+
+Image = TypeVar('Image', bound='docker.models.images.Image')
+Model = TypeVar('Model', bound='docker.models.resource.Model')
 
 
 class DockerManager(Manager):
     CONTAINER_WORK_DIR = '/usr/src/codepack'
     CONTAINER_LOG_DIR = '/usr/logs'
 
-    def __init__(self, docker: Union[Docker, DockerClient, dict] = None, path: str = './', run_opt: str = None):
+    def __init__(self, docker: Optional[Union[Docker, DockerClient, dict]] = None,
+                 path: str = './', run_opt: Optional[str] = None) -> None:
         if docker is None:
             self.docker = Docker()
         elif isinstance(docker, dict):
@@ -26,7 +31,7 @@ class DockerManager(Manager):
         else:
             self.run_opt = dict()
 
-    def get_image(self, image: str):
+    def get_image(self, image: str) -> Image:
         ret = None
         try:
             ret = self.docker.images.get(image)
@@ -35,14 +40,15 @@ class DockerManager(Manager):
         finally:
             return ret
 
-    def pull_image(self, image: str):
+    def pull_image(self, image: str) -> Image:
         return self.docker.images.pull(image)
 
-    def push_image(self, image: str):
+    def push_image(self, image: str) -> Union[Generator, str]:
         return self.docker.images.push(image)
 
-    def run(self, image: str, command: Union[str, list] = None, path: str = None,
-            volumes: list = None, environment: list = None, **kwargs):
+    def run(self, image: str, command: Optional[Union[str, list]] = None,
+            path: Optional[str] = None, volumes: Optional[list] = None, environment: Optional[list] = None,
+            **kwargs: Any) -> Union[Model, None, bytes]:
         if volumes is None:
             volumes = list()
         if environment is None:
@@ -57,13 +63,13 @@ class DockerManager(Manager):
                  **self.run_opt, **kwargs)
 
     @staticmethod
-    def extract_requirements_from_file(path: str):
+    def extract_requirements_from_file(path: str) -> list:
         with open(path, 'r') as f:
             lines = f.readlines()
         return [line.strip() for line in lines]
 
     @staticmethod
-    def _collect_requirements_in_dict(r: list, d: dict):
+    def _collect_requirements_in_dict(r: list, d: dict) -> None:
         for _r in r:
             tokens = _r.split('==')
             if len(tokens) == 2:
@@ -74,7 +80,7 @@ class DockerManager(Manager):
                 raise IndexError(len(tokens))
 
     @staticmethod
-    def combine_requirements(base: list, additive: list):
+    def combine_requirements(base: list, additive: list) -> list:
         ret = list()
         buffer = dict()
         DockerManager._collect_requirements_in_dict(base, buffer)
@@ -87,8 +93,8 @@ class DockerManager(Manager):
         return ret
 
     @staticmethod
-    def make_dockerfile(base_image: str, path: str = './', args: dict = None, envs: dict = None,
-                        requirements: list = None, pip_options: dict = None):
+    def make_dockerfile(base_image: str, path: str = './', args: Optional[dict] = None, envs: Optional[dict] = None,
+                        requirements: Optional[list] = None, pip_options: Optional[dict] = None) -> str:
         ret = str()
         if args is None:
             args = dict()
@@ -124,8 +130,9 @@ class DockerManager(Manager):
             ret += line + '\n'
         return ret
 
-    def build_image(self, tag, base_image, args=None, envs=None, requirements=None, pip_options=None,
-                    tmp_dir: str = None, path: str = None):
+    def build_image(self, tag: str, base_image: str, args: Optional[dict] = None, envs: Optional[dict] = None,
+                    requirements: Optional[list] = None, pip_options: Optional[dict] = None,
+                    tmp_dir: Optional[str] = None, path: Optional[str] = None) -> tuple:
         if not tmp_dir:
             tmp_dir = str(id(self))
         _path = os.path.join(path if path else self.path, tmp_dir)
@@ -150,6 +157,6 @@ class DockerManager(Manager):
             return image, logs
 
     @staticmethod
-    def remove_file_if_exists(path: str):
+    def remove_file_if_exists(path: str) -> None:
         if os.path.exists(path):
             os.remove(path)

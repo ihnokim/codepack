@@ -1,12 +1,15 @@
 from codepack.interface.mongodb import MongoDB
 from apscheduler.jobstores.mongodb import *
 from datetime import datetime, timezone
-from typing import Union
+from typing import Any, TypeVar, Union
+
+
+Job = TypeVar('Job', bound='apscheduler.job.Job')
 
 
 class MongoJobStore(MongoDBJobStore):
     def __init__(self, mongodb: Union[MongoDB, dict], db: str, collection: str,
-                 pickle_protocol=pickle.HIGHEST_PROTOCOL, *args, **kwargs):
+                 pickle_protocol: int = pickle.HIGHEST_PROTOCOL, *args: Any, **kwargs: Any) -> None:
         if isinstance(mongodb, MongoDB):
             _client = mongodb.session
         elif isinstance(mongodb, dict):
@@ -19,7 +22,7 @@ class MongoJobStore(MongoDBJobStore):
                          client=_client,
                          pickle_protocol=pickle_protocol)
 
-    def add_job(self, job):
+    def add_job(self, job: Job) -> None:
         utc_timestamp = datetime_to_utc_timestamp(job.next_run_time)
         try:
             self.collection.insert_one({
@@ -35,7 +38,7 @@ class MongoJobStore(MongoDBJobStore):
         except DuplicateKeyError:
             raise ConflictingIdError(job.id)
 
-    def update_job(self, job):
+    def update_job(self, job: Job) -> None:
         utc_timestamp = datetime_to_utc_timestamp(job.next_run_time)
         changes = {
             'last_run_time': datetime.now(timezone.utc).timestamp(),

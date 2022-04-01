@@ -12,12 +12,20 @@ from functools import partial
 import logging
 import os
 import sys
+from typing import TypeVar, Union, Optional, Callable
+
+
+Messenger = TypeVar('Messenger', bound='codepack.storage.messenger.Messenger')
 
 
 class Worker(Employee):
-    def __init__(self, messenger, interval=1, path=None, script='run_snapshot.py', callback=None,
-                 supervisor=None, docker_manager=None, interpreter_manager=None,
-                 callback_service=None, logger=None):
+    def __init__(self, messenger: Messenger, interval: Union[float, str] = 1, path: Optional[str] = None,
+                 script: str = 'run_snapshot.py', callback: Optional[Callable] = None,
+                 supervisor: Optional[Union[Supervisor, str]] = None,
+                 docker_manager: Optional[DockerManager] = None,
+                 interpreter_manager: Optional[InterpreterManager] = None,
+                 callback_service: Optional[CallbackService] = None,
+                 logger: Optional[Union[logging.Logger, str]] = None) -> None:
         super().__init__(messenger=messenger)
         self.interval = interval
         self.supervisor = supervisor
@@ -50,12 +58,12 @@ class Worker(Employee):
         self.init_callback_service(callback_service=callback_service)
 
     @staticmethod
-    def log(function, message):
+    def log(function: Callable, message: str) -> None:
         _message = message.strip()
         if _message:
             function(_message)
 
-    def init_docker_manager(self, docker_manager):
+    def init_docker_manager(self, docker_manager: Optional[DockerManager] = None) -> None:
         if docker_manager is None:
             self.docker_manager = Default.get_docker_manager()
         elif isinstance(docker_manager, DockerManager):
@@ -63,7 +71,7 @@ class Worker(Employee):
         else:
             raise TypeError(type(docker_manager))
 
-    def init_interpreter_manager(self, interpreter_manager):
+    def init_interpreter_manager(self, interpreter_manager: Optional[InterpreterManager] = None) -> None:
         if interpreter_manager is None:
             self.interpreter_manager = Default.get_interpreter_manager()
         elif isinstance(interpreter_manager, InterpreterManager):
@@ -71,7 +79,7 @@ class Worker(Employee):
         else:
             raise TypeError(type(interpreter_manager))
 
-    def init_callback_service(self, callback_service):
+    def init_callback_service(self, callback_service: Optional[CallbackService] = None) -> None:
         if callback_service is None:
             self.callback_service = Default.get_service('callback', 'callback_service')
         elif isinstance(callback_service, CallbackService):
@@ -79,21 +87,21 @@ class Worker(Employee):
         else:
             raise TypeError(type(callback_service))
 
-    def start(self):
+    def start(self) -> None:
         print('starting worker...')
         self.messenger.receive(callback=self.work, timeout_ms=int(float(self.interval) * 1000))
 
-    def stop(self):
+    def stop(self) -> None:
         print('stopping worker...')
         self.close()
 
-    def work(self, buffer):
+    def work(self, buffer: dict) -> None:
         for tp, msgs in buffer.items():
             for msg in msgs:
                 snapshot = CodeSnapshot.from_dict(msg.value)
                 self.run_snapshot(snapshot=snapshot)
 
-    def run_snapshot(self, snapshot: CodeSnapshot):
+    def run_snapshot(self, snapshot: CodeSnapshot) -> str:
         snapshot_path = None
         cb_id = None
         code = Code.from_snapshot(snapshot)
@@ -142,3 +150,4 @@ class Worker(Employee):
                 self.docker_manager.remove_file_if_exists(path=snapshot_path)
             if cb_id and self.callback_service.exist(name=cb_id):
                 self.callback_service.remove(name=cb_id)
+            return snapshot['serial_number']

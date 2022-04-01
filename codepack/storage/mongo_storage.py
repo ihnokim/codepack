@@ -1,12 +1,13 @@
 from codepack.interface.mongodb import MongoDB
 from codepack.storage.storage import Storage
 from codepack.storage.storable import Storable
-from typing import Type, Union
+from typing import Type, Optional, Union, Any
 
 
 class MongoStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number',
-                 mongodb: Union[MongoDB, dict] = None, db: str = None, collection: str = None, *args, **kwargs):
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number',
+                 mongodb: Optional[Union[MongoDB, dict]] = None,
+                 db: Optional[str] = None, collection: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         super().__init__(item_type=item_type, key=key)
         self.mongodb = None
         self.db = None
@@ -14,7 +15,8 @@ class MongoStorage(Storage):
         self.new_connection = None
         self.init(mongodb=mongodb, db=db, collection=collection, *args, **kwargs)
 
-    def init(self, mongodb: Union[MongoDB, dict] = None, db: str = None, collection: str = None, *args, **kwargs):
+    def init(self, mongodb: Optional[Union[MongoDB, dict]] = None,
+             db: Optional[str] = None, collection: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         self.db = db
         self.collection = collection
         if isinstance(mongodb, MongoDB):
@@ -26,12 +28,12 @@ class MongoStorage(Storage):
         else:
             raise TypeError(type(mongodb))  # pragma: no cover
 
-    def close(self):
+    def close(self) -> None:
         if self.new_connection:
             self.mongodb.close()
         self.mongodb = None
 
-    def exist(self, key: Union[str, list], summary: str = ''):
+    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
         if isinstance(key, str):
             return self.mongodb[self.db][self.collection].count_documents({'_id': key}) > 0
         elif isinstance(key, list):
@@ -47,7 +49,7 @@ class MongoStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def remove(self, key: Union[str, list]):
+    def remove(self, key: Union[str, list]) -> None:
         if isinstance(key, str):
             self.mongodb[self.db][self.collection].delete_one({'_id': key})
         elif isinstance(key, list):
@@ -55,7 +57,7 @@ class MongoStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def search(self, key: str, value: object, projection: list = None, to_dict: bool = None):
+    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
@@ -72,7 +74,7 @@ class MongoStorage(Storage):
         else:
             return [self.item_type.from_dict(d) for d in search_result]
 
-    def save(self, item: Union[Storable, list], update: bool = False):
+    def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
             if not update and self.exist(key=item_key):
@@ -87,7 +89,7 @@ class MongoStorage(Storage):
         else:
             raise TypeError(item)  # pragma: no cover
 
-    def update(self, key: Union[str, list], values: dict):
+    def update(self, key: Union[str, list], values: dict) -> None:
         if len(values) > 0:
             if isinstance(key, str):
                 self.mongodb[self.db][self.collection].update_one({'_id': key}, {'$set': values})
@@ -96,7 +98,8 @@ class MongoStorage(Storage):
             else:
                 raise TypeError(type(key))  # pragma: no cover
 
-    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
+            -> Optional[Union[Storable, dict, list]]:
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}

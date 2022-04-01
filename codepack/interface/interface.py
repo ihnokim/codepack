@@ -2,10 +2,11 @@ from codepack.config.config import Config
 import abc
 import sshtunnel
 from copy import deepcopy
+from typing import Any, Union
 
 
 class Interface(metaclass=abc.ABCMeta):
-    def __init__(self, config):
+    def __init__(self, config: dict) -> None:
         self.config = None
         self.ssh_config = None
         self.ssh = None
@@ -13,7 +14,7 @@ class Interface(metaclass=abc.ABCMeta):
         self._closed = True
         self.init_config(config)
 
-    def init_config(self, config):
+    def init_config(self, config: dict) -> None:
         _config = deepcopy(config)
         if _config and 'sshtunnel' in _config:
             _ssh_config = _config.pop('sshtunnel')
@@ -28,21 +29,21 @@ class Interface(metaclass=abc.ABCMeta):
         self.config = _config
 
     @abc.abstractmethod
-    def connect(self, *args, **kwargs):
+    def connect(self, *args: Any, **kwargs: Any) -> Any:
         """connect to the server"""
 
     @abc.abstractmethod
-    def close(self):
+    def close(self) -> None:
         """close the connection to the server"""
 
-    def closed(self):
+    def closed(self) -> bool:
         return self._closed
 
     @staticmethod
-    def exclude_keys(d, keys):
+    def exclude_keys(d: dict, keys: Union[list, set, dict]) -> dict:
         return {k: v for k, v in d.items() if k not in keys}
 
-    def bind(self, host, port):
+    def bind(self, host: str, port: Union[str, int]) -> tuple:
         if self.ssh_config:
             _ssh_config = self.exclude_keys(self.ssh_config, keys=['ssh_host', 'ssh_port'])
             self.ssh = sshtunnel.SSHTunnelForwarder((self.ssh_config['ssh_host'], int(self.ssh_config['ssh_port'])),
@@ -57,7 +58,7 @@ class Interface(metaclass=abc.ABCMeta):
         return _host, int(_port)
 
     @staticmethod
-    def eval_bool(source):
+    def eval_bool(source: Union[str, bool]) -> bool:
         assert source in ['True', 'False', True, False], "'source' should be either 'True' or 'False'"
         if type(source) == str:
             return eval(source)

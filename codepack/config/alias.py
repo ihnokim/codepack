@@ -2,12 +2,13 @@ from codepack.config.config import Config
 from importlib import import_module
 import os
 import inspect
+from typing import Optional, Union
 
 
 class Alias:
     PREFIX = 'ALIAS'
 
-    def __init__(self, data=None):
+    def __init__(self, data: Optional[Union[str, dict]] = None) -> None:
         self.aliases = None
         if isinstance(data, str):
             _aliases = Config.parse_config(section='alias', config_path=data)
@@ -25,14 +26,14 @@ class Alias:
             raise TypeError(type(data))  # pragma: no cover
 
     @classmethod
-    def get_env(cls, item):
+    def get_env(cls, item: str) -> str:
         return ('%s_%s_%s' % (Config.PREFIX, cls.PREFIX, item)).upper()
 
     @staticmethod
-    def get_class(module, name):
+    def get_class(module: str, name: str) -> type:
         return getattr(import_module(module), name)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> type:
         if self.aliases:
             path = self.aliases[item]
         elif self.get_env(item) in os.environ:
@@ -54,7 +55,7 @@ class Alias:
         return self.get_class(module, name)
 
     @classmethod
-    def get_default_alias(cls):
+    def get_default_alias(cls) -> Optional[dict]:
         default_config_dir = os.path.dirname(os.path.abspath(inspect.getfile(cls)))
         default_alias_path = os.path.join(default_config_dir, 'default', 'alias.ini')
         if os.path.isfile(default_alias_path):

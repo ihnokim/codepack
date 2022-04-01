@@ -2,6 +2,14 @@ from codepack.config.config import Config
 from codepack.config.alias import Alias
 import os
 import inspect
+from typing import Optional, TypeVar
+
+
+Service = TypeVar('Service', bound='codepack.plugin.service.Service')
+Scheduler = TypeVar('Scheduler', bound='codepack.plugin.scheduler.Scheduler')
+Employee = TypeVar('Employee', bound='codepack.plugin.employee.Employee')
+Manager = TypeVar('Manager', bound='codepack.plugin.manager.Manager')
+Logger = TypeVar('Logger', bound='logging.Logger')
 
 
 class Default:
@@ -10,25 +18,25 @@ class Default:
     instances = dict()
 
     @classmethod
-    def __init__(cls, config_path: str = None, alias_path: str = None):
+    def __init__(cls, config_path: Optional[str] = None, alias_path: Optional[str] = None) -> None:
         cls.init(config_path=config_path, alias_path=alias_path)
 
     @classmethod
-    def init(cls, config_path: str = None, alias_path: str = None):
+    def init(cls, config_path: Optional[str] = None, alias_path: Optional[str] = None) -> None:
         cls.init_config(config_path=config_path)
         cls.init_alias(alias_path=alias_path)
         cls.init_instances()
 
     @classmethod
-    def init_config(cls, config_path: str = None):
+    def init_config(cls, config_path: Optional[str] = None) -> None:
         cls.config = cls._get_config(config_path=config_path)
 
     @staticmethod
-    def _get_config(config_path: str = None):
+    def _get_config(config_path: Optional[str] = None) -> Config:
         return Config(config_path=config_path)
 
     @classmethod
-    def get_config(cls, config_path: str = None):
+    def get_config(cls, config_path: Optional[str] = None) -> Config:
         if config_path:
             _config = cls._get_config(config_path=config_path)
         elif not cls.config:
@@ -39,35 +47,35 @@ class Default:
         return _config
 
     @classmethod
-    def _get_storage_config(cls, section: str, config_path: str = None):
+    def _get_storage_config(cls, section: str, config_path: Optional[str] = None) -> dict:
         _config = cls.get_config(config_path=config_path)
         return _config.get_storage_config(section=section)
 
     @classmethod
-    def init_alias(cls, alias_path: str = None):
+    def init_alias(cls, alias_path: Optional[str] = None) -> None:
         cls.alias = cls._get_alias(alias_path=alias_path)
 
     @staticmethod
-    def _get_alias(alias_path: str = None):
+    def _get_alias(alias_path: Optional[str] = None) -> Alias:
         if alias_path:
             return Alias(data=alias_path)
         else:
             return Alias()
 
     @classmethod
-    def init_instances(cls):
+    def init_instances(cls) -> None:
         cls.instances = dict()
 
     @classmethod
-    def set_config(cls, config: Config):
+    def set_config(cls, config: Config) -> None:
         cls.config = config  # pragma: no cover
 
     @classmethod
-    def set_alias(cls, alias: Alias):
+    def set_alias(cls, alias: Alias) -> None:
         cls.alias = alias  # pragma: no cover
 
     @staticmethod
-    def get_alias_from_source(source: str, prefix: str = None, suffix: str = None):
+    def get_alias_from_source(source: str, prefix: Optional[str] = None, suffix: Optional[str] = None) -> str:
         if source == 'mongodb':
             ret = 'mongo'
         else:
@@ -79,7 +87,7 @@ class Default:
         return ret
 
     @classmethod
-    def get_class_from_alias(cls, alias: str, alias_path: str = None):
+    def get_class_from_alias(cls, alias: str, alias_path: Optional[str] = None) -> type:
         if alias_path:
             _alias = cls._get_alias(alias_path=alias_path)
         elif not cls.alias:
@@ -90,7 +98,8 @@ class Default:
         return _alias[alias]
 
     @classmethod
-    def get_service(cls, section: str, service_type: str, config_path: str = None, alias_path: str = None):
+    def get_service(cls, section: str, service_type: str,
+                    config_path: Optional[str] = None, alias_path: Optional[str] = None) -> Service:
         key = '%s_%s' % (section, service_type)
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
@@ -108,7 +117,8 @@ class Default:
             return cls.instances[key]
 
     @classmethod
-    def get_scheduler(cls, section: str = 'scheduler', config_path: str = None, alias_path: str = None):
+    def get_scheduler(cls, section: str = 'scheduler',
+                      config_path: Optional[str] = None, alias_path: Optional[str] = None) -> Scheduler:
         key = section
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
@@ -135,7 +145,8 @@ class Default:
             return cls.instances[key]
 
     @classmethod
-    def get_employee(cls, section: str, config_path: str = None, alias_path: str = None):
+    def get_employee(cls, section: str, config_path: Optional[str] = None,
+                     alias_path: Optional[str] = None) -> Employee:
         key = section
         if 'worker' in section:
             kafka_type = 'consumer'
@@ -165,7 +176,8 @@ class Default:
             return cls.instances[key]
 
     @classmethod
-    def get_docker_manager(cls, section: str = 'docker_manager', config_path: str = None, alias_path: str = None):
+    def get_docker_manager(cls, section: str = 'docker_manager',
+                           config_path: Optional[str] = None, alias_path: Optional[str] = None) -> Manager:
         key = section
         if config_path or alias_path or key not in cls.instances:
             storage_config = cls._get_storage_config(section=section, config_path=config_path)
@@ -182,7 +194,8 @@ class Default:
             return cls.instances[key]
 
     @classmethod
-    def get_interpreter_manager(cls, section: str = 'interpreter_manager', config_path: str = None, alias_path: str = None):
+    def get_interpreter_manager(cls, section: str = 'interpreter_manager',
+                                config_path: Optional[str] = None, alias_path: Optional[str] = None) -> Manager:
         key = section
         if config_path or alias_path or key not in cls.instances:
             config_instance = cls.get_config(config_path=config_path)
@@ -202,7 +215,7 @@ class Default:
             return cls.instances[key]
 
     @classmethod
-    def get_logger(cls, name: str = None, config_path: str = None):
+    def get_logger(cls, name: Optional[str] = None, config_path: Optional[str] = None) -> Logger:
         key = 'logger.%s' % (name if name else 'root')
         if config_path or key not in cls.instances:
             if config_path:

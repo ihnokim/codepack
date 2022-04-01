@@ -178,7 +178,8 @@ def test_get_default_worker(mock_kafka_consumer, mock_docker_client):
         assert kwargs.get('bootstrap_servers', '') == 'localhost:9092'
         assert isinstance(kwargs.get('value_deserializer', ''), Callable)
         assert len(args) == 1 and args[0] == 'codepack'
-        assert worker.messenger.consumer.session is mock_kafka_consumer()
+        assert hasattr(worker.messenger, 'consumer')
+        assert getattr(worker.messenger, 'consumer').session is mock_kafka_consumer()
         mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
         assert worker.docker_manager.docker.session == mock_docker_client()
         assert isinstance(worker.callback_service, CallbackService)
@@ -203,7 +204,8 @@ def test_get_default_supervisor(mock_kafka_producer):
         assert kwargs.get('bootstrap_servers', '') == 'localhost:9092'
         assert isinstance(kwargs.get('value_serializer', ''), Callable)
         assert len(args) == 0
-        assert supervisor.messenger.producer.session is mock_kafka_producer()
+        assert hasattr(supervisor.messenger, 'producer')
+        assert getattr(supervisor.messenger, 'producer').session is mock_kafka_producer()
         assert isinstance(supervisor.snapshot_service, SnapshotService)
         assert isinstance(supervisor.snapshot_service.storage, MongoStorage)
     finally:

@@ -1,7 +1,7 @@
+import unittest.mock
 from unittest.mock import patch
 from codepack.interface import S3
 from botocore.config import Config
-import boto3
 
 
 @patch('boto3.client')
@@ -46,10 +46,16 @@ def test_s3_download(mock_client):
     s3_config = {'service_name': 's3', 'region_name': 'test_region', 'endpoint_url': 'test_url',
                  'aws_access_key_id': 'test_access_key_id', 'aws_secret_access_key': 'test_secret_access_key'}
     s = S3(config=s3_config)
-    ret = s.download(bucket='test_bucket', key='test_dir/test_file')
     mc = mock_client()
+    response_body = unittest.mock.MagicMock()
+    mc.get_object.return_value.get.return_value = response_body
+    ret = s.download(bucket='test_bucket', key='test_dir/test_file', streaming=True)
     mc.get_object.assert_called_once_with(Bucket='test_bucket', Key='test_dir/test_file')
-    mc.get_object.return_value['Body'].read.assert_called_once()
+    response_body.read.assert_not_called()
+    assert ret is not None
+    ret = s.download(bucket='test_bucket', key='test_dir/test_file', streaming=False)
+    assert mc.get_object.call_count == 2
+    response_body.read.assert_called_once()
     assert ret is not None
 
 

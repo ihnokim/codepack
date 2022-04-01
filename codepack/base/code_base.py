@@ -7,10 +7,11 @@ import re
 import ast
 import inspect
 import dill
+from typing import Optional
 
 
 class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
-    def __init__(self, id: str = None, serial_number: str = None):
+    def __init__(self, id: Optional[str] = None, serial_number: Optional[str] = None) -> None:
         Storable.__init__(self, id=id, serial_number=serial_number)
         Snapshotable.__init__(self)
         self.function = None
@@ -18,7 +19,7 @@ class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
         self.description = None
 
     @staticmethod
-    def get_source(function: Callable):
+    def get_source(function: Callable) -> str:
         assert isinstance(function, Callable), "'function' should be an instance of Callable"
         assert function.__name__ != '<lambda>', "Invalid function '<lambda>'"
         assert hasattr(function, '__code__'), "'function' should have an attribute '__code__'"
@@ -34,7 +35,7 @@ class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
         return source
 
     @staticmethod
-    def get_function(source: str):
+    def get_function(source: str) -> Callable:
         pat = re.compile('^(\\s*def\\s.+[(].*[)].*[:])|(\\s*async\\s+def\\s.+[(].*[)].*[:])')
         assert pat.match(source), "'source' is not a function"
         tree = ast.parse(source, mode='exec')
@@ -47,7 +48,7 @@ class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
         return namespace[getattr(tree.body[0], 'name')]
 
     @staticmethod
-    def get_args(function: Callable):
+    def get_args(function: Callable) -> OrderedDict:
         ret = OrderedDict()
         argspec = inspect.getfullargspec(function)
         args = argspec.args

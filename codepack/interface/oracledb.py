@@ -1,21 +1,22 @@
 from codepack.interface.sql_interface import SQLInterface
 import cx_Oracle
 from functools import partial
+from typing import Any, Union, Optional
 
 
-def make_named_row(names, *args):
+def make_named_row(names: list, *args: Any) -> dict:
     if len(names) != len(args):
         raise Exception('len(names) != len(args)')
     return dict(zip(names, args))
 
 
 class OracleDB(SQLInterface):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(config)
         self.as_dict = None
         self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
+    def connect(self, *args: Any, **kwargs: Any) -> cx_Oracle.Connection:
         host, port = self.bind(host=self.config['host'], port=self.config['port'])
         exclude_keys = ['host', 'port']
         if 'service_name' in self.config:
@@ -35,7 +36,7 @@ class OracleDB(SQLInterface):
         self._closed = False
         return self.session
 
-    def query(self, q, commit=False):
+    def query(self, q: Union[str, list], commit: bool = False) -> Optional[list]:
         assert not self.closed(), "connection is closed"
         columns = None
         rows = None
@@ -65,7 +66,7 @@ class OracleDB(SQLInterface):
             else:
                 return None
 
-    def close(self):
+    def close(self) -> None:
         if not self.closed():
             self.session.close()
             if self.ssh_config and self.ssh is not None:

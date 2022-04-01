@@ -1,9 +1,14 @@
 from codepack.argpack.arg import Arg
 from codepack.storage.storable import Storable
+from typing import Optional, TypeVar, Union, Iterator
+
+
+CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')
 
 
 class ArgPack(Storable):
-    def __init__(self, codepack=None, id: str = None, args: dict = None):
+    def __init__(self, codepack: Optional[CodePack] = None, id: Optional[str] = None,
+                 args: Optional[dict] = None) -> None:
         _id = None
         if codepack:
             _id = codepack.id
@@ -20,7 +25,7 @@ class ArgPack(Storable):
             self.args = dict()
 
     @staticmethod
-    def extract(codepack):
+    def extract(codepack: CodePack) -> dict:
         ret = dict()
         stack = list()
         for root in codepack.roots:
@@ -33,13 +38,13 @@ class ArgPack(Storable):
                     stack.append(c)
         return ret
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Arg:
         return self.args[item]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Union[Arg, dict]) -> None:
         self.args[key] = value
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         ret = dict()
         for id, arg in self.args.items():
             ret[id] = arg.to_dict()
@@ -47,7 +52,7 @@ class ArgPack(Storable):
         return ret
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> 'ArgPack':
         args = dict()
         id = None
         for k, v in d.items():
@@ -57,13 +62,13 @@ class ArgPack(Storable):
                 args[k] = v
         return cls(id=id, args=args)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Arg:
         return getattr(self.args, item)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self.args.__iter__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         ret = '%s(id: %s, args: {' % (self.__class__.__name__, self.id)
         for i, (id, arg) in enumerate(self.args.items()):
             if i:
@@ -72,5 +77,5 @@ class ArgPack(Storable):
         ret += '})'
         return ret
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover

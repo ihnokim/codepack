@@ -4,6 +4,7 @@ import logging
 from logging.config import dictConfig
 import json
 import inspect
+from typing import Optional
 
 
 class Config:
@@ -12,14 +13,14 @@ class Config:
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
     LABEL_LOGGER_LOG_DIR = '%s_LOGGER_LOG_DIR' % PREFIX
 
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: Optional[str] = None) -> None:
         if config_path:
-            self.config_path = self.get_config_path(config_path)
+            self.config_path = self.get_config_path(path=config_path)
         else:
             self.config_path = None
 
     @staticmethod
-    def parse_config(section: str, config_path: str, ignore_error: bool = False):
+    def parse_config(section: str, config_path: str, ignore_error: bool = False) -> Optional[dict]:
         cp = ConfigParser()
         cp.read(config_path)
         if ignore_error and not cp.has_section(section):
@@ -28,7 +29,7 @@ class Config:
         return {item[0]: item[1] for item in items}
 
     @staticmethod
-    def get_logger(config_path: str, name: str = None):
+    def get_logger(config_path: str, name: Optional[str] = None) -> logging.Logger:
         with open(config_path, 'r') as f:
             config = json.load(f)
             if 'handlers' in config:
@@ -44,10 +45,11 @@ class Config:
         return logging.getLogger(name=name)
 
     @staticmethod
-    def get_log_dir():
+    def get_log_dir() -> str:
         return os.environ.get(Config.LABEL_LOGGER_LOG_DIR, 'logs')
 
-    def get_config(self, section: str, config_path: str = None, ignore_error: bool = False):
+    def get_config(self, section: str, config_path: Optional[str] = None,
+                   ignore_error: Optional[bool] = False) -> Optional[dict]:
         _config_path = config_path
         if not _config_path:
             tmp = os.environ.get(self.LABEL_CONFIG_PATH, None)
@@ -69,7 +71,8 @@ class Config:
                 return default_config
 
     @classmethod
-    def get_value(cls, section: str, key: str, config: dict = None, ignore_error: bool = False):
+    def get_value(cls, section: str, key: str, config: Optional[dict] = None,
+                  ignore_error: bool = False) -> Optional[str]:
         env = cls.os_env(key=section, value=key)
         if env in os.environ:
             ret = os.environ.get(env, None)
@@ -93,7 +96,7 @@ class Config:
             ret = cls.get_config_path(ret)
         return ret
 
-    def get_storage_config(self, section: str, config_path: str = None):
+    def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:
         config = self.get_config(section=section, config_path=config_path, ignore_error=True)
         ret = dict()
         ret['source'] = self.get_value(section=section, key='source', config=config)
@@ -130,14 +133,14 @@ class Config:
         return ret
 
     @classmethod
-    def os_env(cls, key: str, value: str = None):
+    def os_env(cls, key: str, value: Optional[str] = None) -> str:
         ret = '%s_%s_' % (cls.PREFIX, key.replace('_', '').upper())
         if value:
             ret += value.upper()
         return ret
 
     @classmethod
-    def get_config_path(cls, path: str):
+    def get_config_path(cls, path: str) -> str:
         ret = path
         if not os.path.exists(path):
             if cls.LABEL_CONFIG_DIR in os.environ:
@@ -148,11 +151,11 @@ class Config:
             raise FileNotFoundError("'%s' does not exist" % ret)
         return ret
 
-    def get_conn_config_path(self, config_path: str = None):
+    def get_conn_config_path(self, config_path: Optional[str] = None) -> Optional[str]:
         conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
         return self.get_value(section='conn', key='path', config=conn_config)
 
-    def get_logger_config(self, config_path: str = None):
+    def get_logger_config(self, config_path: Optional[str] = None) -> dict:
         logger_config = self.get_config(section='logger', config_path=config_path, ignore_error=True)
         if not logger_config:
             logger_config = dict()
@@ -162,11 +165,11 @@ class Config:
         return logger_config
 
     @classmethod
-    def get_default_config_dir(cls):
+    def get_default_config_dir(cls) -> str:
         return os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(cls))), 'default')
 
     @classmethod
-    def get_default_config(cls, section: str):
+    def get_default_config(cls, section: str) -> Optional[dict]:
         default_config_path = os.path.join(cls.get_default_config_dir(), 'default.ini')
         if os.path.isfile(default_config_path):
             try:

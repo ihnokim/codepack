@@ -1,22 +1,24 @@
 from codepack.storage.storage import Storage
-from codepack.storage.storable import Storable
-from typing import Type, Union
+from typing import TypeVar, Type, Union, Optional, Any
+
+
+Storable = TypeVar('Storable', bound='codepack.storage.storable.Storable')
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Type[Storable] = None, key: str = 'serial_number'):
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number') -> None:
         super().__init__(item_type=item_type, key=key)
         self.memory = None
         self.init()
 
-    def init(self):
+    def init(self) -> None:
         self.memory = dict()
 
-    def close(self):
+    def close(self) -> None:
         self.memory.clear()
         self.memory = None
 
-    def exist(self, key: Union[str, list], summary: str = ''):
+    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
         if isinstance(key, str):
             return key in self.memory.keys()
         elif isinstance(key, list):
@@ -33,7 +35,7 @@ class MemoryStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def remove(self, key: Union[str, list]):
+    def remove(self, key: Union[str, list]) -> None:
         if isinstance(key, str):
             self.memory.pop(key, None)
         elif isinstance(key, list):
@@ -42,7 +44,7 @@ class MemoryStorage(Storage):
         else:
             raise TypeError(key)  # pragma: no cover
 
-    def search(self, key: str, value: object, projection: list = None, to_dict: bool = False):
+    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         ret = list()
         for item in self.memory.values():
             d = item.to_dict()
@@ -56,7 +58,7 @@ class MemoryStorage(Storage):
                 ret.append(item)
         return ret
 
-    def save(self, item: Union[Storable, list], update: bool = False):
+    def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
             if not update and self.exist(key=item_key):
@@ -69,7 +71,7 @@ class MemoryStorage(Storage):
         else:
             raise TypeError(item)  # pragma: no cover
 
-    def update(self, key: Union[str, list], values: dict):
+    def update(self, key: Union[str, list], values: dict) -> None:
         if len(values) > 0:
             item = self.load(key=key, to_dict=True)
             if isinstance(item, dict):
@@ -86,7 +88,8 @@ class MemoryStorage(Storage):
             else:
                 raise TypeError(type(item))  # pragma: no cover
 
-    def load(self, key: Union[str, list], projection: list = None, to_dict: bool = False):
+    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
+            -> Optional[Union[Storable, dict, list]]:
         if isinstance(key, str):
             if self.exist(key=key):
                 item = self.memory[key]

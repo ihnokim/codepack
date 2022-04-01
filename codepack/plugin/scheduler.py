@@ -5,12 +5,20 @@ from codepack.plugin.supervisor import Supervisor
 from apscheduler.schedulers.background import BackgroundScheduler, BlockingScheduler
 import requests
 import json
+from typing import Optional, Union, Callable, TypeVar, Any
+
+
+BaseJobStore = TypeVar('BaseJobStore', bound='apscheduler.jobstores.base.BaseJobStore')
+BaseTrigger = TypeVar('BaseTrigger', bound='apscheduler.triggers.base.BaseTrigger')
+Job = TypeVar('Job', bound='apscheduler.job.Job')
+Response = TypeVar('Response', bound='requests.models.Response')
 
 
 class Scheduler:
     supervisor = None
 
-    def __init__(self, callback=None, jobstore=None, blocking=False, supervisor=None):
+    def __init__(self, callback: Optional[Callable] = None, jobstore: Optional[BaseJobStore] = None,
+                 blocking: bool = False, supervisor: Optional[Union[Supervisor, str]] = None) -> None:
         self.scheduler = None
         self.jobstores = dict()
         if jobstore:
@@ -24,50 +32,53 @@ class Scheduler:
             raise TypeError(type(supervisor))
 
     @classmethod
-    def init_supervisor(cls, supervisor):
+    def init_supervisor(cls, supervisor: Optional[Union[Supervisor, str]] = None):
         Scheduler.supervisor = supervisor
 
-    def register(self, callback):
+    def register(self, callback: Optional[Callable] = None):
         self.callback = callback
 
-    def start(self):
+    def start(self) -> None:
         try:
             self.scheduler.start()
         except KeyboardInterrupt:
             self.stop()
 
-    def init_scheduler(self, blocking=False, **kwargs):
+    def init_scheduler(self, blocking: bool = False, **kwargs: Any) -> None:
         if blocking:
             self.scheduler = BlockingScheduler(jobstores=self.jobstores, **kwargs)
         else:
             self.scheduler = BackgroundScheduler(jobstores=self.jobstores, **kwargs)
 
-    def is_running(self):
+    def is_running(self) -> bool:
         return self.scheduler.running
 
-    def stop(self):
+    def stop(self) -> None:
         self.scheduler.shutdown()
 
-    def add_job(self, func, job_id, trigger, **kwargs):
+    def add_job(self, func: Callable, job_id: str, trigger: Union[BaseTrigger, str], **kwargs: Any) -> Job:
         return self.scheduler.add_job(func=func, id=job_id, trigger=trigger, jobstore='codepack', **kwargs)
 
-    def add_codepack(self, codepack, trigger, job_id=None, argpack=None, callback=None, **kwargs):
+    def add_codepack(self, codepack: CodePack, trigger: Union[BaseTrigger, str],
+                     job_id: Optional[str] = None, argpack: Optional[Union[ArgPack, dict]] = None,
+                     callback: Optional[Callable] = None, **kwargs: Any) -> Job:
         if job_id is None:
             job_id = codepack.id
         snapshot = codepack.to_snapshot(argpack=argpack)
-        ret = self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger, kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
-        return ret
+        return self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger,
+                            kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
 
-    def add_snapshot(self, snapshot, trigger, job_id=None, callback=None, **kwargs):
+    def add_snapshot(self, snapshot: CodePackSnapshot, trigger: Union[BaseTrigger, str], job_id: Optional[str] = None,
+                     callback: Optional[Callable] = None, **kwargs: Any) -> Job:
         if job_id is None:
             job_id = snapshot.id
-        ret = self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger, kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
-        return ret
+        return self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger,
+                            kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
 
-    def remove_job(self, job_id, **kwargs):
-        return self.scheduler.remove_job(job_id=job_id, **kwargs)
+    def remove_job(self, job_id: str, **kwargs: Any) -> None:
+        self.scheduler.remove_job(job_id=job_id, **kwargs)
 
-    def _get_callback(self, callback=None):
+    def _get_callback(self, callback: Optional[Callable] = None) -> Callable:
         if callback:
             _callback = callback
         elif self.callback:
@@ -79,11 +90,11 @@ class Scheduler:
         return _callback
 
     @staticmethod
-    def _get_snapshot(snapshot):
-        if isinstance(snapshot, dict):
-            _snapshot = CodePackSnapshot.from_dict(snapshot)
-        elif isinstance(snapshot, CodePackSnapshot):
+    def _get_snapshot(snapshot: Union[CodePackSnapshot, dict, str]) -> CodePackSnapshot:
+        if isinstance(snapshot, CodePackSnapshot):
             _snapshot = snapshot
+        elif isinstance(snapshot, dict):
+            _snapshot = CodePackSnapshot.from_dict(snapshot)
         elif isinstance(snapshot, str):
             _snapshot = CodePackSnapshot.from_json(snapshot)
         else:
@@ -91,15 +102,15 @@ class Scheduler:
         return _snapshot
 
     @staticmethod
-    def _get_codepack(snapshot):
+    def _get_codepack(snapshot: CodePackSnapshot) -> CodePack:
         return CodePack.from_snapshot(snapshot)
 
     @staticmethod
-    def _get_argpack(snapshot):
+    def _get_argpack(snapshot: Union[CodePackSnapshot, dict]) -> ArgPack:
         return ArgPack.from_dict(snapshot['argpack'])
 
     @staticmethod
-    def request_to_supervisor(snapshot):
+    def request_to_supervisor(snapshot: Union[CodePackSnapshot, dict]) -> Union[Response, str]:
         _snapshot = Scheduler._get_snapshot(snapshot)
         if isinstance(Scheduler.supervisor, str):
             return requests.post('%s/codepack/run/snapshot' % Scheduler.supervisor,
@@ -110,7 +121,7 @@ class Scheduler:
             return Scheduler.supervisor.run_codepack(codepack=codepack, argpack=argpack)
 
     @staticmethod
-    def run_snapshot(snapshot):
+    def run_snapshot(snapshot: Union[CodePackSnapshot, dict, str]) -> Any:
         _snapshot = Scheduler._get_snapshot(snapshot)
         codepack = Scheduler._get_codepack(_snapshot)
         argpack = Scheduler._get_argpack(_snapshot)

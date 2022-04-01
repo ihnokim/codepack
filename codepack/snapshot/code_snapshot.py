@@ -1,9 +1,14 @@
 from codepack.snapshot.snapshot import Snapshot
 from codepack.dependency.dependency import Dependency
+from typing import TypeVar, Optional, Union
+
+
+Code = TypeVar('Code', bound='codepack.code.Code')
 
 
 class CodeSnapshot(Snapshot):
-    def __init__(self, code=None, args: tuple = None, kwargs: dict = None, timestamp: float = None, message: str = ''):
+    def __init__(self, code: Optional[Code] = None, args: Optional[tuple] = None, kwargs: Optional[dict] = None,
+                 timestamp: Optional[float] = None, message: str = '') -> None:
         if code:
             _id = code.id
             _serial_number = code.serial_number
@@ -28,11 +33,11 @@ class CodeSnapshot(Snapshot):
         self.set_args(args=args, kwargs=kwargs)
         self.set_dependency(dependency=_dependency)
 
-    def set_args(self, args=None, kwargs=None):
+    def set_args(self, args: Optional[tuple] = None, kwargs: Optional[dict] = None) -> None:
         self.__setitem__('args', list(args) if args else list())
         self.__setitem__('kwargs', kwargs if kwargs else dict())
 
-    def set_dependency(self, dependency):
+    def set_dependency(self, dependency: Union[Dependency, dict]) -> None:
         self.__setitem__('dependency', list())
         if dependency:
             for d in dependency.values():
@@ -45,7 +50,7 @@ class CodeSnapshot(Snapshot):
             self.__getitem__('dependency').sort(key=lambda x: x['serial_number'])
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> 'CodeSnapshot':
         ret = cls()
         for k, v in d.items():
             if k != '_id':

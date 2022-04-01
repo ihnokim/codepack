@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union
 
 
 class State(Enum):
@@ -10,13 +11,13 @@ class State(Enum):
     TERMINATED = 5
     ERROR = 6
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name  # pragma: no cover
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union['State', str, int]) -> bool:
         if isinstance(other, type(self)):
             return self.name == other.name
         elif isinstance(other, str):
@@ -27,7 +28,7 @@ class State(Enum):
             return False  # pragma: no cover
 
     @classmethod
-    def get(cls, state):
+    def get(cls, state: Union['State', str, int]) -> 'State':
         if isinstance(state, cls):
             return state
         elif isinstance(state, str):

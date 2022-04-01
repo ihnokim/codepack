@@ -2,10 +2,12 @@ from codepack.storage.storable import Storable
 from codepack.snapshot.state import State
 from datetime import datetime, timezone
 from copy import deepcopy
+from typing import Optional, Any, Union, Iterator, KeysView, ValuesView, ItemsView
 
 
 class Snapshot(Storable):
-    def __init__(self, id, serial_number, state=None, timestamp=None, **kwargs):
+    def __init__(self, id: str, serial_number: str, state: Optional[Union[State, str]] = None,
+                 timestamp: Optional[float] = None, **kwargs: Any) -> None:
         super().__init__(id=id, serial_number=serial_number)
         self.attr = dict()
         self.__setitem__('id', self.id)
@@ -15,20 +17,20 @@ class Snapshot(Storable):
         for k, v in kwargs.items():
             self.__setitem__(k, v)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key in ['id', 'serial_number']:
             self.__setattr__(key, value)
         if key == 'state':
             value = State.get(value)
         self.attr[key] = value
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.attr[item]
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         return self.__getitem__(item)
 
-    def diff(self, snapshot):
+    def diff(self, snapshot: Union['Snapshot', dict]) -> dict:
         ret = dict()
         if isinstance(snapshot, self.__class__):
             for k, v in snapshot.items():
@@ -42,7 +44,7 @@ class Snapshot(Storable):
             raise TypeError(type(snapshot))  # pragma: no cover
         return ret
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         ret = dict()
         for k, v in self.attr.items():
             ret[k] = v
@@ -52,19 +54,19 @@ class Snapshot(Storable):
         return ret
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: dict) -> 'Snapshot':
         attr = deepcopy(d)
         attr.pop('_id', None)
         return cls(**attr)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         return self.attr.__iter__()
 
-    def items(self):
+    def items(self) -> ItemsView:
         return self.attr.items()
 
-    def keys(self):
+    def keys(self) -> KeysView:
         return self.attr.keys()
 
-    def values(self):
+    def values(self) -> ValuesView:
         return self.attr.values()

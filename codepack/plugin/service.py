@@ -1,10 +1,13 @@
-from codepack.storage.storage import Storage
 import abc
+from typing import TypeVar
+
+
+Storage = TypeVar('Storage', bound='codepack.storage.storage.Storage')
 
 
 class Service(metaclass=abc.ABCMeta):
-    def __init__(self, storage: Storage):
+    def __init__(self, storage: Storage) -> None:
         self.storage = storage
 
-    def close(self):
+    def close(self) -> None:
         self.storage.close()
