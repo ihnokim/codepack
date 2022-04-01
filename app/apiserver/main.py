@@ -1,6 +1,8 @@
 from codepack import Scheduler, Default
 from codepack.storage.storage import Storage
+from codepack.storage.messenger import Messenger
 from codepack.plugin.service import Service
+from codepack.plugin.employee import Employee
 from fastapi import FastAPI, Request
 from .routers import code, codepack, argpack, scheduler
 from .dependencies import common
@@ -41,7 +43,6 @@ async def startup():
 
 @app.on_event('shutdown')
 async def shutdown():
-    common.supervisor.producer.close()
     for instance in Default.instances.values():
         if isinstance(instance, Service):
             instance.storage.close()
@@ -61,8 +62,7 @@ async def organize(serial_number: str):
 
 
 def destroy_supervisor(x):
-    if isinstance(x, Storage):
-        x.close()
+    x.close()
 
 
 def destroy_scheduler(x):
