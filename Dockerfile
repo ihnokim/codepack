@@ -1,6 +1,11 @@
 FROM python:3.7-slim
 MAINTAINER Inho Kim, ihnokim58@gmail.com
 
+# ARG http_proxy=http://x.x.x.x:x
+# ARG https_proxy=http://x.x.x.x:x
+# COPY ca.crt /usr/local/share/ca-certificates/
+# RUN update-ca-certificates
+
 RUN apt-get update && apt-get -y upgrade && apt-get -y dist-upgrade && apt-get install -y alien libaio1 libsnappy-dev wget vim
 RUN wget https://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient19.3-basiclite-19.3.0.0.0-1.x86_64.rpm --no-check-certificate
 RUN alien -i --scripts oracle-instantclient*.rpm
