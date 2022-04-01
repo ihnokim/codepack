@@ -5,7 +5,7 @@ from codepack.plugin.dependency_monitor import DependencyMonitor
 from codepack.callback.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
-from typing import Any, TypeVar, Union, Optional, OrderedDict
+from typing import Any, TypeVar, Union, Optional
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.snapshot.code_snapshot.CodeSnapshot')
@@ -182,7 +182,7 @@ class Code(CodeBase):
                 c.add_dependency(d)
         self.serial_number = serial_number
 
-    def get_args(self) -> OrderedDict:
+    def get_args(self) -> dict:
         return super().get_args(function=self.function)
 
     def print_args(self) -> str:
