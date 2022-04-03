@@ -19,8 +19,8 @@ Messenger = TypeVar('Messenger', bound='codepack.storage.messenger.Messenger')
 
 
 class Worker(Employee):
-    def __init__(self, messenger: Messenger, interval: Union[float, str] = 1, path: Optional[str] = None,
-                 script: str = 'run_snapshot.py', callback: Optional[Callable] = None,
+    def __init__(self, messenger: Messenger, interval: Union[float, str] = 1,
+                 script_path: str = 'run_snapshot.py', callback: Optional[Callable] = None,
                  supervisor: Optional[Union[Supervisor, str]] = None,
                  docker_manager: Optional[DockerManager] = None,
                  interpreter_manager: Optional[InterpreterManager] = None,
@@ -32,8 +32,9 @@ class Worker(Employee):
         self.docker_manager = None
         self.interpreter_manager = None
         self.callback_service = None
-        self.path = path
-        self.script = script
+        self.script_path = script_path
+        self.script_dir = os.path.abspath(os.path.dirname(self.script_path))
+        self.script = os.path.basename(self.script_path)
         self.callback = callback
         if logger:
             if isinstance(logger, logging.Logger):
@@ -112,8 +113,8 @@ class Worker(Employee):
                 cb_id = self.callback_service.push(self.callback)
                 if state == 'READY':
                     filepath = '%s.json' % code.serial_number
-                    snapshot_path = os.path.join(self.path, filepath)
-                    script_path = os.path.join(self.path, self.script)
+                    snapshot_path = os.path.join(self.script_dir, filepath)
+                    script_path = os.path.join(self.script_dir, self.script)
                     snapshot.to_file(snapshot_path)
                     if code.env:
                         _command = ['python', script_path, snapshot_path, '-c', cb_id]
@@ -132,7 +133,7 @@ class Worker(Employee):
                         if self.logger:
                             _command.append('-l')
                             _command.append(self.logger.name)
-                        ret = self.docker_manager.run(image=code.image, command=_command, path=self.path)
+                        ret = self.docker_manager.run(image=code.image, command=_command, path=self.script_dir)
                         print(ret.decode('utf-8').strip())
                 else:
                     code.update_state(state, args=snapshot.args, kwargs=snapshot.kwargs)
