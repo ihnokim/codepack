@@ -1,76 +1,34 @@
-from codepack.storage.memory_storage import MemoryStorage
-from codepack.dependency.dependency import Dependency
-from collections.abc import Iterable
-from typing import Union, Optional, Type, TypeVar, KeysView, ValuesView, ItemsView, Iterator
+from codepack.config.default import Default
+from codepack.utils.looper import Looper
+from typing import Callable, Optional, TypeVar
 
 
-Code = TypeVar('Code', bound='codepack.code.Code')
-CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.snapshot.code_snapshot.CodeSnapshot')
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugin.snapshot_service.SnapshotService')
 
 
-class DependencyMonitor(MemoryStorage, Iterable):
-    def __init__(self, code: Code, item_type: Type[Dependency] = Dependency) -> None:
-        MemoryStorage.__init__(self, item_type=item_type)
-        self.code = code
+class DependencyMonitor:
+    def __init__(self, callback: Callable, interval: float = 10, background: bool = False,
+                 daemon: bool = True, config_path: Optional[str] = None,
+                 snapshot_service: Optional[SnapshotService] = None) -> None:
+        self.callback = callback
+        self.interval = interval
+        self.snapshot_service =\
+            snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service',
+                                                                          config_path=config_path)
+        self.looper = Looper(self.monitor, interval=interval, background=background, daemon=daemon)
 
-    def add(self, dependency: Union[Dependency, dict, Iterable]) -> None:
-        if isinstance(dependency, Dependency):
-            self.code.assert_arg(dependency.arg)
-            self.memory[dependency.serial_number] = dependency
-        elif isinstance(dependency, dict):
-            self.code.assert_arg(dependency['arg'])
-            d = Dependency.from_dict(d=dependency)
-            d.bind(self.code)
-            self.memory[dependency['serial_number']] = d
-        elif isinstance(dependency, Iterable):
-            for d in dependency:
-                self.add(d)
-        else:
-            raise TypeError(type(dependency))  # pragma: no cover
+    def start(self) -> None:
+        self.looper.start()
 
-    def __getitem__(self, item: str) -> Dependency:
-        return self.memory[item]
+    def stop(self) -> None:
+        self.looper.stop()
 
-    def remove(self, serial_number: str) -> None:
-        self.memory.pop(serial_number, None)
-
-    def get_args(self) -> dict:
-        ret = dict()
-        for dependency in self.memory.values():
-            if dependency.arg:
-                ret[dependency.arg] = dependency.id
-        return ret
-
-    def load_snapshot(self) -> Optional[Union[CodeSnapshot, dict, list]]:
-        return self.code.service['snapshot'].load(serial_number=list(self.memory.keys()))
-
-    def check_delivery(self) -> Union[bool, list]:
-        return self.code.service['delivery'].check(serial_number=[k for k, v in self.memory.items() if v.arg])
-
-    def validate(self, snapshot: list) -> str:
-        for s in snapshot:
-            if s['state'] != 'TERMINATED':
-                return 'WAITING'
-        if len(self) != len(snapshot):
-            return 'WAITING'
-        if not self.check_delivery():
-            return 'ERROR'
-        return 'READY'
-
-    def get_state(self) -> str:
-        return self.validate(snapshot=self.load_snapshot())
-
-    def __iter__(self) -> Iterator:
-        return self.memory.__iter__()
-
-    def keys(self) -> KeysView:
-        return self.memory.keys()
-
-    def values(self) -> ValuesView:
-        return self.memory.values()
-
-    def items(self) -> ItemsView:
-        return self.memory.items()
-
-    def __len__(self) -> int:
-        return len(self.memory)
+    def monitor(self) -> None:
+        for x in self.snapshot_service.search(key='state', value='WAITING'):
+            resolved = True
+            for s in self.snapshot_service.load([x['serial_number'] for x in x['dependency']], projection={'state'}):
+                if s['state'] != 'TERMINATED':
+                    resolved = False
+                    break
+            if resolved:
+                self.callback(x)
