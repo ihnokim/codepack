@@ -109,23 +109,8 @@ def init_default():
 
 
 @pytest.fixture(scope='function', autouse=False)
-def default():
-    os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/config/default/alias.ini'
-    Default.init()
-    yield Default
-    Default.init()
-    os.environ.pop('CODEPACK_ALIAS_PATH', None)
-
-
-@pytest.fixture(scope='function', autouse=False)
 def dummy_deliveries():
     obj1 = Delivery(id='obj1', serial_number='123', item='x')
     obj2 = Delivery(id='obj2', serial_number='456', item='y')
     obj3 = Delivery(id='obj3', serial_number='789', item='y')
     yield [obj1, obj2, obj3]
-
-
-@pytest.fixture(scope='function', autouse=False)
-def conn_config():
-    config = Config(config_path='config/test_conn.ini')
-    yield config

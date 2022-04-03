@@ -32,7 +32,7 @@ def test_oracle_init(mock_client):
 @patch('cx_Oracle.connect')
 def test_oracle_init_with_sshtunnel_from_config_file(mock_client, mock_ssh):
     oracle_config = {'host': 'localhost', 'port': 3306, 'service_name': 'hello', 'as_dict': 'True',
-                     'sshtunnel': 'config/test_conn.ini:ssh'}
+                     'sshtunnel': 'config/test.ini:ssh'}
     o = OracleDB(config=oracle_config)
     assert o.ssh_config == {'ssh_host': 'localhost', 'ssh_port': '22', 'ssh_username': 'test', 'ssh_password': '1234'}
     mock_ssh.assert_called_once_with(('localhost', 22), remote_bind_address=('localhost', 3306),

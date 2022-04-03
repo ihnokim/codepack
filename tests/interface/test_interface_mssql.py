@@ -28,7 +28,7 @@ def test_mssql_init(mock_client):
 @patch('pymssql.connect')
 def test_mssql_init_with_sshtunnel_from_config_file(mock_client, mock_ssh):
     mssql_config = {'host': 'localhost', 'port': 3306, 'user': 'admin', 'password': 'test', 'charset': 'utf8',
-                    'as_dict': 'True', 'sshtunnel': 'config/test_conn.ini:ssh'}
+                    'as_dict': 'True', 'sshtunnel': 'config/test.ini:ssh'}
     m = MSSQL(config=mssql_config)
     assert m.ssh_config == {'ssh_host': 'localhost', 'ssh_port': '22', 'ssh_username': 'test', 'ssh_password': '1234'}
     mock_ssh.assert_called_once_with(('localhost', 22), remote_bind_address=('localhost', 3306),

@@ -28,7 +28,7 @@ def test_mysql_init(mock_client):
 @patch('pymysql.connect')
 def test_mysql_init_with_sshtunnel_from_config_file(mock_client, mock_ssh):
     mysql_config = {'host': 'localhost', 'port': 3306, 'user': 'admin', 'passwd': 'test', 'charset': 'utf8',
-                    'cursorclass': 'pymysql.cursors.Cursor', 'sshtunnel': 'config/test_conn.ini:ssh'}
+                    'cursorclass': 'pymysql.cursors.Cursor', 'sshtunnel': 'config/test.ini:ssh'}
     m = MySQL(config=mysql_config)
     assert m.ssh_config == {'ssh_host': 'localhost', 'ssh_port': '22', 'ssh_username': 'test', 'ssh_password': '1234'}
     mock_ssh.assert_called_once_with(('localhost', 22), remote_bind_address=('localhost', 3306),

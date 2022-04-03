@@ -7,3 +7,5 @@ htmlcov/*
 dist/*
 build/*
 codepack.egg-info/*
+logs/*
+*.zip

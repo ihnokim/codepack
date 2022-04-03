@@ -11,12 +11,7 @@ class Alias:
     def __init__(self, data: Optional[Union[str, dict]] = None) -> None:
         self.aliases = None
         if isinstance(data, str):
-            _aliases = Config.parse_config(section='alias', config_path=data)
-            if len(_aliases) == 1 and 'path' in _aliases:
-                alias_path = Config.get_value(section='alias', key='path', config=_aliases)
-                aliases = Config.parse_config(section='alias', config_path=alias_path)
-            else:
-                aliases = _aliases
+            aliases = Config.parse_config(section='alias', config_path=data)
             self.aliases = aliases
         elif isinstance(data, dict):
             self.aliases = data
