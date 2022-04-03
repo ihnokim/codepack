@@ -8,11 +8,11 @@ class Messenger(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def init(self, *args: Any, **kwargs: Any) -> None:
-        """initialize storage"""
+        """initialize messenger"""
 
     @abc.abstractmethod
     def close(self) -> None:
-        """close storage"""
+        """close messenger"""
 
     @abc.abstractmethod
     def send(self, item: Any, *args: Any, **kwargs: Any) -> Any:

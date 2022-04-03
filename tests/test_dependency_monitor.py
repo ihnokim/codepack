@@ -1,4 +1,4 @@
-from codepack import Code, BlockingEngine, NonBlockingEngine
+from codepack import Code, DependencyMonitor
 from tests import *
 import time
 
@@ -14,8 +14,8 @@ def load_and_run_code_from_snapshot_and_raise_exception(snapshot):
     raise KeyboardInterrupt
 
 
-def test_blocking_engine(default_os_env):
-    be = BlockingEngine(callback=load_and_run_code_from_snapshot_and_raise_exception, interval=0.5)
+def test_dependency_monitor(default_os_env):
+    dm = DependencyMonitor(callback=load_and_run_code_from_snapshot_and_raise_exception, interval=0.5, background=False)
     c1 = Code(add3)
     c2 = Code(mul2)
     c3 = Code(combination)
@@ -38,22 +38,22 @@ def test_blocking_engine(default_os_env):
     assert c2.get_state() == 'TERMINATED'
     assert c3.get_state() == 'WAITING'
     assert c4.get_state() == 'WAITING'
-    be.start()
+    dm.start()
     assert c1.get_state() == 'TERMINATED'
     assert c2.get_state() == 'TERMINATED'
     assert c3.get_state() == 'TERMINATED'
     assert c4.get_state() == 'WAITING'
-    be.start()
+    dm.start()
     assert c1.get_state() == 'TERMINATED'
     assert c2.get_state() == 'TERMINATED'
     assert c3.get_state() == 'TERMINATED'
     assert c4.get_state() == 'TERMINATED'
     assert c4.get_result() == 114
-    be.stop()
+    dm.stop()
 
 
-def test_non_blocking_engine(default_os_env):
-    nbe = NonBlockingEngine(callback=load_and_run_code_from_snapshot, interval=0.5)
+def test_dependency_monitor_in_background(default_os_env):
+    dm = DependencyMonitor(callback=load_and_run_code_from_snapshot, interval=0.5, background=True)
     c1 = Code(add3)
     c2 = Code(mul2)
     c3 = Code(combination)
@@ -81,7 +81,7 @@ def test_non_blocking_engine(default_os_env):
     assert c3.get_state() == 'WAITING'
     assert c4.get_state() == 'WAITING'
     assert c5.get_state() == 'WAITING'
-    nbe.start()
+    dm.start()
     time.sleep(1)
     assert c1.get_state() == 'TERMINATED'
     assert c2.get_state() == 'TERMINATED'
@@ -89,4 +89,4 @@ def test_non_blocking_engine(default_os_env):
     assert c4.get_state() == 'TERMINATED'
     assert c5.get_state() == 'TERMINATED'
     assert c4.get_result() == 114
-    nbe.stop()
+    dm.stop()

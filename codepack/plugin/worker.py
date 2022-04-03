@@ -21,14 +21,23 @@ Messenger = TypeVar('Messenger', bound='codepack.storage.messenger.Messenger')
 class Worker(Employee):
     def __init__(self, messenger: Messenger, interval: Union[float, str] = 1,
                  script_path: str = 'run_snapshot.py', callback: Optional[Callable] = None,
-                 supervisor: Optional[Union[Supervisor, str]] = None,
+                 supervisor: Optional[Union[Supervisor, str]] = None, background: Union[bool, str] = False,
                  docker_manager: Optional[DockerManager] = None,
                  interpreter_manager: Optional[InterpreterManager] = None,
                  callback_service: Optional[CallbackService] = None,
                  logger: Optional[Union[logging.Logger, str]] = None) -> None:
         super().__init__(messenger=messenger)
-        self.interval = interval
+        self.interval = float(interval)
         self.supervisor = supervisor
+        if isinstance(background, str):
+            if background.lower() == 'true':
+                self.background = True
+            elif background.lower() == 'false':
+                self.background = False
+            else:
+                raise ValueError("'background' should be either 'True' or 'False'")
+        elif isinstance(background, bool):
+            self.background = background
         self.docker_manager = None
         self.interpreter_manager = None
         self.callback_service = None
@@ -90,7 +99,8 @@ class Worker(Employee):
 
     def start(self) -> None:
         print('starting worker...')
-        self.messenger.receive(callback=self.work, timeout_ms=int(float(self.interval) * 1000))
+        self.messenger.receive(callback=self.work, background=self.background,
+                               interval=self.interval)
 
     def stop(self) -> None:
         print('stopping worker...')

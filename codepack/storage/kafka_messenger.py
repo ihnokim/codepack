@@ -76,8 +76,10 @@ class KafkaMessenger(Messenger):
 
     def send(self, item: Any, *args: Any, **kwargs: Any) -> None:
         assert self.producer is not None
-        self.producer.produce(topic=self.producer_topic, value=item)
+        self.producer.produce(topic=self.producer_topic, value=item, *args, **kwargs)
 
-    def receive(self, callback: Callable, *args: Any, **kwargs: Any) -> None:
+    def receive(self, callback: Callable, background: bool = False, interval: float = 1,
+                *args: Any, **kwargs: Any) -> None:
         assert self.consumer is not None
-        self.consumer.consume(callback=callback, *args, **kwargs)
+        self.consumer.consume(callback=callback, background=background,
+                              timeout_ms=int(interval * 1000), *args, **kwargs)

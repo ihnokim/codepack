@@ -1,8 +1,11 @@
-import pytest
+from codepack import Default, Delivery
 from codepack.interface import MongoDB
+from codepack.storage import MemoryMessenger
+import pytest
 import os
 import mongomock
-from codepack import Config, Default, Delivery
+
+
 from shutil import rmtree
 from glob import glob
 
@@ -106,6 +109,7 @@ def init_default():
     Default.alias = None
     Default.config = None
     Default.instances = dict()
+    MemoryMessenger.destroy()
 
 
 @pytest.fixture(scope='function', autouse=False)

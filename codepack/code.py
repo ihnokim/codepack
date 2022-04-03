@@ -1,7 +1,7 @@
 from codepack.config.default import Default
 from codepack.base.code_base import CodeBase
 from codepack.dependency.dependency import Dependency
-from codepack.plugin.dependency_monitor import DependencyMonitor
+from codepack.plugin.dependency_bag import DependencyBag
 from codepack.callback.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
@@ -54,7 +54,7 @@ class Code(CodeBase):
         self.children = dict()
 
     def init_dependency(self, dependency: Optional[Union[Dependency, dict, Iterable]] = None) -> None:
-        self.dependency = DependencyMonitor(code=self)
+        self.dependency = DependencyBag(code=self)
         if dependency:
             self.add_dependency(dependency=dependency)
 

@@ -63,9 +63,9 @@ def test_kafka_consumer_consume(mock_client):
     kafka_config = {'bootstrap_servers': 'ip1:9092,ip2:9092,ip3:9092', 'topic': 'test_topic'}
     kc = KafkaConsumer(config=kafka_config)
     tmp = {'test_key': 3}
-    kc.poll.return_value = tmp
+    kc.session.poll.return_value = tmp
     kc.consume(add_1_and_raise_error, timeout_ms=500)
-    kc.poll.assert_called_once_with(timeout_ms=500)
+    kc.session.poll.assert_called_once_with(timeout_ms=500)
     assert tmp['test_key'] == 4
     kc.close()
     mock_client().close.assert_called_once()

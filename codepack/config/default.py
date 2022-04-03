@@ -2,6 +2,7 @@ from codepack.config.config import Config
 from codepack.config.alias import Alias
 import os
 import inspect
+from docker.errors import DockerException
 from typing import Optional, TypeVar
 
 
@@ -136,9 +137,9 @@ class Default:
                      alias_path: Optional[str] = None) -> Employee:
         key = section
         if 'worker' in section:
-            kafka_type = 'consumer'
+            messenger_type = 'consumer'
         elif 'supervisor' in section:
-            kafka_type = 'producer'
+            messenger_type = 'producer'
         else:
             raise NotImplementedError("'%s' is unknown")
         if config_path or alias_path or key not in cls.instances:
@@ -147,7 +148,10 @@ class Default:
             source = storage_config.pop('source')
             storage_alias = cls.get_alias_from_source(source=source, suffix='messenger')
             storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
-            conn_config = storage_config.pop(source)
+            if source == 'memory':
+                conn_config = dict()
+            else:
+                conn_config = storage_config.pop(source)
             employee_class = cls.get_class_from_alias(section, alias_path=alias_path)
             if 'worker' in section and 'script_path' not in storage_config:
                 default_dir = os.path.dirname(os.path.abspath(inspect.getfile(employee_class)))
@@ -158,7 +162,10 @@ class Default:
                     employee_config[k] = v
                 else:
                     conn_config[k] = v
-            storage_instance = storage_class(**{kafka_type: conn_config})
+            if source == 'kafka':
+                storage_instance = storage_class(**{messenger_type: conn_config})
+            else:
+                storage_instance = storage_class(**conn_config)
             _instance = employee_class(messenger=storage_instance, **employee_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
@@ -178,7 +185,10 @@ class Default:
             if 'path' not in storage_config:
                 default_dir = os.path.dirname(os.path.abspath(inspect.getfile(manager_class)))
                 storage_config['path'] = os.path.join(default_dir, 'scripts')
-            _instance = manager_class(**storage_config)
+            try:
+                _instance = manager_class(**storage_config)
+            except DockerException:
+                return None
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance
             return _instance
