@@ -423,11 +423,10 @@ def test_collect_values_without_anything():
         config = Config()
         ret = config.get_config('worker')
         assert ret == {'dummy': 'dummy_value',
-                       'group_id': 'codepack_worker',
+                       'background': 'True',
                        'interval': '1',
                        'logger': 'dummy-logger',
-                       'source': 'kafka',
-                       'supervisor': 'http://localhost:8000',
+                       'source': 'memory',
                        'topic': 'codepack'}
     finally:
         for k in os_envs.keys():

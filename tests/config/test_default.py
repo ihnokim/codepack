@@ -1,4 +1,4 @@
-from codepack.storage import MemoryStorage, MongoStorage, MemoryJobStore, MongoJobStore
+from codepack.storage import MemoryStorage, MongoStorage, MemoryJobStore, MongoJobStore, MemoryMessenger
 from codepack import DeliveryService, CallbackService, SnapshotService,\
     Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
 from unittest.mock import patch
@@ -160,18 +160,12 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
 
 
 @patch('docker.DockerClient')
-@patch('kafka.KafkaConsumer')
-def test_get_default_worker(mock_kafka_consumer, mock_docker_client):
+def test_get_default_worker_with_os_env(mock_docker_client):
     worker = Default.get_employee('worker')
     assert isinstance(worker, Worker)
-    arg_list = mock_kafka_consumer.call_args_list
-    assert len(arg_list) == 1
-    args, kwargs = arg_list[0]
-    assert kwargs.get('bootstrap_servers', '') == '?:9092,?:9092,?:9092'
-    assert isinstance(kwargs.get('value_deserializer', ''), Callable)
-    assert len(args) == 1 and args[0] == 'codepack'
-    assert hasattr(worker.messenger, 'consumer')
-    assert getattr(worker.messenger, 'consumer').session is mock_kafka_consumer()
+    assert isinstance(worker.messenger, MemoryMessenger)
+    assert worker.messenger.topic == 'codepack'
+    assert worker.supervisor is None
     mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
     assert worker.docker_manager.docker.session == mock_docker_client()
     assert isinstance(worker.callback_service, CallbackService)
@@ -183,9 +177,57 @@ def test_get_default_worker(mock_kafka_consumer, mock_docker_client):
     assert hasattr(worker, 'script_path') and worker.script_path == os.path.join(default_dir, 'scripts/run_snapshot.py')
 
 
-@patch('kafka.KafkaProducer')
-def test_get_default_supervisor(mock_kafka_producer):
+@patch('docker.DockerClient')
+@patch('kafka.KafkaConsumer')
+def test_get_default_worker_with_os_env(mock_kafka_consumer, mock_docker_client):
     try:
+        os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+        os.environ['CODEPACK_CONFIG_PATH'] = 'codepack.ini'
+        worker = Default.get_employee('worker')
+        assert isinstance(worker, Worker)
+        arg_list = mock_kafka_consumer.call_args_list
+        assert len(arg_list) == 1
+        args, kwargs = arg_list[0]
+        assert kwargs.get('bootstrap_servers', '') == '?:9092,?:9092,?:9092'
+        assert isinstance(kwargs.get('value_deserializer', ''), Callable)
+        assert len(args) == 1 and args[0] == 'codepack'
+        assert hasattr(worker.messenger, 'consumer')
+        assert getattr(worker.messenger, 'consumer').session is mock_kafka_consumer()
+        mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
+        assert worker.docker_manager.docker.session == mock_docker_client()
+        assert isinstance(worker.callback_service, CallbackService)
+        assert isinstance(worker.logger, logging.Logger)
+        assert worker.logger.name == 'worker-logger'
+        assert hasattr(worker, 'script') and worker.script == 'run_snapshot.py'
+        script_dir = os.path.abspath('scripts')
+        assert hasattr(worker, 'script_dir') and worker.script_dir == script_dir
+        assert hasattr(worker, 'script_path') and worker.script_path == 'scripts/run_snapshot.py'
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_DIR', None)
+        os.environ.pop('CODEPACK_CONFIG_PATH', None)
+
+
+def test_get_default_supervisor():
+    try:
+        os.environ['CODEPACK_CODESNAPSHOT_SOURCE'] = 'mongodb'
+        os.environ['CODEPACK_CODESNAPSHOT_DB'] = 'test_db'
+        os.environ['CODEPACK_CODESNAPSHOT_COLLECTION'] = 'test_collection'
+        supervisor = Default.get_employee('supervisor')
+        assert isinstance(supervisor, Supervisor)
+        assert isinstance(supervisor.messenger, MemoryMessenger)
+        assert supervisor.messenger.topic == 'codepack'
+        assert isinstance(supervisor.snapshot_service, SnapshotService)
+        assert isinstance(supervisor.snapshot_service.storage, MongoStorage)
+    finally:
+        os.environ.pop('CODEPACK_CODESNAPSHOT_SOURCE', None)
+        os.environ.pop('CODEPACK_CODESNAPSHOT_DB', None)
+        os.environ.pop('CODEPACK_CODESNAPSHOT_COLLECTION', None)
+
+
+@patch('kafka.KafkaProducer')
+def test_get_default_supervisor_with_os_env(mock_kafka_producer):
+    try:
+        os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
         os.environ['CODEPACK_CODESNAPSHOT_SOURCE'] = 'mongodb'
         os.environ['CODEPACK_CODESNAPSHOT_DB'] = 'test_db'
         os.environ['CODEPACK_CODESNAPSHOT_COLLECTION'] = 'test_collection'
@@ -194,7 +236,7 @@ def test_get_default_supervisor(mock_kafka_producer):
         arg_list = mock_kafka_producer.call_args_list
         assert len(arg_list) == 1
         args, kwargs = arg_list[0]
-        assert kwargs.get('bootstrap_servers', '') == '?:9092,?:9092,?:9092'
+        assert kwargs.get('bootstrap_servers', '') == 'localhost:9092'
         assert isinstance(kwargs.get('value_serializer', ''), Callable)
         assert len(args) == 0
         assert hasattr(supervisor.messenger, 'producer')
@@ -202,6 +244,7 @@ def test_get_default_supervisor(mock_kafka_producer):
         assert isinstance(supervisor.snapshot_service, SnapshotService)
         assert isinstance(supervisor.snapshot_service.storage, MongoStorage)
     finally:
+        os.environ.pop('CODEPACK_CONFIG_PATH', None)
         os.environ.pop('CODEPACK_CODESNAPSHOT_SOURCE', None)
         os.environ.pop('CODEPACK_CODESNAPSHOT_DB', None)
         os.environ.pop('CODEPACK_CODESNAPSHOT_COLLECTION', None)
