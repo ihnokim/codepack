@@ -1,4 +1,4 @@
-from codepack import Delivery
+from codepack import Delivery, Config
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage, S3Storage
 import pytest
 import json
@@ -199,8 +199,9 @@ def test_mongo_storage(fake_mongodb, dummy_deliveries):
 
 
 @patch('boto3.client')
-def test_s3_storage(mock_client, dummy_deliveries, conn_config):
-    s3_config = conn_config.get_config('s3')
+def test_s3_storage(mock_client, dummy_deliveries):
+    config = Config()
+    s3_config = config.get_config('s3')
     ss = S3Storage(s3=s3_config, item_type=Delivery, key='id')
     assert ss.s3.session is mock_client()
     ss.close()
