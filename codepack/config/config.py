@@ -28,6 +28,90 @@ class Config:
         items = cp.items(section)
         return {item[0]: item[1] for item in items}
 
+    def get_config(self, section: str, config_path: Optional[str] = None,
+                   ignore_error: Optional[bool] = False) -> Optional[dict]:
+        overwrite_with_os_env = False
+        _config_path = None
+        if config_path:
+            _config_path = self.get_config_path(path=config_path)
+        elif self.config_path:
+            _config_path = self.config_path
+        elif self.LABEL_CONFIG_PATH in os.environ:
+            overwrite_with_os_env = True
+            _config_path = self.get_config_path(os.environ.get(self.LABEL_CONFIG_PATH))
+        else:
+            overwrite_with_os_env = True
+            _config_path = self.get_default_config_path()
+        if _config_path:
+            ret = self.parse_config(section=section, config_path=self.get_config_path(_config_path))
+            if overwrite_with_os_env:
+                ret = self.collect_values(section=section, config=ret, ignore_error=ignore_error)
+            return ret
+        elif ignore_error:
+            return None
+        else:
+            raise AttributeError(
+                "path of configuration file should be provided in either 'config_path' or os.environ['%s']"
+                % self.LABEL_CONFIG_PATH)
+
+    @classmethod
+    def _os_env_missing_error_message(cls, section: str, key: str) -> str:
+        return "'%s' information should be provided in os.environ['%s']" % (section, cls.os_env(key=section, value=key))
+
+    @classmethod
+    def _assert_mandatory_keys(cls, section: str, mandatory_keys: list, config: dict) -> None:
+        for key in mandatory_keys:
+            assert key in config, cls._os_env_missing_error_message(section=section, key=key)
+
+    @classmethod
+    def collect_value(cls, section: str, key: str, config: dict, ignore_error: bool = False) -> Optional[str]:
+        env = cls.os_env(key=section, value=key)
+        if env in os.environ:
+            value = os.environ.get(env)
+        elif key in config:
+            value = config[key]
+        else:
+            default_config = cls.get_default_config(section=section)
+            if default_config and key in default_config:
+                value = default_config[key]
+            elif ignore_error:
+                return None
+            else:
+                raise AssertionError(cls._os_env_missing_error_message(section=section, key=key))
+        if section in {'conn', 'alias', 'logger'} and key in {'path', 'config_path'}:
+            value = cls.get_config_path(value)
+        return value
+
+    @classmethod
+    def collect_values(cls, section: str, config: dict, ignore_error: bool = False) -> dict:
+        values = dict()
+        for key in config.keys():
+            values[key] = cls.collect_value(section=section, key=key, config=config, ignore_error=ignore_error)
+        for key, value in {k: v for k, v in os.environ.items() if cls.os_env(key=section) in k}.items():
+            k = key.replace(cls.os_env(key=section), '').lower()
+            if k not in values:
+                values[k] = cls.collect_value(section=section, key=k, config=dict())
+        return values
+
+    def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:
+        config = self.get_config(section=section, config_path=config_path)
+        source = config.get('source', None)
+        if source == 'memory':
+            pass
+        elif source == 'file':
+            self._assert_mandatory_keys(section=section, mandatory_keys=['path'], config=config)
+        elif source == 'mongodb':
+            self._assert_mandatory_keys(section=section, mandatory_keys=['db', 'collection'], config=config)
+            config[source] = self.get_config(section=source, config_path=config_path)
+        elif source == 'kafka':
+            self._assert_mandatory_keys(section=section, mandatory_keys=['topic'], config=config)
+            config[source] = self.get_config(section=source, config_path=config_path)
+        elif source in {'docker', 's3'}:
+            config[source] = self.get_config(section=source, config_path=config_path)
+        else:
+            raise NotImplementedError("'%s' source is not implemented" % source)
+        return config
+
     @staticmethod
     def get_logger(config_path: str, name: Optional[str] = None) -> logging.Logger:
         with open(config_path, 'r') as f:
@@ -48,89 +132,25 @@ class Config:
     def get_log_dir() -> str:
         return os.environ.get(Config.LABEL_LOGGER_LOG_DIR, 'logs')
 
-    def get_config(self, section: str, config_path: Optional[str] = None,
-                   ignore_error: Optional[bool] = False) -> Optional[dict]:
-        _config_path = config_path
-        if not _config_path:
-            tmp = os.environ.get(self.LABEL_CONFIG_PATH, None)
-            if tmp:
-                _config_path = self.get_config_path(tmp)
-        if not _config_path:
-            _config_path = self.config_path
-        if _config_path:
-            return self.parse_config(section=section, config_path=self.get_config_path(_config_path))
-        else:
-            default_config = self.get_default_config(section=section)
-            if default_config is None:
-                if ignore_error:
-                    return None
-                else:
-                    raise AttributeError("path of configuration file should be provided in either 'config_path' or os.environ['%s']"
-                                         % self.LABEL_CONFIG_PATH)
-            else:
-                return default_config
+    @classmethod
+    def get_default_config_dir(cls) -> str:
+        return os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(cls))), 'default')
 
     @classmethod
-    def get_value(cls, section: str, key: str, config: Optional[dict] = None,
-                  ignore_error: bool = False) -> Optional[str]:
-        env = cls.os_env(key=section, value=key)
-        if env in os.environ:
-            ret = os.environ.get(env, None)
-        elif config and key in config:
-            ret = config[key]
-        else:
-            default_config = cls.get_default_config(section=section)
-            if default_config is None:
-                if ignore_error:
-                    return None
-                else:
-                    raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
-            else:
-                if key in default_config:
-                    ret = default_config[key]
-                elif ignore_error:
-                    return None
-                else:
-                    raise AssertionError("'%s' information should be provided in os.environ['%s']" % (section, env))
-        if key == 'path' and section in {'conn', 'alias', 'logger'}:
-            ret = cls.get_config_path(ret)
-        return ret
+    def get_default_config_path(cls) -> str:
+        return os.path.join(cls.get_default_config_dir(), 'default.ini')
 
-    def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:
-        config = self.get_config(section=section, config_path=config_path, ignore_error=True)
-        ret = dict()
-        ret['source'] = self.get_value(section=section, key='source', config=config)
-        if ret['source'] == 'memory':
-            pass
-        elif ret['source'] == 'file':
-            ret['path'] = self.get_value(section=section, key='path', config=config)
-        elif ret['source'] == 'mongodb':
-            ret['db'] = self.get_value(section=section, key='db', config=config)
-            ret['collection'] = self.get_value(section=section, key='collection', config=config)
-            conn_config_path = self.get_conn_config_path(config_path=config_path)
-            ret['mongodb'] = self.parse_config(section='mongodb', config_path=conn_config_path)
-        elif ret['source'] == 'kafka':
-            ret['topic'] = self.get_value(section=section, key='topic', config=config)
-            conn_config_path = self.get_conn_config_path(config_path=config_path)
-            ret['kafka'] = self.parse_config(section='kafka', config_path=conn_config_path)
-        elif ret['source'] in {'docker', 's3'}:
-            conn_config_path = self.get_conn_config_path(config_path=config_path)
-            ret[ret['source']] = self.parse_config(section=ret['source'], config_path=conn_config_path)
-        else:
-            raise NotImplementedError("'%s' is not implemented" % ret['source'])
-        if config:
-            for k in config:
-                if k not in ret:
-                    ret[k] = self.get_value(section=section, key=k, config=config)
-        else:
-            for k in self.get_default_config(section=section):
-                if k not in ret:
-                    ret[k] = self.get_value(section=section, key=k, config=config)
-        for key, value in {k: v for k, v in os.environ.items() if self.os_env(key=section) in k}.items():
-            k = key.replace(self.os_env(key=section), '').lower()
-            if k not in ret:
-                ret[k] = self.get_value(section=section, key=k)
-        return ret
+    @classmethod
+    def get_default_config(cls, section: str) -> Optional[dict]:
+        default_config_path = cls.get_default_config_path()
+        ret = None
+        try:
+            if os.path.isfile(default_config_path):
+                ret = cls.parse_config(section=section, config_path=default_config_path)
+        except Exception:
+            return None
+        finally:
+            return ret
 
     @classmethod
     def os_env(cls, key: str, value: Optional[str] = None) -> str:
@@ -150,31 +170,3 @@ class Config:
         if not os.path.exists(ret):
             raise FileNotFoundError("'%s' does not exist" % ret)
         return ret
-
-    def get_conn_config_path(self, config_path: Optional[str] = None) -> Optional[str]:
-        conn_config = self.get_config(section='conn', config_path=config_path, ignore_error=True)
-        return self.get_value(section='conn', key='path', config=conn_config)
-
-    def get_logger_config(self, config_path: Optional[str] = None) -> dict:
-        logger_config = self.get_config(section='logger', config_path=config_path, ignore_error=True)
-        if not logger_config:
-            logger_config = dict()
-        logger_config['path'] = self.get_value(section='logger', key='path', config=logger_config, ignore_error=True)
-        if logger_config['path'] is None:
-            logger_config['path'] = os.path.join(self.get_default_config_dir(), 'logging.json')
-        return logger_config
-
-    @classmethod
-    def get_default_config_dir(cls) -> str:
-        return os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(cls))), 'default')
-
-    @classmethod
-    def get_default_config(cls, section: str) -> Optional[dict]:
-        default_config_path = os.path.join(cls.get_default_config_dir(), 'default.ini')
-        if os.path.isfile(default_config_path):
-            try:
-                return cls.parse_config(section=section, config_path=default_config_path)
-            except Exception:
-                return None
-        else:
-            return None
