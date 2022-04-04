@@ -20,7 +20,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     keywords=["codepack", "workflow", "pipeline"],
     install_requires=requirements,
-    package_data={'codepack': ['config/default/*', 'employee/scripts/*.py']},
+    package_data={'codepack': ['config/default/*']},
     data_files=[("codepack/config", ["config/logging.json", "config/codepack.ini"])],
     classifiers=[
         "Programming Language :: Python",

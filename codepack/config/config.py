@@ -31,6 +31,7 @@ class Config:
     def get_config(self, section: str, config_path: Optional[str] = None,
                    ignore_error: Optional[bool] = False) -> Optional[dict]:
         overwrite_with_os_env = False
+        parse_default_config = False
         _config_path = None
         if config_path:
             _config_path = self.get_config_path(path=config_path)
@@ -41,18 +42,20 @@ class Config:
             _config_path = self.get_config_path(os.environ.get(self.LABEL_CONFIG_PATH))
         else:
             overwrite_with_os_env = True
-            _config_path = self.get_default_config_path()
+            parse_default_config = True
         if _config_path:
             ret = self.parse_config(section=section, config_path=self.get_config_path(_config_path))
-            if overwrite_with_os_env:
-                ret = self.collect_values(section=section, config=ret, ignore_error=ignore_error)
-            return ret
+        elif parse_default_config:
+            ret = self.get_default_config(section=section)
         elif ignore_error:
             return None
         else:
             raise AttributeError(
                 "path of configuration file should be provided in either 'config_path' or os.environ['%s']"
                 % self.LABEL_CONFIG_PATH)
+        if ret and overwrite_with_os_env:
+            ret = self.collect_values(section=section, config=ret, ignore_error=ignore_error)
+        return ret
 
     @classmethod
     def _os_env_missing_error_message(cls, section: str, key: str) -> str:
@@ -91,6 +94,10 @@ class Config:
             k = key.replace(cls.os_env(key=section), '').lower()
             if k not in values:
                 values[k] = cls.collect_value(section=section, key=k, config=dict())
+        default_config = cls.get_default_config(section=section)
+        for key, value in default_config.items():
+            if key not in values:
+                values[key] = value
         return values
 
     def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:
@@ -147,6 +154,15 @@ class Config:
         try:
             if os.path.isfile(default_config_path):
                 ret = cls.parse_config(section=section, config_path=default_config_path)
+                default_dir = cls.get_default_config_dir()
+                if section == 'callback' and 'source' in ret and ret['source'] == 'file' and 'path' not in ret:
+                    ret['path'] = os.path.join(default_dir, 'scripts')
+                elif section == 'docker_manager' and 'path' not in ret:
+                    ret['path'] = os.path.join(default_dir, 'scripts')
+                elif section == 'logger' and 'config_path' not in ret:
+                    ret['config_path'] = os.path.join(default_dir, 'logging.json')
+                elif section == 'worker' and 'script_path' not in ret:
+                    ret['script_path'] = os.path.join(default_dir, 'scripts/run_snapshot.py')
         except Exception:
             return None
         finally:

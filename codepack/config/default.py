@@ -1,6 +1,5 @@
 from codepack.config.config import Config
 from codepack.config.alias import Alias
-import os
 import inspect
 from docker.errors import DockerException
 from typing import Optional, TypeVar
@@ -153,9 +152,6 @@ class Default:
             else:
                 conn_config = storage_config.pop(source)
             employee_class = cls.get_class_from_alias(section, alias_path=alias_path)
-            if 'worker' in section and 'script_path' not in storage_config:
-                default_dir = os.path.dirname(os.path.abspath(inspect.getfile(employee_class)))
-                storage_config['script_path'] = os.path.join(default_dir, 'scripts/run_snapshot.py')
             employee_config = dict()
             for k, v in storage_config.items():
                 if k in inspect.getfullargspec(employee_class.__init__).args:
@@ -182,9 +178,6 @@ class Default:
             storage_config = config.get_storage_config(section=section, config_path=config_path)
             storage_config.pop('source')
             manager_class = cls.get_class_from_alias(section, alias_path=alias_path)
-            if 'path' not in storage_config:
-                default_dir = os.path.dirname(os.path.abspath(inspect.getfile(manager_class)))
-                storage_config['path'] = os.path.join(default_dir, 'scripts')
             try:
                 _instance = manager_class(**storage_config)
             except DockerException:
@@ -216,8 +209,6 @@ class Default:
         if config_path or key not in cls.instances:
             config = cls.get_config_instance(config_path=config_path)
             logger_config = config.get_config('logger', config_path=config_path)
-            if 'config_path' not in logger_config:
-                logger_config['config_path'] = os.path.join(config.get_default_config_dir(), 'logging.json')
             logger_name = logger_config.get('name', None)
             if name is not None:
                 logger_name = name
