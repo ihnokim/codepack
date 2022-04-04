@@ -51,7 +51,8 @@ def test_config_path_priority():
     try:
         config = Config()
         _config = config.get_config(section='logger', ignore_error=True)
-        assert _config == {'log_dir': 'logs', 'name': 'default-logger'}
+        assert _config == {'log_dir': 'logs', 'name': 'default-logger',
+                           'config_path': os.path.join(config.get_default_config_dir(), 'logging.json')}
         with pytest.raises(AssertionError):
             Config(config_path='test.ini')
         os.environ['CODEPACK_CONFIG_DIR'] = 'config'
@@ -74,7 +75,8 @@ def test_config_get_value_priority():
     try:
         config = Config()
         _config = config.get_config(section='logger')
-        assert _config == {'name': 'default-logger', 'log_dir': 'logs'}
+        assert _config == {'name': 'default-logger', 'log_dir': 'logs',
+                           'config_path': os.path.join(config.get_default_config_dir(), 'logging.json')}
         default_value = Config.collect_value(section='logger', key='name', config=dict())
         assert default_value == 'default-logger'
         name = Config.collect_value(section='logger', key='name', config=_config)
@@ -351,7 +353,13 @@ def test_get_config_without_anything(parse_config):
     config = Config()
     ret = config.get_config('worker')
     assert ret is not None
-    parse_config.assert_called_once_with(section='worker', config_path=Config.get_default_config_path())
+    arg_list = parse_config.call_args_list
+    assert len(arg_list) == 2
+    args, kwargs = arg_list[0]
+    assert kwargs == {'section': 'worker', 'config_path': config.get_default_config_path()}
+    args, kwargs = arg_list[1]
+    assert kwargs == {'section': 'worker',
+                      'config_path': config.get_default_config_path()}
 
 
 @patch('codepack.config.config.Config.parse_config')
@@ -361,7 +369,13 @@ def test_get_config_without_anything_but_os_env(parse_config):
         config = Config()
         ret = config.get_config('worker')
         assert ret is not None
-        parse_config.assert_called_once_with(section='worker', config_path='config/test.ini')
+        arg_list = parse_config.call_args_list
+        assert len(arg_list) == 2
+        args, kwargs = arg_list[0]
+        assert kwargs == {'section': 'worker', 'config_path': 'config/test.ini'}
+        args, kwargs = arg_list[1]
+        assert kwargs == {'section': 'worker',
+                          'config_path': config.get_default_config_path()}
     finally:
         os.environ.pop('CODEPACK_CONFIG_PATH')
 
@@ -427,7 +441,8 @@ def test_collect_values_without_anything():
                        'interval': '1',
                        'logger': 'dummy-logger',
                        'source': 'memory',
-                       'topic': 'codepack'}
+                       'topic': 'codepack',
+                       'script_path': os.path.join(config.get_default_config_dir(), 'scripts/run_snapshot.py')}
     finally:
         for k in os_envs.keys():
             os.environ.pop(k, None)
@@ -442,7 +457,7 @@ def test_collect_values_without_anything_but_os_env():
             os.environ[k] = v
         config = Config()
         ret = config.get_config('worker')
-        assert ret == {'dummy': 'dummy_value',
+        assert ret == {'background': 'True', 'dummy': 'dummy_value',
                        'group_id': 'codepack_worker_test',
                        'interval': '5',
                        'logger': 'dummy-logger',

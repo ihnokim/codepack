@@ -1,4 +1,4 @@
-from codepack.storage import MemoryStorage, MongoStorage, MemoryJobStore, MongoJobStore, MemoryMessenger
+from codepack.storage import MemoryStorage, FileStorage, MongoStorage, MemoryJobStore, MongoJobStore, MemoryMessenger
 from codepack import DeliveryService, CallbackService, SnapshotService,\
     Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
 from unittest.mock import patch
@@ -147,8 +147,7 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
         jobstore = scheduler.jobstores['codepack']
         assert isinstance(jobstore, MongoJobStore)
         assert scheduler.supervisor == 'dummy_supervisor'
-        mock_client.assert_called_once_with(host='localhost,?', port=27017, replicaset='TEST',
-                                            username='?', password='?')
+        mock_client.assert_called_once_with(host='localhost', port=27017, replicaset='TEST')
         mock_client().__getitem__.assert_called_once_with('test_db')
         mock_client().__getitem__().__getitem__.assert_called_once_with('test_collection')
     finally:
@@ -160,7 +159,7 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
 
 
 @patch('docker.DockerClient')
-def test_get_default_worker_with_os_env(mock_docker_client):
+def test_get_default_worker_without_os_env(mock_docker_client):
     worker = Default.get_employee('worker')
     assert isinstance(worker, Worker)
     assert isinstance(worker.messenger, MemoryMessenger)
@@ -169,10 +168,12 @@ def test_get_default_worker_with_os_env(mock_docker_client):
     mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
     assert worker.docker_manager.docker.session == mock_docker_client()
     assert isinstance(worker.callback_service, CallbackService)
+    assert isinstance(worker.callback_service.storage, FileStorage)
+    default_dir = Default.get_config_instance().get_default_config_dir()
+    assert worker.callback_service.storage.path == os.path.join(default_dir, 'scripts')
     assert isinstance(worker.logger, logging.Logger)
     assert worker.logger.name == 'worker-logger'
     assert hasattr(worker, 'script') and worker.script == 'run_snapshot.py'
-    default_dir = os.path.dirname(os.path.abspath(inspect.getfile(worker.__class__)))
     assert hasattr(worker, 'script_dir') and worker.script_dir == os.path.join(default_dir, 'scripts')
     assert hasattr(worker, 'script_path') and worker.script_path == os.path.join(default_dir, 'scripts/run_snapshot.py')
 
@@ -199,9 +200,11 @@ def test_get_default_worker_with_os_env(mock_kafka_consumer, mock_docker_client)
         assert isinstance(worker.logger, logging.Logger)
         assert worker.logger.name == 'worker-logger'
         assert hasattr(worker, 'script') and worker.script == 'run_snapshot.py'
-        script_dir = os.path.abspath('scripts')
+        default_dir = Default.get_config_instance().get_default_config_dir()
+        script_dir = os.path.join(default_dir, 'scripts')
         assert hasattr(worker, 'script_dir') and worker.script_dir == script_dir
-        assert hasattr(worker, 'script_path') and worker.script_path == 'scripts/run_snapshot.py'
+        assert hasattr(worker, 'script_path') and worker.script_path == os.path.join(default_dir,
+                                                                                     'scripts/run_snapshot.py')
     finally:
         os.environ.pop('CODEPACK_CONFIG_DIR', None)
         os.environ.pop('CODEPACK_CONFIG_PATH', None)
@@ -255,7 +258,7 @@ def test_get_default_docker_manager(mock_client):
     docker_manager = Default.get_docker_manager()
     mock_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
     assert isinstance(docker_manager, DockerManager)
-    default_dir = os.path.dirname(os.path.abspath(inspect.getfile(DockerManager)))
+    default_dir = Default.get_config_instance().get_default_config_dir()
     assert docker_manager.path == os.path.join(default_dir, 'scripts')
     assert docker_manager.run_opt == {'dns': ['8.8.8.8']}
 
