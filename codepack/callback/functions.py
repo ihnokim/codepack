@@ -1,10 +1,4 @@
-from typing import Union, TypeVar
-
-
-Supervisor = TypeVar('Supervisor', bound='codepack.plugin.supervisor.Supervisor')
-
-
-def inform_supervisor_of_termination(x: dict, supervisor: Union[Supervisor, str]):
+def inform_supervisor_of_termination(x, supervisor):
     import requests
     from codepack.plugin.supervisor import Supervisor
     if x['state'] == 'TERMINATED':
