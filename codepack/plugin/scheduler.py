@@ -1,5 +1,5 @@
 from codepack.codepack import CodePack
-from codepack.argpack.argpack import ArgPack
+from codepack.argpack import ArgPack
 from codepack.snapshot.codepack_snapshot import CodePackSnapshot
 from codepack.plugin.supervisor import Supervisor
 from apscheduler.schedulers.background import BackgroundScheduler, BlockingScheduler

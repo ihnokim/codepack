@@ -1,4 +1,4 @@
-from codepack.argpack.arg import Arg
+from codepack.arg import Arg
 from codepack.storage.storable import Storable
 from typing import Optional, TypeVar, Union, Iterator
 

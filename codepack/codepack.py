@@ -1,6 +1,6 @@
 from codepack.code import Code
 from codepack.base.codepack_base import CodePackBase
-from codepack.argpack.argpack import ArgPack
+from codepack.argpack import ArgPack
 from codepack.config.default import Default
 from codepack.snapshot.state import State
 from parse import compile as parser
