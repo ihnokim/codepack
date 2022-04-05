@@ -1,6 +1,6 @@
 from codepack.code import Code
 from codepack.base.codepack_base import CodePackBase
-from codepack.argpack.argpack import ArgPack
+from codepack.argpack import ArgPack
 from codepack.config.default import Default
 from codepack.snapshot.state import State
 from parse import compile as parser
@@ -27,7 +27,7 @@ class CodePack(CodePackBase):
         self.subscribe = None
         self.service = None
         self.owner = None
-        self.set_root(code)
+        self._set_root(code)
         self.codes = dict()
         self.init()
         self.init_subscription(subscribe=subscribe)
@@ -38,7 +38,7 @@ class CodePack(CodePackBase):
         self._set_str_attr(key='owner', value=owner)
 
     def init(self) -> None:
-        self.roots = self.get_roots()
+        self.roots = self._get_roots()
 
     def init_service(self, snapshot_service: Optional[SnapshotService] = None,
                      storage_service: Optional[StorageService] = None,
@@ -78,7 +78,7 @@ class CodePack(CodePackBase):
     def load_argpack(self, id: str) -> ArgPack:
         return self.service['argpack'].load(id=id)
 
-    def set_root(self, code: Code) -> None:
+    def _set_root(self, code: Code) -> None:
         if not isinstance(code, Code):
             raise TypeError(type(code))
         self.root = code
@@ -144,7 +144,7 @@ class CodePack(CodePackBase):
     def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
 
-    def get_leaves(self) -> set:
+    def _get_leaves(self) -> set:
         leaves = set()
         q = Queue()
         q.put(self.root)
@@ -156,11 +156,11 @@ class CodePack(CodePackBase):
                 leaves.add(n)
         return leaves
 
-    def get_roots(self) -> set:
+    def _get_roots(self) -> set:
         roots = set()
         touched = set()
         q = Queue()
-        for leave in self.get_leaves():
+        for leave in self._get_leaves():
             q.put(leave)
             touched.add(leave.id)
         while not q.empty():
@@ -175,17 +175,17 @@ class CodePack(CodePackBase):
                 roots.add(n)
         return roots
 
-    def recursive_run(self, code: Code, argpack: Union[ArgPack, dict]) -> None:
+    def _recursive_run(self, code: Code, argpack: Union[ArgPack, dict]) -> None:
         for p in code.parents.values():
             if p.get_state() != 'TERMINATED':
                 code.update_state('WAITING')
-                self.recursive_run(p, argpack)
+                self._recursive_run(p, argpack)
         code.update_state('READY')
         code(**argpack[code.id])
 
     def sync_run(self, argpack: Union[ArgPack, dict]) -> None:
-        for leave in self.get_leaves():
-            self.recursive_run(leave, argpack)
+        for leave in self._get_leaves():
+            self._recursive_run(leave, argpack)
 
     def async_run(self, argpack: Union[ArgPack, dict]) -> None:
         for id, code in self.codes.items():

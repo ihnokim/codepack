@@ -3,8 +3,8 @@ from codepack.codepack import CodePack
 from codepack.config.default import Default
 from codepack.snapshot.code_snapshot import CodeSnapshot
 from codepack.plugin.employee import Employee
-from codepack.argpack.arg import Arg
-from codepack.argpack.argpack import ArgPack
+from codepack.arg import Arg
+from codepack.argpack import ArgPack
 from typing import TypeVar, Optional, Union
 
 

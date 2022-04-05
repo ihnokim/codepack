@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('snapshot', metavar='SNAPSHOT', type=str, help='a JSON file of the snapshot to run')
     parser.add_argument('-c', '--callback', action='append', help='callback functions for the snapshot')
     parser.add_argument('-p', '--path', help='path to the directory including callback functions')
-    parser.add_argument('l', '--logger', help='a logger name to write logs')
+    parser.add_argument('-l', '--logger', help='a logger name to write logs')
     args = parser.parse_args()
     if args.logger:
         logger = Default.get_logger(args.logger)

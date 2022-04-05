@@ -22,8 +22,8 @@ from .dependency.dependency import Dependency
 from .delivery.delivery import Delivery
 from .callback.callback import Callback
 
-from .argpack.arg import Arg
-from .argpack.argpack import ArgPack
+from codepack.arg import Arg
+from codepack.argpack import ArgPack
 
 from .config.config import Config
 from .config.default import Default
