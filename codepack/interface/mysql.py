@@ -1,14 +1,15 @@
+from codepack.interface.sql_interface import SQLInterface
 import pymysql
-from codepack.interface import SQLInterface
 import re
+from typing import Any, Union, Optional
 
 
 class MySQL(SQLInterface):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(config)
         self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
+    def connect(self, *args: Any, **kwargs: Any) -> pymysql.connections.Connection:
         host, port = self.bind(host=self.config['host'], port=self.config['port'])
         _config = self.exclude_keys(self.config, keys=['host', 'port'])
         if 'cursorclass' in _config:
@@ -18,7 +19,7 @@ class MySQL(SQLInterface):
         return self.session
 
     @staticmethod
-    def eval_cursor_object(cursorclass):
+    def eval_cursor_object(cursorclass: Union[str, pymysql.cursors.Cursor]) -> pymysql.cursors.Cursor:
         if type(cursorclass) == str:
             pat = re.compile("\A(pymysql)[.]cursors[.][^.]*(Cursor)\Z")
             assert pat.match(cursorclass), "'cursorclass' should be one of the cursor objects of pymysql"
@@ -26,13 +27,13 @@ class MySQL(SQLInterface):
         else:
             return cursorclass
 
-    def commit(self):
+    def commit(self) -> None:
         self.session.commit()
 
-    def rollback(self):
+    def rollback(self) -> None:
         self.session.rollback()
 
-    def query(self, q, commit=False):
+    def query(self, q: Union[str, list], commit: bool = False) -> Optional[list]:
         assert not self.closed(), "connection is closed"
         columns = None
         rows = None
@@ -49,9 +50,9 @@ class MySQL(SQLInterface):
             rows = cursor.fetchall()
             cursor.close()
             if commit:
-                self.session.commit()
+                self.commit()
         except Exception as e:
-            self.session.rollback()
+            self.rollback()
             raise e
         if cursorclass in [pymysql.cursors.DictCursor, pymysql.cursors.SSDictCursor]:
             return rows
@@ -62,7 +63,7 @@ class MySQL(SQLInterface):
                 return None
 
     @staticmethod
-    def make_insert_query(db, table, update=True, **kwargs):
+    def make_insert_query(db: str, table: str, update: bool = True, **kwargs: Any) -> str:
         columns = kwargs.keys()
         tmp = [kwargs[c] for c in columns]
         values = list()
@@ -81,18 +82,18 @@ class MySQL(SQLInterface):
         q += "values (%s)" % ", ".join(values)
         return q
 
-    def insert(self, db, table, update=True, commit=False, **kwargs):
+    def insert(self, db: str, table: str, update: bool = True, commit: bool = False, **kwargs: Any) -> None:
         q = self.make_insert_query(db=db, table=table, update=update, **kwargs)
         self.query(q, commit=commit)
 
-    def insert_many(self, db, table, rows, update=True, commit=False):
+    def insert_many(self, db: str, table: str, rows: list, update: bool = True, commit: bool = False) -> None:
         qs = list()
         for row in rows:
             qs.append(self.make_insert_query(db=db, table=table, update=update, **row))
         self.query(qs, commit=commit)
 
     @staticmethod
-    def make_select_query(db, table, projection=None, **kwargs):
+    def make_select_query(db: str, table: str, projection: Optional[Union[str, list]] = None, **kwargs: Any) -> str:
         projection_token = '*'
         if projection:
             if type(projection) == list:
@@ -105,11 +106,11 @@ class MySQL(SQLInterface):
             q += MySQL.encode_sql(**kwargs)
         return q
 
-    def select(self, db, table, projection=None, **kwargs):
+    def select(self, db: str, table: str, projection: Optional[Union[str, list]] = None, **kwargs: Any) -> list:
         q = self.make_select_query(db=db, table=table, projection=projection, **kwargs)
         return self.query(q)
 
-    def delete(self, db, table, commit=False, **kwargs):
+    def delete(self, db: str, table: str, commit: bool = False, **kwargs: Any) -> Optional[list]:
         q = "delete from %s.%s" % (db, table)
         if len(kwargs) > 0:
             q += " where "
@@ -118,12 +119,12 @@ class MySQL(SQLInterface):
         else:
             return None
 
-    def call(self, db, procedure, **kwargs):
+    def call(self, db: str, procedure: str, **kwargs: Any) -> list:
         q = self.make_call_query(db, procedure, **kwargs)
         return self.query(q)
 
     @staticmethod
-    def make_call_query(db, procedure, **kwargs):
+    def make_call_query(db: str, procedure: str, **kwargs: Any) -> str:
         q = 'call %s.%s' % (db, procedure)
         tokens = list()
         for k, v in kwargs.items():
@@ -132,7 +133,7 @@ class MySQL(SQLInterface):
             q += '(%s)' % ', '.join(tokens)
         return q
 
-    def close(self):
+    def close(self) -> None:
         if not self.closed():
             self.session.close()
             if self.ssh_config and self.ssh is not None:

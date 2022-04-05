@@ -1,27 +1,33 @@
+from codepack.interface.sql_interface import SQLInterface
 import boto3
 from botocore.config import Config
-from codepack.interface import SQLInterface
+from botocore.client import BaseClient
 from boto3.dynamodb.types import TypeDeserializer
+from typing import Optional, Callable, Any
 
 
 class DynamoDB(SQLInterface):
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: dict, *args: Any, **kwargs: Any) -> None:
         super().__init__(config)
         self.td = TypeDeserializer()
         self.connect(*args, **kwargs)
 
-    def connect(self, *args, **kwargs):
-        self.session = boto3.client(config=Config(retries=dict(max_attempts=3)), *args, **self.config, **kwargs)
+    def connect(self, *args: Any, **kwargs: Any) -> BaseClient:
+        if 'config' not in self.config and 'config' not in kwargs:
+            self.config['config'] = Config(retries=dict(max_attempts=3))
+        self.session = boto3.client(*args, **self.config, **kwargs)
         self._closed = False
         return self.session
 
-    def list_tables(self, name):
+    def list_tables(self, name: str) -> list:
         ret = list()
         if self.session is None:
             return ret
         return self.session.list_tables(ExclusiveStartTableName=name)['TableNames']
 
-    def query(self, table, q, columns=None, preprocess=None, preprocess_args=None, preprocess_kwargs=None, dummy_column='dummy'):
+    def query(self, table: str, q: str, columns: Optional[list] = None, preprocess: Optional[Callable] = None,
+              preprocess_args: Optional[tuple] = None, preprocess_kwargs: Optional[dict] = None,
+              dummy_column: str = 'dummy') -> list:
         if preprocess is None:
             preprocess = self.do_nothing
         if preprocess_args is None:
@@ -44,7 +50,9 @@ class DynamoDB(SQLInterface):
             done = start_key is None
         return items
 
-    def select(self, table, columns=None, preprocess=None, preprocess_args=None, preprocess_kwargs=None, dummy_column='dummy', **kwargs):
+    def select(self, table: str, columns: Optional[list] = None, preprocess: Optional[Callable] = None,
+               preprocess_args: Optional[tuple] = None, preprocess_kwargs: Optional[dict] = None,
+               dummy_column: str = 'dummy', **kwargs: Any) -> list:
         q = str()
         if len(kwargs) > 0:
             q += self.encode_sql(**kwargs)
@@ -52,11 +60,11 @@ class DynamoDB(SQLInterface):
                           preprocess=preprocess, preprocess_args=preprocess_args, preprocess_kwargs=preprocess_kwargs,
                           dummy_column=dummy_column)
 
-    def describe_table(self, table):
+    def describe_table(self, table: str) -> dict:
         return self.session.describe_table(TableName=table)['Table']
 
     @staticmethod
-    def array_parser(s, sep='\x7f', dtype=str):
+    def array_parser(s: Any, sep: str = '\x7f', dtype: type = str) -> Any:
         if type(s) == str:
             tmp = s.split(sep)
             ret = [dtype(i) for i in tmp]
@@ -67,9 +75,9 @@ class DynamoDB(SQLInterface):
         else:
             return s
 
-    def close(self):
+    def close(self) -> None:
         self._closed = True
 
     @staticmethod
-    def do_nothing(x, *args, **kwargs):
+    def do_nothing(x: Any, *args: Any, **kwargs: Any) -> Any:
         return x

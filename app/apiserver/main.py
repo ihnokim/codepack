@@ -1,7 +1,6 @@
-from codepack.scheduler import Scheduler
-from codepack.config import Default
+from codepack import Scheduler, Default
+from codepack.plugin.service import Service
 from fastapi import FastAPI, Request
-from codepack.employee import Supervisor
 from .routers import code, codepack, argpack, scheduler
 from .dependencies import common
 
@@ -26,37 +25,25 @@ async def add_process_time_header(request: Request, call_next):
 async def startup():
     Default.init()
     config = Default.config.get_config(section='apiserver')
-    supervisor = config.get('supervisor', 'self')
     _scheduler = config.get('scheduler', 'self')
-    if isinstance(supervisor, Supervisor):
-        common['supervisor'] = supervisor
-    elif isinstance(supervisor, str):
-        if supervisor == 'self':
-            common['supervisor'] = Default.get_employee('supervisor')
-        else:
-            raise NotImplementedError("supervisor should be 'self', not '%s'")
+    common.add(key='supervisor', value=Default.get_employee('supervisor'), destroy=destroy_supervisor)
     if isinstance(_scheduler, Scheduler):
-        common['scheduler'] = _scheduler
+        common.add(key='scheduler', value=_scheduler, destroy=destroy_scheduler)
         common.scheduler.start()
     elif isinstance(_scheduler, str):
         if _scheduler == 'self':
-            common['scheduler'] = Default.get_scheduler()
+            common.add(key='scheduler', value=Default.get_scheduler(), destroy=destroy_scheduler)
             common.scheduler.start()
         else:
-            common['scheduler'] = _scheduler
+            common.add(key='scheduler', value=_scheduler)
 
 
 @app.on_event('shutdown')
 async def shutdown():
-    common.supervisor.producer.close()
-    for service in Default.instances.values():
-        if hasattr(service, 'mongodb'):
-            service.mongodb.close()
-    if isinstance(common.scheduler, Scheduler):
-        if common.scheduler.is_running():
-            common.scheduler.stop()
-        if hasattr(common.scheduler, 'mongodb'):
-            common.scheduler.mongodb.close()
+    for instance in Default.instances.values():
+        if isinstance(instance, Service):
+            instance.storage.close()
+    common.clear()
 
 
 @app.get('/organize')
@@ -69,3 +56,13 @@ async def organize():
 async def organize(serial_number: str):
     common.supervisor.organize(serial_number=serial_number)
     return None
+
+
+def destroy_supervisor(x):
+    x.close()
+
+
+def destroy_scheduler(x):
+    if isinstance(x, Scheduler):
+        if x.is_running():
+            x.stop()

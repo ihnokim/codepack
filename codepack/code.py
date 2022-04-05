@@ -1,30 +1,39 @@
-import inspect
+from codepack.config.default import Default
+from codepack.base.code_base import CodeBase
+from codepack.dependency.dependency import Dependency
+from codepack.plugin.dependency_bag import DependencyBag
+from codepack.callback.callback import Callback
 from collections.abc import Iterable, Callable
-import dill
-from codepack.config import Default
-from codepack.base import CodeBase
-import re
-import ast
-from collections import OrderedDict
-from datetime import datetime
-from codepack.dependency import Dependency, DependencyManager
-from codepack.snapshot import CodeSnapshot
+from functools import partial
+from typing import Any, TypeVar, Union, Optional
+
+
+CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.snapshot.code_snapshot.CodeSnapshot')
+DeliveryService = TypeVar('DeliveryService', bound='codepack.plugin.delivery_service.DeliveryService')
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugin.snapshot_service.SnapshotService')
+StorageService = TypeVar('StorageService', bound='codepack.plugin.storage_service.StorageService')
+State = TypeVar('State', bound='codepack.snapshot.state.State')
 
 
 class Code(CodeBase):
-    def __init__(self, function=None, source=None, id=None, serial_number=None, dependency=None,
-                 config_path=None, delivery_service=None, snapshot_service=None, storage_service=None,
-                 state=None, callback=None):
+    def __init__(self, function: Optional[Callable] = None, source: Optional[str] = None,
+                 id: Optional[str] = None, serial_number: Optional[str] = None,
+                 dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
+                 delivery_service: Optional[DeliveryService] = None,
+                 snapshot_service: Optional[SnapshotService] = None,
+                 storage_service: Optional[StorageService] = None,
+                 state: Optional[Union[State, str]] = None, callback: Optional[Union[list, Callable, Callback]] = None,
+                 env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None) -> None:
         super().__init__(id=id, serial_number=serial_number)
-        self.function = None
-        self.source = None
-        self.description = None
         self.parents = None
         self.children = None
         self.dependency = None
         self.config_path = None
         self.service = None
-        self.callback = None
+        self.callbacks = dict()
+        self.env = None
+        self.image = None
+        self.owner = None
         self.init_service(delivery_service=delivery_service,
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
@@ -34,63 +43,89 @@ class Code(CodeBase):
             self.id = self.function.__name__
         self.init_linkage()
         self.init_dependency(dependency=dependency)
-        self.register(callback=callback)
+        self.register_callback(callback=callback)
+        self._set_str_attr(key='env', value=env)
+        self._set_str_attr(key='image', value=image)
+        self._set_str_attr(key='owner', value=owner)
         self.update_state(state)
 
-    def init_linkage(self):
+    def init_linkage(self) -> None:
         self.parents = dict()
         self.children = dict()
 
-    def init_dependency(self, dependency=None):
-        self.dependency = DependencyManager(code=self)
+    def init_dependency(self, dependency: Optional[Union[Dependency, dict, Iterable]] = None) -> None:
+        self.dependency = DependencyBag(code=self)
         if dependency:
             self.add_dependency(dependency=dependency)
 
-    def init_service(self, delivery_service=None, snapshot_service=None, storage_service=None, config_path=None):
+    def init_service(self, delivery_service: Optional[DeliveryService] = None,
+                     snapshot_service: Optional[DeliveryService] = None,
+                     storage_service: Optional[DeliveryService] = None, config_path: Optional[str] = None) -> None:
         self.service = dict()
         self.service['delivery'] =\
-            delivery_service if delivery_service else Default.get_storage_instance('delivery', 'delivery_service',
-                                                                                   config_path=config_path)
+            delivery_service if delivery_service else Default.get_service('delivery', 'delivery_service',
+                                                                          config_path=config_path)
         self.service['snapshot'] =\
-            snapshot_service if snapshot_service else Default.get_storage_instance('code_snapshot', 'snapshot_service',
-                                                                                   config_path=config_path)
+            snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service',
+                                                                          config_path=config_path)
         self.service['storage'] =\
-            storage_service if storage_service else Default.get_storage_instance('code', 'storage_service',
-                                                                                 config_path=config_path)
+            storage_service if storage_service else Default.get_service('code', 'storage_service',
+                                                                        config_path=config_path)
 
-    def register(self, callback):
-        self.callback = callback
+    def _set_str_attr(self, key: str, value: str) -> None:
+        if value is None or value == 'None' or value == 'null':
+            _value = None
+        else:
+            _value = value
+        setattr(self, key, _value)
 
-    @staticmethod
-    def get_source(function):
-        assert isinstance(function, Callable), "'function' should be an instance of Callable"
-        assert function.__name__ != '<lambda>', "Invalid function '<lambda>'"
-        assert hasattr(function, '__code__'), "'function' should have an attribute '__code__'"
-        assert function.__code__.co_filename != '<string>', "'function' should not be defined in <string>"
-        source = None
-        for test in [inspect.getsource, dill.source.getsource]:
-            try:
-                source = test(function)
-            except Exception:  # pragma: no cover
-                pass  # pragma: no cover
-            if source is not None:
-                break
-        return source
+    def register_callback(self, callback: Union[list, Callable, Callback],
+                          name: Optional[Union[list, str]] = None) -> None:
+        if isinstance(callback, list):
+            if isinstance(name, list):
+                if len(callback) != len(name):
+                    raise IndexError('len(callback) != len(name): %s != %s' % (len(callback), len(name)))
+                else:
+                    for c, n in zip(callback, name):
+                        self.register_callback(callback=c, name=n)
+            elif isinstance(name, str):
+                if len(callback) == 1:
+                    self.register_callback(callback=callback[0], name=name)
+                else:
+                    raise IndexError('len(callback) != len(name): %s != 1' % len(callback))
+            elif name is None:
+                for c in callback:
+                    self.register_callback(callback=c)
+            else:
+                raise TypeError(type(name))
+        elif isinstance(callback, Callable):
+            if isinstance(name, list):
+                _name = name[0]
+            elif isinstance(name, str):
+                _name = name
+            elif name is None:
+                if isinstance(callback, partial):
+                    _name = callback.func.__name__
+                elif isinstance(callback, Callback):
+                    _name = callback.function.__name__
+                else:
+                    _name = callback.__name__
+            else:
+                raise TypeError(type(name))
+            self.callbacks[_name] = callback
+        elif callback is None:
+            pass
+        else:
+            raise TypeError(type(callback))
 
-    @staticmethod
-    def get_function(source):
-        pat = re.compile('^(\\s*def\\s.+[(].*[)].*[:])|(\\s*async\\s+def\\s.+[(].*[)].*[:])')
-        assert pat.match(source), "'source' is not a function"
-        tree = ast.parse(source, mode='exec')
-        n_function = sum(isinstance(exp, ast.FunctionDef) for exp in tree.body)
-        # needs to count all other instances, and assert that there is only one FunctionDef
-        assert n_function == 1, "'source' should contain only one function."
-        namespace = dict()
-        # code = compile(tree, filename='blah', mode='exec')
-        exec(source, namespace)
-        return namespace[tree.body[0].name]
+    def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
+        for callback in self.callbacks.values():
+            d = {'serial_number': self.serial_number, 'state': state if state else self.get_state()}
+            if message:
+                d['message'] = message
+            callback(d)
     
-    def set_function(self, function=None, source=None):
+    def set_function(self, function: Optional[Callable] = None, source: Optional[str] = None) -> None:
         if source:
             source = source.strip()
             self.function = self.get_function(source)
@@ -106,19 +141,19 @@ class Code(CodeBase):
             raise AssertionError("either 'function' or 'source' should not be None")
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
-    def link(self, other):
+    def link(self, other: 'Code') -> None:
         self.children[other.id] = other
         other.parents[self.id] = self
         if self.serial_number not in other.dependency:
             other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
 
-    def unlink(self, other):
+    def unlink(self, other: 'Code') -> None:
         other.parents.pop(self.id, None)
         self.children.pop(other.id, None)
         if self.serial_number in other.dependency:
             other.remove_dependency(self.serial_number)
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: Union['Code', Iterable]) -> Union['Code', Iterable]:
         if isinstance(other, self.__class__):
             self.link(other)
         elif isinstance(other, Iterable):
@@ -128,7 +163,7 @@ class Code(CodeBase):
             raise TypeError(type(other))  # pragma: no cover
         return other
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, other: Union['Code', Iterable]) -> Union['Code', Iterable]:
         if isinstance(other, self.__class__):
             self.unlink(other)
         elif isinstance(other, Iterable):
@@ -138,7 +173,7 @@ class Code(CodeBase):
             raise TypeError(type(other))  # pragma: no cover
         return other
 
-    def update_serial_number(self, serial_number):
+    def update_serial_number(self, serial_number: str) -> None:
         for c in self.children.values():
             if self.serial_number in c.dependency:
                 d = c.dependency[self.serial_number]
@@ -147,19 +182,10 @@ class Code(CodeBase):
                 c.add_dependency(d)
         self.serial_number = serial_number
 
-    def get_args(self):
-        ret = OrderedDict()
-        argspec = inspect.getfullargspec(self.function)
-        args = argspec.args
-        defaults = dict(zip(args[-len(argspec.defaults):], argspec.defaults)) if argspec.defaults else dict()
-        for arg in args:
-            if arg in defaults:
-                ret[arg] = defaults[arg]
-            else:
-                ret[arg] = None
-        return ret
+    def get_args(self) -> dict:
+        return super().get_args(function=self.function)
 
-    def print_args(self):
+    def print_args(self) -> str:
         ret = '('
         for i, (arg, value) in enumerate(self.get_args().items()):
             if i:
@@ -170,105 +196,125 @@ class Code(CodeBase):
         ret += ')'
         return ret
 
-    def get_info(self, state=True):
-        ret = '%s(id: %s, function: %s, args: %s, receive: %s'
-        if state:
-            ret += ', state: %s)'
-            return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(),
-                          self.dependency.get_args(),
-                          self.get_state())
-        else:
-            ret += ')'
-            return ret % (self.__class__.__name__, self.id, self.function.__name__,
-                          self.print_args(),
-                          self.dependency.get_args())
+    @classmethod
+    def blueprint(cls, s: str) -> str:
+        ret = 'Code(id: {id}, function: {function}, args: {args}, receive: {receive}'
+        for additional_item in ['env', 'image', 'owner', 'state']:
+            if ', %s:' % additional_item in s:
+                ret += ', %s: {%s}' % (additional_item, additional_item)
+        ret += ')'
+        return ret
 
-    def __str__(self):
+    def get_info(self, state: bool = True) -> str:
+        ret = '%s(id: %s, function: %s, args: %s, receive: %s' % (self.__class__.__name__,
+                                                                  self.id, self.function.__name__,
+                                                                  self.print_args(), self.dependency.get_args())
+        for additional_item in ['env', 'image', 'owner']:
+            item = getattr(self, additional_item)
+            if item:
+                ret += ', %s: %s' % (additional_item, item)
+        if state:
+            ret += ', state: %s' % self.get_state()
+        ret += ')'
+        return ret
+
+    def __str__(self) -> str:
         return self.get_info(state=False)  # pragma: no cover
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover
 
-    def update_state(self, state, timestamp=None, args=None, kwargs=None):
+    def update_state(self, state: Union[State, str], timestamp: Optional[float] = None,
+                     args: Optional[tuple] = None, kwargs: Optional[dict] = None, message: str = '') -> None:
         if state:
-            snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp)
+            snapshot = self.to_snapshot(args=args, kwargs=kwargs, timestamp=timestamp, message=message)
             snapshot['state'] = state
             self.service['snapshot'].save(snapshot)
-            if self.callback:
-                self.callback({'serial_number': self.serial_number, 'state': state})
+            self.run_callback(state=state, message=message)
 
-    def get_state(self):
+    def get_state(self) -> str:
         ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'state'})
         if ret:
             return ret['state']
         else:
             return 'UNKNOWN'
 
-    def send_result(self, item, timestamp=None):
+    def get_message(self) -> str:
+        ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'message'})
+        if ret:
+            return ret['message']
+        else:
+            return ''
+
+    def send_result(self, item: Any, timestamp: Optional[float] = None) -> None:
         self.service['delivery'].send(id=self.id, serial_number=self.serial_number, item=item, timestamp=timestamp)
 
-    def get_result(self, serial_number=None):
+    def get_result(self, serial_number: Optional[str] = None) -> Any:
         serial_number = serial_number if serial_number else self.serial_number
         return self.service['delivery'].receive(serial_number=serial_number)
 
-    def save(self, update=False):
+    def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
 
-    def receive(self, arg):
+    def receive(self, arg: str) -> Dependency:
         self.assert_arg(arg)
         return Dependency(code=self, arg=arg)
 
-    def assert_arg(self, arg):
+    def assert_arg(self, arg: str) -> None:
         if arg and arg not in self.get_args():
             raise AssertionError("'%s' is not an argument of %s" % (arg, self.function))
 
-    def add_dependency(self, dependency):
+    def add_dependency(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         self.dependency.add(dependency=dependency)
 
-    def remove_dependency(self, serial_number):
+    def remove_dependency(self, serial_number: str) -> None:
         self.dependency.remove(serial_number)
 
-    def __call__(self, *args, **kwargs):
-        try:
-            dependency_state = self.dependency.get_state()
-            if dependency_state == 'RESOLVED':
-                for dependency in self.dependency.values():
-                    if dependency.arg and dependency.arg not in kwargs:
-                        kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
-                self.update_state('RUNNING', args=args, kwargs=kwargs)
-                ret = self.function(*args, **kwargs)
-                now = datetime.now().timestamp()
-                self.send_result(item=ret, timestamp=now)
-                self.update_state('TERMINATED', args=args, kwargs=kwargs, timestamp=now)
-                return ret
-            elif dependency_state == 'PENDING':
-                self.update_state('WAITING', args=args, kwargs=kwargs)
-                return None
-            elif dependency_state == 'ERROR':
-                self.update_state('ERROR', args=args, kwargs=kwargs)
-                return None
-            else:
-                raise NotImplementedError(dependency_state)  # pragma: no cover
-        except Exception as e:
-            self.update_state('ERROR', args=args, kwargs=kwargs)
-            raise e
+    def check_dependency(self) -> str:
+        return self.dependency.get_state()
 
-    def to_dict(self):
+    def _run(self, *args: Any, **kwargs: Any) -> Any:
+        for dependency in self.dependency.values():
+            if dependency.arg and dependency.arg not in kwargs:
+                kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
+        ret = self.function(*args, **kwargs)
+        self.send_result(item=ret)
+        return ret
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        ret = None
+        try:
+            state = self.check_dependency()
+            self.update_state(state, args=args, kwargs=kwargs)
+            if state == 'READY':
+                self.update_state('RUNNING', args=args, kwargs=kwargs)
+                ret = self._run(*args, **kwargs)
+                self.update_state('TERMINATED', args=args, kwargs=kwargs)
+        except Exception as e:
+            self.update_state('ERROR', args=args, kwargs=kwargs, message=str(e))
+            raise e
+        return ret
+
+    def to_dict(self) -> dict:
         d = dict()
         d['_id'] = self.id
         d['source'] = self.source
         d['description'] = self.description
+        d['env'] = self.env
+        d['image'] = self.image
+        d['owner'] = self.owner
         return d
 
     @classmethod
-    def from_dict(cls, d):
-        return cls(id=d['_id'], source=d['source'])
+    def from_dict(cls, d: dict) -> 'Code':
+        return cls(id=d['_id'], source=d['source'],
+                   env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None))
 
-    def to_snapshot(self, *args, **kwargs):
-        return CodeSnapshot(self, *args, **kwargs)
+    def to_snapshot(self, *args: Any, **kwargs: Any) -> CodeSnapshot:
+        return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
 
     @classmethod
-    def from_snapshot(cls, snapshot):
+    def from_snapshot(cls, snapshot: CodeSnapshot) -> 'Code':
         return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
-                   state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'])
+                   state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
+                   env=snapshot['env'], image=snapshot['image'], owner=snapshot['owner'])

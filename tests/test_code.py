@@ -16,14 +16,33 @@ def test_print_args(default_os_env):
 
 
 def test_print_info(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add3)
+    code1 = Code(add2, env='test-env')
+    code2 = Code(add3, image='test-image', owner='admin')
     code1 >> code2
     code2.receive('b') << code1
-    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}, state: UNKNOWN)"
-    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {})"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'})"
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                               " env: test-env, state: UNKNOWN)"
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " image: test-image, owner: admin, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}, env: test-env)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                                          " image: test-image, owner: admin)"
+    code1.image = 'test-image2'
+    code1.owner = 'admin2'
+    assert code1.get_info() == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                               " env: test-env, image: test-image2, owner: admin2, state: UNKNOWN)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, args: (a, b), receive: {}," \
+                                          " env: test-env, image: test-image2, owner: admin2)"
+    code2.owner = None
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " image: test-image, state: UNKNOWN)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                                          " image: test-image)"
+    code2.image = None
+    assert code2.get_info() == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'}," \
+                               " state: UNKNOWN)"
+    assert code2.get_info(
+        state=False) == "Code(id: add3, function: add3, args: (a, b, c=2), receive: {'b': 'add2'})"
 
 
 def test_get_function_from_source(default_os_env):
@@ -149,7 +168,7 @@ def test_dependency_error_propagation(default_os_env):
     assert code1.get_state() == 'ERROR'
     ret = code3(1, 2, 3)
     assert ret is None
-    assert code3.get_state() == 'ERROR'
+    assert code3.get_state() == 'WAITING'
 
 
 def test_validate_dependency_result(default_os_env):
@@ -165,29 +184,25 @@ def test_validate_dependency_result(default_os_env):
     code2.service['delivery'].cancel(code2.serial_number)
     ret = code3(a=3)
     assert ret is None
-    assert code3.get_state() == 'WAITING'
+    assert code3.get_state() == 'ERROR'
     code2(3, 4)
     code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
     ret = code3(a=3)
-    assert ret is None
-    assert code3.get_state() == 'WAITING'
+    assert ret is 7
+    assert code3.get_state() == 'TERMINATED'
     code2(3, 4)
     snapshots = code3.dependency.load_snapshot()
-    deliveries = code3.dependency.check_delivery()
     assert len(snapshots) == 2
-    assert len(deliveries) == 2
+    assert code3.dependency.check_delivery() is True
     snapshot_dict = {x['_id']: x for x in snapshots}
     code2_state_info = snapshot_dict.pop(code2.serial_number)
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
-    update_time = code2_state_info.pop('timestamp')
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'WAITING'
     snapshot_dict[code2.serial_number] = code2_state_info
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=deliveries) == 'PENDING'
-    snapshot_dict[code2.serial_number]['timestamp'] = update_time
-    delivery_dict = {x['_id']: x for x in deliveries}
-    send_time = delivery_dict[code2.serial_number].pop('timestamp')
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'PENDING'
-    delivery_dict[code2.serial_number]['timestamp'] = send_time
-    assert code3.dependency.validate_delivery(snapshot=snapshot_dict.values(), delivery=delivery_dict.values()) == 'RESOLVED'
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
+    code2.service['delivery'].cancel(code2.serial_number)
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'ERROR'
+    code2.service['delivery'].send(id='dummy', serial_number=code2.serial_number, item=123)
+    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
 
 
 def test_default_arg(default_os_env):

@@ -1,4 +1,4 @@
-from codepack.docker import DockerManager
+from codepack import DockerManager
 
 
 def test_make_dockerfile(testdir_docker_manager):
@@ -21,7 +21,7 @@ def test_combine_requirements():
 
 def test_extract_requirements_from_file():
     requirements = DockerManager.extract_requirements_from_file('requirements.txt')
-    assert requirements == ['dill==0.3.4', 'pymongo==3.12.1', 'numpy',
+    assert requirements == ['dill==0.3.4', 'pymongo==3.12.1', 'numpy', 'pandas',
                             'sshtunnel==0.4.0', 'PyMySQL==1.0.2', 'pymssql==2.2.2',
                             'boto3==1.19.6', 'cx-Oracle==8.2.1', 'parse==1.19.0',
                             'APScheduler==3.8.1', 'kafka-python==2.0.2',

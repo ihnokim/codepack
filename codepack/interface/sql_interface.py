@@ -1,11 +1,12 @@
+from codepack.interface.interface import Interface
 import abc
 import numpy as np
-from codepack.interface import Interface
+from typing import Optional, Any
 
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):
     @staticmethod
-    def isnan(value):
+    def isnan(value: Any) -> bool:
         ret = False
         try:
             ret = np.isnan(value)
@@ -15,14 +16,15 @@ class SQLInterface(Interface, metaclass=abc.ABCMeta):
             return ret
 
     @staticmethod
-    def _enclose(token, mark="'", apply=True):
+    def _enclose(token: str, mark: str = "'", apply: bool = True) -> str:
         if apply:
             return mark + token + mark
         else:
             return token
 
     @staticmethod
-    def encode_sql(custom_op=None, default_joint='and', custom_joint='and', **kwargs):
+    def encode_sql(custom_op: Optional[dict] = None,
+                   default_joint: str = 'and', custom_joint: str = 'and', **kwargs: Any) -> str:
         tokens = list()
         for k, v in kwargs.items():
             if type(v) is list:
@@ -33,7 +35,6 @@ class SQLInterface(Interface, metaclass=abc.ABCMeta):
                 quote = True if type(v) == str else False
                 template = k + ' = %s' % SQLInterface._enclose('%s', mark="'", apply=quote)
                 tokens.append(template % v)
-
         if custom_op:
             for k, v in custom_op.items():
                 custom_tokens = list()

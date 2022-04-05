@@ -1,0 +1,4 @@
+codepack
+jupyter
+uvicorn[standard]
+fastapi

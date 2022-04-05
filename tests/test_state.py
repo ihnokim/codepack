@@ -1,6 +1,5 @@
-from codepack import Code
+from codepack import Code, State, Snapshot
 from tests import *
-from codepack.snapshot import Snapshot, State
 
 
 def test_state_eq():

@@ -1,8 +1,11 @@
-import pytest
+from codepack import Default, Delivery
 from codepack.interface import MongoDB
+from codepack.storage import MemoryMessenger
+import pytest
 import os
 import mongomock
-from codepack.config import Default
+
+
 from shutil import rmtree
 from glob import glob
 
@@ -29,12 +32,14 @@ def empty_dir(directory):
 
 @pytest.fixture(scope='function', autouse=False)
 def default_os_env():
-    os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
-    Default.get_storage_instance('delivery', 'delivery_service').init()
-    Default.get_storage_instance('code_snapshot', 'snapshot_service').init()
-    Default.get_storage_instance('code', 'storage_service').init()
-    Default.get_storage_instance('codepack', 'storage_service').init()
+    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+    os.environ['CODEPACK_CONFIG_PATH'] = 'test.ini'
+    Default.get_service('delivery', 'delivery_service').storage.init()
+    Default.get_service('code_snapshot', 'snapshot_service').storage.init()
+    Default.get_service('code', 'storage_service').storage.init()
+    Default.get_service('codepack', 'storage_service').storage.init()
     yield
+    os.environ.pop('CODEPACK_CONFIG_DIR', None)
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 
 
@@ -91,15 +96,25 @@ def testdir_docker_manager():
     empty_dir(directory)
 
 
+@pytest.fixture(scope='function', autouse=False)
+def testdir_file_storage():
+    directory = 'testdir/file_storage/'
+    empty_dir(directory)
+    yield directory
+    empty_dir(directory)
+
+
 @pytest.fixture(scope='function', autouse=True)
 def init_default():
-    Default.init()
+    Default.alias = None
+    Default.config = None
+    Default.instances = dict()
+    MemoryMessenger.destroy()
 
 
 @pytest.fixture(scope='function', autouse=False)
-def default():
-    os.environ['CODEPACK_ALIAS_PATH'] = 'config/alias.ini'
-    Default.init()
-    yield Default
-    Default.init()
-    os.environ.pop('CODEPACK_ALIAS_PATH', None)
+def dummy_deliveries():
+    obj1 = Delivery(id='obj1', serial_number='123', item='x')
+    obj2 = Delivery(id='obj2', serial_number='456', item='y')
+    obj3 = Delivery(id='obj3', serial_number='789', item='y')
+    yield [obj1, obj2, obj3]
