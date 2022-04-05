@@ -44,9 +44,9 @@ class Code(CodeBase):
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register_callback(callback=callback)
-        self.set_str_attr(key='env', value=env)
-        self.set_str_attr(key='image', value=image)
-        self.set_str_attr(key='owner', value=owner)
+        self._set_str_attr(key='env', value=env)
+        self._set_str_attr(key='image', value=image)
+        self._set_str_attr(key='owner', value=owner)
         self.update_state(state)
 
     def init_linkage(self) -> None:
@@ -72,7 +72,7 @@ class Code(CodeBase):
             storage_service if storage_service else Default.get_service('code', 'storage_service',
                                                                         config_path=config_path)
 
-    def set_str_attr(self, key: str, value: str) -> None:
+    def _set_str_attr(self, key: str, value: str) -> None:
         if value is None or value == 'None' or value == 'null':
             _value = None
         else:
