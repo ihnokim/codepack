@@ -89,6 +89,9 @@ class FileStorage(Storage):
                 ret.append(item)
         return ret
 
+    def list_all(self) -> list:
+        return [filename.replace('.json', '') for filename in os.listdir(self.path)]
+
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)

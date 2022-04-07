@@ -31,6 +31,10 @@ class Storage(metaclass=abc.ABCMeta):
         """search by key and value"""
 
     @abc.abstractmethod
+    def list_all(self) -> list:
+        """list all keys"""
+
+    @abc.abstractmethod
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         """save item"""
 

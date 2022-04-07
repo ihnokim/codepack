@@ -71,3 +71,21 @@ def test_mongo_storage(fake_mongodb, dummy_deliveries):
     storage.close()
     assert not tmp.closed()
     assert storage.mongodb is None
+
+
+def test_mongo_storage_list_all(fake_mongodb, dummy_deliveries):
+    test_db = 'test'
+    test_collection = 'storage'
+    storage = MongoStorage(item_type=Delivery, key='id', mongodb=fake_mongodb, db=test_db, collection=test_collection)
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries)
+    dummy_keys = [d.id for d in dummy_deliveries]
+    all_keys = storage.list_all()
+    tmp = sorted([d['id'] for d in storage.mongodb[test_db][test_collection].find()])
+    assert tmp == sorted(all_keys)
+    assert sorted(all_keys) == sorted(dummy_keys)
+    all_items = storage.load(key=all_keys)
+    assert type(all_items) == list and len(all_items) == 3
+    assert sorted([d.id for d in all_items]) == sorted(all_keys)
+    storage.remove(key=all_keys)
+    assert storage.mongodb[test_db][test_collection].count_documents({}) == len(storage.list_all()) == 0

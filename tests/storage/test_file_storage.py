@@ -67,3 +67,19 @@ def test_file_storage(testdir_file_storage, dummy_deliveries):
     storage.new_path = True
     storage.close()
     assert not os.path.exists(testdir_file_storage)
+
+
+def test_file_storage_list_all(testdir_file_storage, dummy_deliveries):
+    storage = FileStorage(item_type=Delivery, key='id', path=testdir_file_storage)
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries)
+    tmp = sorted(os.listdir(testdir_file_storage))
+    assert tmp == sorted(['%s.json' % d.id for d in dummy_deliveries])
+    dummy_keys = [d.id for d in dummy_deliveries]
+    all_keys = storage.list_all()
+    assert sorted(all_keys) == sorted(dummy_keys)
+    all_items = storage.load(key=all_keys)
+    assert type(all_items) == list and len(all_items) == 3
+    assert sorted([d.id for d in all_items]) == sorted(all_keys)
+    storage.remove(key=all_keys)
+    assert len(os.listdir(testdir_file_storage)) == len(storage.list_all()) == 0

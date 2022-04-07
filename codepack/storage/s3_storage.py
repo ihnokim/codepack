@@ -3,6 +3,7 @@ from codepack.storage.storage import Storage
 from codepack.storage.storable import Storable
 from typing import Type, Union, Optional, Any
 from posixpath import join
+import os
 
 
 class S3Storage(Storage):
@@ -82,6 +83,10 @@ class S3Storage(Storage):
             except Exception:
                 continue
         return ret
+
+    def list_all(self) -> list:
+        all_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, ''))
+        return [os.path.basename(obj['Key']).replace('.json', '') for obj in all_obj_info]
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):

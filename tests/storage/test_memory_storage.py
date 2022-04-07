@@ -61,3 +61,18 @@ def test_memory_storage(dummy_deliveries):
     assert set(load_result[1].keys()) == {'id', '_id', 'timestamp'}
     storage.close()
     assert not storage.memory
+
+
+def test_memory_storage_list_all(dummy_deliveries):
+    storage = MemoryStorage(item_type=Delivery, key='id')
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries)
+    dummy_keys = sorted([d.id for d in dummy_deliveries])
+    all_keys = sorted(storage.list_all())
+    assert sorted(storage.memory.keys()) == dummy_keys
+    assert all_keys == dummy_keys
+    all_items = storage.load(key=all_keys)
+    assert type(all_items) == list and len(all_items) == 3
+    assert sorted([d.id for d in all_items]) == all_keys
+    storage.remove(key=all_keys)
+    assert len(storage.memory) == len(storage.list_all()) == 0
