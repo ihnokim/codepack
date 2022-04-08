@@ -23,13 +23,21 @@ class Scheduler:
         self.jobstores = dict()
         if jobstore:
             self.jobstores['codepack'] = jobstore
+        self.blocking = blocking
         self.callback = None
-        self.init_scheduler(blocking=blocking)
         self.register(callback)
+        self.init_scheduler(blocking=self.blocking)
+        self._shutdown = False
         if isinstance(supervisor, str) or isinstance(supervisor, Supervisor) or supervisor is None:
             self.init_supervisor(supervisor=supervisor)
         else:
             raise TypeError(type(supervisor))
+
+    def init_scheduler(self, **kwargs: Any) -> None:
+        if self.blocking:
+            self.scheduler = BlockingScheduler(jobstores=self.jobstores, **kwargs)
+        else:
+            self.scheduler = BackgroundScheduler(jobstores=self.jobstores, **kwargs)
 
     @classmethod
     def init_supervisor(cls, supervisor: Optional[Union[Supervisor, str]] = None):
@@ -44,17 +52,12 @@ class Scheduler:
         except KeyboardInterrupt:
             self.stop()
 
-    def init_scheduler(self, blocking: bool = False, **kwargs: Any) -> None:
-        if blocking:
-            self.scheduler = BlockingScheduler(jobstores=self.jobstores, **kwargs)
-        else:
-            self.scheduler = BackgroundScheduler(jobstores=self.jobstores, **kwargs)
-
     def is_running(self) -> bool:
         return self.scheduler.running
 
     def stop(self) -> None:
-        self.scheduler.shutdown()
+        if self.scheduler:
+            self.scheduler.shutdown()
 
     def add_job(self, func: Callable, job_id: str, trigger: Union[BaseTrigger, str], **kwargs: Any) -> Job:
         return self.scheduler.add_job(func=func, id=job_id, trigger=trigger, jobstore='codepack', **kwargs)
