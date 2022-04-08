@@ -1,6 +1,6 @@
 from unittest.mock import patch
 from codepack import Code, CodePack, Scheduler, JobStore, StorableJob
-from codepack.storage import MemoryStorage, FileStorage, MongoStorage, S3Storage
+from codepack.storages import MemoryStorage, FileStorage, MongoStorage, S3Storage
 from tests import *
 
 

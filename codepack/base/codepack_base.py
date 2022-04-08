@@ -1,5 +1,5 @@
-from codepack.storage.storable import Storable
-from codepack.snapshot.snapshotable import Snapshotable
+from codepack.storages.storable import Storable
+from codepack.plugins.snapshots.snapshotable import Snapshotable
 import abc
 from typing import Optional
 
