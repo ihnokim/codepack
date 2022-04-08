@@ -1,4 +1,4 @@
-from codepack.storage.storable import Storable
+from codepack.storages.storable import Storable
 from typing import Optional, Any, TypeVar, Iterator
 
 

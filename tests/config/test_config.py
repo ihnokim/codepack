@@ -1,5 +1,5 @@
 from codepack import Code, Config, Default, DeliveryService, SnapshotService, StorageService
-from codepack.storage import MemoryStorage, FileStorage, MongoStorage
+from codepack.storages import MemoryStorage, FileStorage, MongoStorage
 from tests import *
 from unittest.mock import patch
 import pytest
@@ -348,7 +348,7 @@ def test_config_dir():
         os.environ.pop('CODEPACK_CONFIG_DIR', None)
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_without_anything(parse_config):
     config = Config()
     ret = config.get_config('worker')
@@ -362,7 +362,7 @@ def test_get_config_without_anything(parse_config):
                       'config_path': config.get_default_config_path()}
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_without_anything_but_os_env(parse_config):
     os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
     try:
@@ -380,7 +380,7 @@ def test_get_config_without_anything_but_os_env(parse_config):
         os.environ.pop('CODEPACK_CONFIG_PATH')
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_without_anything_but_method_argument(parse_config):
     config = Config()
     ret = config.get_config('worker', config_path='config/test.ini')
@@ -388,7 +388,7 @@ def test_get_config_without_anything_but_method_argument(parse_config):
     parse_config.assert_called_once_with(section='worker', config_path='config/test.ini')
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_with_constructor_argument(parse_config):
     config = Config(config_path='config/test.ini')
     ret = config.get_config('worker')
@@ -396,7 +396,7 @@ def test_get_config_with_constructor_argument(parse_config):
     parse_config.assert_called_once_with(section='worker', config_path='config/test.ini')
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_with_constructor_argument_and_os_env(parse_config):
     try:
         os.environ['CODEPACK_CONFIG_PATH'] = 'config/codepack.ini'
@@ -408,7 +408,7 @@ def test_get_config_with_constructor_argument_and_os_env(parse_config):
         os.environ.pop('CODEPACK_CONFIG_PATH')
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_with_constructor_argument_and_method_argument(parse_config):
     config = Config(config_path='config/test.ini')
     ret = config.get_config('worker', config_path='config/codepack.ini')
@@ -416,7 +416,7 @@ def test_get_config_with_constructor_argument_and_method_argument(parse_config):
     parse_config.assert_called_once_with(section='worker', config_path='config/codepack.ini')
 
 
-@patch('codepack.config.config.Config.parse_config')
+@patch('codepack.utils.config.config.Config.parse_config')
 def test_get_config_with_method_argument_and_os_env(parse_config):
     try:
         os.environ['CODEPACK_CONFIG_PATH'] = 'config/codepack.ini'

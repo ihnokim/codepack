@@ -1,4 +1,4 @@
-from codepack.utils import Common
+from codepack import Common
 
 
 common = Common()

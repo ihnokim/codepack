@@ -1,6 +1,6 @@
 from codepack import Default, Delivery
-from codepack.interface import MongoDB
-from codepack.storage import MemoryMessenger
+from codepack.interfaces import MongoDB
+from codepack.storages import MemoryMessenger
 import pytest
 import os
 import mongomock

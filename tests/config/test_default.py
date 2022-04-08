@@ -1,4 +1,4 @@
-from codepack.storage import MemoryStorage, FileStorage, MongoStorage, MemoryMessenger
+from codepack.storages import MemoryStorage, FileStorage, MongoStorage, MemoryMessenger
 from codepack import DeliveryService, CallbackService, SnapshotService,\
     Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, JobStore, StorableJob
 from unittest.mock import patch
@@ -42,7 +42,7 @@ def test_default_init_with_config_path():
 
 def test_default_init_with_config_path_and_alias_path_os_env():
     try:
-        os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/config/default/alias.ini'
+        os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/utils/config/default/alias.ini'
         Default(config_path='config/test.ini')
         assert len(Default.instances) == 0
         assert Default.config is not None
@@ -54,7 +54,7 @@ def test_default_init_with_config_path_and_alias_path_os_env():
 
 
 def test_default_init_with_alias_path():
-    Default(alias_path='codepack/config/default/alias.ini')
+    Default(alias_path='codepack/utils/config/default/alias.ini')
     assert len(Default.instances) == 0
     assert Default.config is not None
     assert Default.config.config_path is None
@@ -96,14 +96,14 @@ def test_default_get_class_from_alias():
         os.environ.pop('CODEPACK_ALIAS_MEMORY_STORAGE', None)
         Default.config = None
         Default.alias = None
-        os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/config/default/alias.ini'
+        os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/utils/config/default/alias.ini'
         memory_storage = Default.get_class_from_alias(alias='memory_storage')
         assert isinstance(memory_storage, MemoryStorage.__class__)
         os.environ.pop('CODEPACK_ALIAS_PATH', None)
         Default.config = None
         Default.alias = None
         memory_storage = Default.get_class_from_alias(alias='memory_storage',
-                                                      alias_path='codepack/config/default/alias.ini')
+                                                      alias_path='codepack/utils/config/default/alias.ini')
         assert isinstance(memory_storage, MemoryStorage.__class__)
         Default.config = None
         Default.alias = None
