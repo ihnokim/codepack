@@ -12,6 +12,8 @@ from .plugin.snapshot_service import SnapshotService
 from .plugin.delivery_service import DeliveryService
 from .plugin.callback_service import CallbackService
 from .plugin.scheduler import Scheduler
+from .plugin.jobstore import JobStore
+from .plugin.storable_job import StorableJob
 
 from .snapshot.state import State
 from .snapshot.snapshot import Snapshot

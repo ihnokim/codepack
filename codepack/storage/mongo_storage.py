@@ -74,6 +74,10 @@ class MongoStorage(Storage):
         else:
             return [self.item_type.from_dict(d) for d in search_result]
 
+    def list_all(self) -> list:
+        search_result = self.mongodb[self.db][self.collection].find(projection={'_id': 1})
+        return [x['_id'] for x in search_result]
+
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)

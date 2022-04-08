@@ -3,6 +3,7 @@ from codepack.storage.storage import Storage
 from codepack.storage.storable import Storable
 from typing import Type, Union, Optional, Any
 from posixpath import join
+import os
 
 
 class S3Storage(Storage):
@@ -27,7 +28,7 @@ class S3Storage(Storage):
             self.s3 = S3(s3, *args, **kwargs)
             self.new_connection = True
         else:
-            raise TypeError(type(s3))
+            raise TypeError(type(s3))  # pragma: no cover
 
     def close(self) -> None:
         if self.new_connection:
@@ -50,7 +51,7 @@ class S3Storage(Storage):
                     ret.append(exists)
             return ret
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
     def remove(self, key: Union[str, list]) -> None:
         if isinstance(key, str):
@@ -60,7 +61,7 @@ class S3Storage(Storage):
             for k in key:
                 self.remove(key=k)
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
 
     def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         ret = list()
@@ -83,6 +84,10 @@ class S3Storage(Storage):
                 continue
         return ret
 
+    def list_all(self) -> list:
+        all_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, ''))
+        return [os.path.basename(obj['Key']).replace('.json', '') for obj in all_obj_info]
+
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
             item_key = getattr(item, self.key)
@@ -99,7 +104,7 @@ class S3Storage(Storage):
             for i in item:
                 self.save(item=i, update=update)
         else:
-            raise TypeError(item)
+            raise TypeError(item)  # pragma: no cover
 
     def update(self, key: Union[str, list], values: dict) -> None:
         if len(values) > 0:
@@ -143,4 +148,4 @@ class S3Storage(Storage):
                     ret.append(tmp)
             return ret
         else:
-            raise TypeError(key)
+            raise TypeError(key)  # pragma: no cover
