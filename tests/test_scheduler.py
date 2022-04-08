@@ -2,6 +2,26 @@ from unittest.mock import patch
 from codepack import Code, CodePack, Scheduler, JobStore, StorableJob
 from codepack.storage import MemoryStorage, FileStorage, MongoStorage, S3Storage
 from tests import *
+import os
+
+
+@patch('pymongo.MongoClient')
+def test_get_default_mongo_scheduler(mock_client):
+    try:
+        os.environ['CODEPACK_CONFIG_DIR'] = 'config'
+        os.environ['CODEPACK_CONFIG_PATH'] = 'test.ini'
+        scheduler = Default.get_scheduler()
+        assert isinstance(scheduler, Scheduler)
+        assert 'codepack' in scheduler.jobstores
+        jobstore = scheduler.jobstores['codepack']
+        assert isinstance(jobstore, MongoJobStore)
+        assert scheduler.supervisor == 'http://localhost:8000'
+        mock_client.assert_called_once_with(host='localhost', port=27017)
+        mock_client().__getitem__.assert_called_once_with('codepack')
+        mock_client().__getitem__().__getitem__.assert_called_once_with('scheduler')
+    finally:
+        os.environ.pop('CODEPACK_CONN_DIR', None)
+        os.environ.pop('CODEPACK_CONN_PATH', None)
 
 
 def test_memory_storage_jobstore_codepack_snapshot():
