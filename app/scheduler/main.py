@@ -1,5 +1,5 @@
 from codepack import Scheduler, Default
-from codepack.plugin.service import Service
+from codepack.plugins.service import Service
 from fastapi import FastAPI, Request
 from .routers import scheduler
 from .dependencies import common

@@ -1,17 +1,17 @@
 from codepack.code import Code
 from codepack.base.codepack_base import CodePackBase
 from codepack.argpack import ArgPack
-from codepack.config.default import Default
-from codepack.snapshot.state import State
+from codepack.utils.config.default import Default
+from codepack.plugins.state import State
 from parse import compile as parser
 from ast import literal_eval
 from queue import Queue
 from typing import Any, TypeVar, Optional, Union
 
 
-CodePackSnapshot = TypeVar('CodePackSnapshot', bound='codepack.snapshot.codepack_snapshot.CodePackSnapshot')
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugin.snapshot_service.SnapshotService')
-StorageService = TypeVar('StorageService', bound='codepack.plugin.storage_service.StorageService')
+CodePackSnapshot = TypeVar('CodePackSnapshot', bound='codepack.plugins.snapshots.codepack_snapshot.CodePackSnapshot')
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')
+StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
 
 
 class CodePack(CodePackBase):

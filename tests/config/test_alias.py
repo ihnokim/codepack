@@ -1,5 +1,5 @@
 from codepack import Alias, StorageService
-from codepack.storage import MemoryStorage
+from codepack.storages import MemoryStorage
 import os
 import pytest
 import configparser
@@ -11,7 +11,7 @@ def test_alias_from_individual_os_env():
     assert isinstance(a['storage_service'], StorageService.__class__)
     os_env = 'CODEPACK_ALIAS_STORAGE_SERVICE'
     try:
-        os.environ[os_env] = 'codepack.storage.memory_storage.MemoryStorage'
+        os.environ[os_env] = 'codepack.storages.memory_storage.MemoryStorage'
         assert a['storage_service'] == MemoryStorage
     finally:
         os.environ.pop(os_env, None)
@@ -23,7 +23,7 @@ def test_alias_from_alias_path_os_env():
     assert isinstance(a['storage_service'], StorageService.__class__)
     os_env = 'CODEPACK_ALIAS_PATH'
     try:
-        os.environ[os_env] = 'codepack/config/default/alias.ini'
+        os.environ[os_env] = 'codepack/utils/config/default/alias.ini'
         assert a['storage_service'] == StorageService
     finally:
         os.environ.pop(os_env, None)
@@ -45,14 +45,14 @@ def test_alias_from_config_path_os_env():
 
 
 def test_alias_priority1():
-    a = Alias(data={'storage_service': 'codepack.storage.memory_storage.MemoryStorage'})
+    a = Alias(data={'storage_service': 'codepack.storages.memory_storage.MemoryStorage'})
     assert a.aliases is not None
     assert a['storage_service'] == MemoryStorage
     os_env1 = 'CODEPACK_ALIAS_STORAGE_SERVICE'
     os_env2 = 'CODEPACK_ALIAS_PATH'
     os_env3 = 'CODEPACK_CONFIG_PATH'
     try:
-        os.environ[os_env1] = 'codepack.service.snapshot_service.SnapshotService'
+        os.environ[os_env1] = 'codepack.plugins.snapshot_service.SnapshotService'
         assert a['storage_service'] == MemoryStorage
         os.environ.pop(os_env1, None)
         os.environ[os_env2] = 'codepack/config/default/alias.ini'
@@ -74,7 +74,7 @@ def test_alias_priority2():
     second_os_env = 'CODEPACK_ALIAS_PATH'
     third_os_env = 'CODEPACK_CONFIG_PATH'
     try:
-        os.environ[first_os_env] = 'codepack.storage.memory_storage.MemoryStorage'
+        os.environ[first_os_env] = 'codepack.storages.memory_storage.MemoryStorage'
         assert a['storage_service'] == MemoryStorage
         os.environ[second_os_env] = 'codepack/config/default/alias.ini'
         assert a['storage_service'] == MemoryStorage
@@ -90,7 +90,7 @@ def test_alias_priority2():
 def test_alias_path_argument():
     os_env = 'CODEPACK_CONFIG_DIR'
     try:
-        a = Alias(data='codepack/config/default/alias.ini')
+        a = Alias(data='codepack/utils/config/default/alias.ini')
         assert a['storage_service'] == StorageService
         os.environ[os_env] = 'config'
         with pytest.raises(configparser.NoSectionError):

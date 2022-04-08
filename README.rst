@@ -185,12 +185,12 @@ Use these guys everywhere!
 
 There are many plugins to manage Codes, CodePacks, and ArgPacks.
 You can easily configure the plugins by using a
-`configuration file <https://github.com/ihnokim/codepack/blob/master/config/codepack.ini>`_
+`configuration file <https://github.com/ihnokim/codepack/blob/master/utils/config/codepack.ini>`_
 or adding some OS environment variables.
 If you don't specify any configuration files,
 CodePack uses the
-`default configuration file <https://github.com/ihnokim/codepack/blob/master/codepack/config/default/default.ini>`_
-located at :code:`codepack/config/default/default.ini`.
+`default configuration file <https://github.com/ihnokim/codepack/blob/master/codepack/utils/config/default/default.ini>`_
+located at :code:`codepack/utils/config/default/default.ini`.
 The default configuration file can be replaced with your custom configuration file
 by adding an OS environment variable: :code:`CODEPACK_CONFIG_PATH=/path/to/your-configuration-file.ini`.
 
@@ -233,7 +233,7 @@ The configuration is accessible from code via :code:`Config` and :code:`Default`
 .. code-block:: python
 
   from codepack import Config, Default
-  from codepack.interface import MongoDB
+  from codepack.interfaces import MongoDB
 
   config = Config()
   mongodb_config = config.get_config('mongodb')

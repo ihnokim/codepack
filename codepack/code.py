@@ -1,18 +1,18 @@
-from codepack.config.default import Default
+from codepack.utils.config.default import Default
 from codepack.base.code_base import CodeBase
-from codepack.dependency.dependency import Dependency
-from codepack.plugin.dependency_bag import DependencyBag
-from codepack.callback.callback import Callback
+from codepack.plugins.dependency import Dependency
+from codepack.plugins.dependency_bag import DependencyBag
+from codepack.plugins.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
 
 
-CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.snapshot.code_snapshot.CodeSnapshot')
-DeliveryService = TypeVar('DeliveryService', bound='codepack.plugin.delivery_service.DeliveryService')
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugin.snapshot_service.SnapshotService')
-StorageService = TypeVar('StorageService', bound='codepack.plugin.storage_service.StorageService')
-State = TypeVar('State', bound='codepack.snapshot.state.State')
+CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
+DeliveryService = TypeVar('DeliveryService', bound='codepack.plugins.delivery_service.DeliveryService')
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')
+StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
+State = TypeVar('State', bound='codepack.plugins.state.State')
 
 
 class Code(CodeBase):
