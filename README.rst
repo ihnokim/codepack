@@ -185,7 +185,7 @@ Use these guys everywhere!
 
 There are many plugins to manage Codes, CodePacks, and ArgPacks.
 You can easily configure the plugins by using a
-`configuration file <https://github.com/ihnokim/codepack/blob/master/utils/config/codepack.ini>`_
+`configuration file <https://github.com/ihnokim/codepack/blob/master/config/codepack.ini>`_
 or adding some OS environment variables.
 If you don't specify any configuration files,
 CodePack uses the
