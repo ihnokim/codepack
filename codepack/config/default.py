@@ -113,8 +113,8 @@ class Default:
             config = cls.get_config_instance(config_path=config_path)
             storage_config = config.get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
-            jobstore_alias = cls.get_alias_from_source(source=source, suffix='jobstore')
-            jobstore_class = cls.get_class_from_alias(jobstore_alias, alias_path=alias_path)
+            storage_alias = cls.get_alias_from_source(source=source, suffix='storage')
+            storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
             scheduler_class = cls.get_class_from_alias(section, alias_path=alias_path)
             scheduler_config = dict()
             remaining_config = dict()
@@ -123,7 +123,10 @@ class Default:
                     scheduler_config[k] = v
                 else:
                     remaining_config[k] = v
-            jobstore_instance = jobstore_class(**remaining_config)
+            storable_job_class = cls.get_class_from_alias('storable_job')
+            storage_instance = storage_class(item_type=storable_job_class, key='id', **remaining_config)
+            jobstore_class = cls.get_class_from_alias('jobstore')
+            jobstore_instance = jobstore_class(storage=storage_instance)
             _instance = scheduler_class(jobstore=jobstore_instance, **scheduler_config)
             if config_path is None and alias_path is None:
                 cls.instances[key] = _instance

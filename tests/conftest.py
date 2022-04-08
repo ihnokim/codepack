@@ -60,6 +60,7 @@ def testdir():
     mkdir(rootdir + 'storage_service/')
     mkdir(rootdir + 'snapshot_service/')
     mkdir(rootdir + 'docker_test/')
+    mkdir(rootdir + 'scheduler/')
     yield
     rmdir(rootdir)
 

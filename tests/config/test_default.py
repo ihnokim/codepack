@@ -1,10 +1,9 @@
-from codepack.storage import MemoryStorage, FileStorage, MongoStorage, MemoryJobStore, MongoJobStore, MemoryMessenger
+from codepack.storage import MemoryStorage, FileStorage, MongoStorage, MemoryMessenger
 from codepack import DeliveryService, CallbackService, SnapshotService,\
-    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default
+    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, JobStore, StorableJob
 from unittest.mock import patch
 from collections.abc import Callable
 import os
-import inspect
 import logging
 
 
@@ -129,7 +128,10 @@ def test_get_default_scheduler():
     assert isinstance(scheduler, Scheduler)
     assert 'codepack' in scheduler.jobstores
     jobstore = scheduler.jobstores['codepack']
-    assert isinstance(jobstore, MemoryJobStore)
+    assert hasattr(jobstore, 'storage')
+    assert isinstance(jobstore.storage, MemoryStorage)
+    assert jobstore.storage.item_type == StorableJob
+    assert jobstore.storage.key == 'id'
     assert scheduler.supervisor is None
 
 
@@ -145,11 +147,14 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
         assert isinstance(scheduler, Scheduler)
         assert 'codepack' in scheduler.jobstores
         jobstore = scheduler.jobstores['codepack']
-        assert isinstance(jobstore, MongoJobStore)
+        assert hasattr(jobstore, 'storage')
+        assert isinstance(jobstore.storage, MongoStorage)
+        assert jobstore.storage.db == 'test_db'
+        assert jobstore.storage.collection == 'test_collection'
+        assert jobstore.storage.item_type == StorableJob
+        assert jobstore.storage.key == 'id'
         assert scheduler.supervisor == 'dummy_supervisor'
         mock_client.assert_called_once_with(host='localhost', port=27017, replicaset='TEST')
-        mock_client().__getitem__.assert_called_once_with('test_db')
-        mock_client().__getitem__().__getitem__.assert_called_once_with('test_collection')
     finally:
         os.environ.pop('CODEPACK_SCHEDULER_SOURCE', None)
         os.environ.pop('CODEPACK_SCHEDULER_DB', None)
