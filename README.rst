@@ -80,7 +80,7 @@ To run unit tests, use following commands.
 Example
 -------
 
-**1. Instantiate and call Code**
+**1. Instantiate and run Code**
 
 Just wrap a normal python function with Code and use it the way you are used to it.
 A Code has its own id.
@@ -222,7 +222,7 @@ Your configuration file should include:
 When the external service like MongoDB or AWS S3 is set to :code:`source`,
 the connection information should also be included.
 
-If it is too annoying to modify configuration file,
+If it is too annoying to modify the configuration file,
 you can overwrite configuration values with OS environment variables:
 :code:`CODEPACK_<SECTION>_<KEY>=<VALUE>`.
 For example, if the IP address of the MongoDB has changed to localhost,

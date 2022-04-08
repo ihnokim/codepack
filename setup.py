@@ -11,10 +11,10 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="codepack",
-    version="0.1.0",
+    version="0.2.0",
     author="ihnokim",
     author_email="ihnokim58@gmail.com",
-    description="Codepack is the package for making workflows with Python",
+    description="CodePack is the package to easily make, run, and manage workflows",
     long_description=long_description,
     url="https://github.com/ihnokim/codepack",
     packages=setuptools.find_packages(),
