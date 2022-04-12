@@ -14,6 +14,7 @@ def test_memory_supervisor_run_code():
     assert not supervisor.messenger.queues['codepack'].empty() and supervisor.messenger.queues['codepack'].qsize() == 1
     item = supervisor.messenger.queues['codepack'].get(block=False)
     assert item == code.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['timestamp']).to_dict()
+    supervisor.close()
 
 
 def test_memory_supervisor_run_codepack():
@@ -43,6 +44,7 @@ def test_memory_supervisor_run_codepack():
     for snapshot in snapshots:
         snapshot.pop('timestamp', None)
     assert sorted(items, key=lambda x: x['id']) == sorted(snapshots, key=lambda x: x['id'])
+    supervisor.close()
 
 
 def test_memory_supervisor_organize():
@@ -73,3 +75,4 @@ def test_memory_supervisor_organize():
     expected_item = code2.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['timestamp']).to_dict()
     expected_item.pop('source', None)
     assert item == expected_item
+    supervisor.close()
