@@ -23,13 +23,12 @@ RUN mkdir -p app
 COPY entry_point.sh .
 COPY extra-requirements.txt .
 COPY config config
-COPY scripts scripts
 COPY app app
 
 RUN chmod 755 entry_point.sh
 
 ENV CODEPACK_CONFIG_DIR /opt/codepack/config
-ENV CODEPACK_CONFIG_PATH default.ini
+ENV CODEPACK_CONFIG_PATH codepack.ini
 ENV CODEPACK_LOGGER_LOG_DIR /opt/codepack/logs
 
 RUN python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
