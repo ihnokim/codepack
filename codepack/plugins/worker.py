@@ -120,29 +120,38 @@ class Worker(Employee):
         try:
             if code.image or code.env:
                 state = code.check_dependency()
-                cb_id = self.callback_service.push(self.callback)
+                if self.callback:
+                    cb_id = self.callback_service.push(self.callback)
+                else:
+                    cb_id = None
                 if state == 'READY':
                     filepath = '%s.json' % code.serial_number
                     snapshot_path = os.path.join(self.script_dir, filepath)
                     script_path = os.path.join(self.script_dir, self.script)
                     snapshot.to_file(snapshot_path)
                     if code.env:
-                        _command = ['python', script_path, snapshot_path, '-c', cb_id]
+                        _command = ['python', script_path, snapshot_path]
                         if isinstance(self.callback_service.storage, FileStorage):
                             _command.append('-p')
                             _command.append(self.callback_service.storage.path)
                         if self.logger:
                             _command.append('-l')
                             _command.append(self.logger.name)
+                        if cb_id:
+                            _command.append('-c')
+                            _command.append(cb_id)
                         self.interpreter_manager.run(env=code.env, command=_command)
                     else:  # if code.image:
-                        _command = ['python', self.script, filepath, '-c', cb_id]
+                        _command = ['python', self.script, filepath]
                         if isinstance(self.callback_service.storage, FileStorage):
                             _command.append('-p')
                             _command.append('.')
                         if self.logger:
                             _command.append('-l')
                             _command.append(self.logger.name)
+                        if cb_id:
+                            _command.append('-c')
+                            _command.append(cb_id)
                         ret = self.docker_manager.run(image=code.image, command=_command, path=self.script_dir)
                         print(ret.decode('utf-8').strip())
                 else:
@@ -158,7 +167,7 @@ class Worker(Employee):
                 code.update_state('ERROR', args=snapshot.args, kwargs=snapshot.kwargs, message=str(e))
         finally:
             if snapshot_path:
-                self.docker_manager.remove_file_if_exists(path=snapshot_path)
+                DockerManager.remove_file_if_exists(path=snapshot_path)
             if cb_id and self.callback_service.exist(name=cb_id):
                 self.callback_service.remove(name=cb_id)
             return snapshot['serial_number']
