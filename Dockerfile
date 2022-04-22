@@ -34,4 +34,4 @@ ENV CODEPACK_LOGGER_LOG_DIR /opt/codepack/logs
 RUN python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
 RUN pip install --upgrade --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org -r extra-requirements.txt
 
-ENTRYPOINT ["./entry_point.sh"]
+ENTRYPOINT ["/opt/codepack/entry_point.sh"]
