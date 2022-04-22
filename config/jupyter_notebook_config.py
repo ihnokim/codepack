@@ -4,5 +4,5 @@ c.NotebookApp.allow_root = True
 c.NotebookApp.open_browser = False
 c.NotebookApp.port = 8888
 c.NotebookApp.ip = '0.0.0.0'
-# c.NotebookApp.password = 'jupyter'
-c.NotebookApp.token = 'jupyter'
+# c.NotebookApp.password = 'codepack'
+c.NotebookApp.token = 'codepack'
