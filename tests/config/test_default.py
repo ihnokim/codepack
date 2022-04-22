@@ -188,7 +188,7 @@ def test_get_default_worker_without_os_env(mock_docker_client):
 def test_get_default_worker_with_os_env(mock_kafka_consumer, mock_docker_client):
     try:
         os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-        os.environ['CODEPACK_CONFIG_PATH'] = 'codepack.ini'
+        os.environ['CODEPACK_CONFIG_PATH'] = 'sample.ini'
         worker = Default.get_employee('worker')
         assert isinstance(worker, Worker)
         arg_list = mock_kafka_consumer.call_args_list
@@ -265,13 +265,13 @@ def test_get_default_docker_manager(mock_client):
     assert isinstance(docker_manager, DockerManager)
     default_dir = Default.get_config_instance().get_default_config_dir()
     assert docker_manager.path == os.path.join(default_dir, 'scripts')
-    assert docker_manager.run_opt == {'dns': ['8.8.8.8']}
+    assert docker_manager.run_opt == {'dns': ['8.8.8.8'], 'auto_remove': True}
 
 
 def test_get_default_interpreter_manager():
     interpreter_manager = Default.get_interpreter_manager()
     assert isinstance(interpreter_manager, InterpreterManager)
-    assert interpreter_manager.path == '${HOME}/anaconda3/envs'
+    assert interpreter_manager.path == '/opt/codepack/anaconda3/envs'
     assert interpreter_manager.run_opt == {}
 
 

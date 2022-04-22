@@ -54,13 +54,14 @@ class DockerManager(Manager):
         if environment is None:
             environment = list()
         _path = path if path else self.path
+        if 'auto_remove' not in self.run_opt and 'auto_remove' not in kwargs:
+            kwargs['auto_remove'] = True
         return self.docker.containers\
             .run(image=image, command=command,
                  volumes=volumes + ['%s:%s' % (os.path.abspath(_path), self.CONTAINER_WORK_DIR),
                                     '%s:%s' % (os.path.abspath(Config.get_log_dir()), self.CONTAINER_LOG_DIR)],
                  environment=environment + ['%s=%s' % (Config.LABEL_LOGGER_LOG_DIR, self.CONTAINER_LOG_DIR)],
-                 working_dir=self.CONTAINER_WORK_DIR, auto_remove=True, name=id(self),
-                 **self.run_opt, **kwargs)
+                 working_dir=self.CONTAINER_WORK_DIR, name=id(self), **self.run_opt, **kwargs)
 
     @staticmethod
     def extract_requirements_from_file(path: str) -> list:
