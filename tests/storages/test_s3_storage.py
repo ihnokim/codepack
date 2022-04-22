@@ -28,10 +28,10 @@ def test_s3_storage_init_with_s3(mock_client):
     assert not ss.new_connection
     args, kwargs = arg_list[0]
     assert kwargs.get('service_name', '') == 's3'
-    assert kwargs.get('region_name', '') == '?'
-    assert kwargs.get('endpoint_url', '') == 'https://?'
-    assert kwargs.get('aws_access_key_id', '') == '?'
-    assert kwargs.get('aws_secret_access_key', '') == '?'
+    assert kwargs.get('region_name', '') == ''
+    assert kwargs.get('endpoint_url', '') == ''
+    assert kwargs.get('aws_access_key_id', '') == 'codepack'
+    assert kwargs.get('aws_secret_access_key', '') == 'codepack'
     assert 'config' in ss.s3.config and ss.s3.config['config'] == kwargs.get('config')
     assert kwargs.get('config').retries == {'max_attempts': 3}
     assert ss.s3.session is mock_client.return_value
@@ -52,10 +52,10 @@ def test_s3_storage_init_with_dict(mock_client):
     assert ss.new_connection
     args, kwargs = arg_list[0]
     assert kwargs.get('service_name', '') == 's3'
-    assert kwargs.get('region_name', '') == '?'
-    assert kwargs.get('endpoint_url', '') == 'https://?'
-    assert kwargs.get('aws_access_key_id', '') == '?'
-    assert kwargs.get('aws_secret_access_key', '') == '?'
+    assert kwargs.get('region_name', '') == ''
+    assert kwargs.get('endpoint_url', '') == ''
+    assert kwargs.get('aws_access_key_id', '') == 'codepack'
+    assert kwargs.get('aws_secret_access_key', '') == 'codepack'
     assert 'config' in ss.s3.config and ss.s3.config['config'] == kwargs.get('config')
     assert kwargs.get('config').retries == {'max_attempts': 3}
     assert ss.s3.session is mock_client.return_value

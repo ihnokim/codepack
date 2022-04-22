@@ -11,7 +11,7 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="codepack",
-    version="0.2.1",
+    version="0.2.2",
     author="ihnokim",
     author_email="ihnokim58@gmail.com",
     description="CodePack is the package to easily make, run, and manage workflows",
@@ -20,8 +20,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     keywords=["codepack", "workflow", "pipeline"],
     install_requires=requirements,
-    package_data={'codepack': ['utils/config/default/*']},
-    data_files=[("codepack/config", ["config/logging.json", "config/codepack.ini"])],
+    package_data={'codepack': ['utils/config/default/*', 'utils/config/default/scripts/*']},
+    data_files=[("codepack/config", ["config/logging.json", "config/codepack.ini", "config/sample.ini"])],
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
