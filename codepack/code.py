@@ -142,7 +142,7 @@ class Code(CodeBase):
             raise AssertionError("either 'function' or 'source' should not be None")
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
-    def _collect_linked_ids(self):
+    def _collect_linked_ids(self) -> set:
         ids = set()
         q = Queue()
         q.put(self)
