@@ -145,8 +145,10 @@ class CodePack(CodePackBase):
         self.service['storage'].save(item=self, update=update)
 
     @classmethod
-    def load(cls, id: Union[str, list]) -> Optional[Union['CodePack', list]]:
-        storage_service = Default.get_service('codepack', 'storage_service')
+    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+            -> Optional[Union['CodePack', list]]:
+        if storage_service is None:
+            storage_service = Default.get_service('codepack', 'storage_service')
         return storage_service.load(id)
 
     def _get_leaves(self) -> set:

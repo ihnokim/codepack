@@ -1,9 +1,11 @@
 from codepack.arg import Arg
+from codepack.utils.config.default import Default
 from codepack.storages.storable import Storable
 from typing import Optional, TypeVar, Union, Iterator
 
 
 CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')
+StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
 
 
 class ArgPack(Storable):
@@ -61,6 +63,18 @@ class ArgPack(Storable):
             else:
                 args[k] = v
         return cls(id=id, args=args)
+
+    def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
+        if storage_service is None:
+            storage_service = Default.get_service('argpack', 'storage_service')
+        storage_service.save(item=self, update=update)
+
+    @classmethod
+    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+            -> Optional[Union['ArgPack', list]]:
+        if storage_service is None:
+            storage_service = Default.get_service('argpack', 'storage_service')
+        return storage_service.load(id)
 
     def __getattr__(self, item: str) -> Arg:
         return getattr(self.args, item)

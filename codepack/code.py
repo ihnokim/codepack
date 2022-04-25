@@ -273,8 +273,10 @@ class Code(CodeBase):
         self.service['storage'].save(item=self, update=update)
 
     @classmethod
-    def load(cls, id: Union[str, list]) -> Optional[Union['Code', list]]:
-        storage_service = Default.get_service('code', 'storage_service')
+    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+            -> Optional[Union['Code', list]]:
+        if storage_service is None:
+            storage_service = Default.get_service('code', 'storage_service')
         return storage_service.load(id)
 
     def receive(self, arg: str) -> Dependency:
