@@ -6,6 +6,7 @@ from codepack.plugins.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
+from queue import Queue
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -141,7 +142,22 @@ class Code(CodeBase):
             raise AssertionError("either 'function' or 'source' should not be None")
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
+    def _collect_linked_ids(self):
+        ids = set()
+        q = Queue()
+        q.put(self)
+        while not q.empty():
+            code = q.get()
+            ids.add(code.id)
+            for c in {**code.children, **code.parents}.values():
+                if c.id not in ids:
+                    q.put(c)
+        return ids
+
     def link(self, other: 'Code') -> None:
+        linked_ids = self._collect_linked_ids()
+        if other.id in linked_ids:
+            raise ValueError("'%s' is already linked" % other.id)
         self.children[other.id] = other
         other.parents[self.id] = self
         if self.serial_number not in other.dependency:
