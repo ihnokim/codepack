@@ -151,19 +151,21 @@ Each element has its own id, so it can be retrieved and reused by querying the i
 
 .. code-block:: python
 
-  from codepack import Default
-
-  code_storage = Default.get_service('code', 'storage_service')
-  codepack_storage = Default.get_service('codepack', 'storage_service')
-
+  # Code
   code.save()
-  code = code_storage.load('add2')
+  code = Code.load('my_code')
 
+  # CodePack
   codepack.save()
-  codepack = codepack_storage.load('my_codepack')
+  codepack = CodePack.load('my_codepack')
 
+  # ArgPack (1)
   codepack.save_argpack(argpack)  # codepack.id == argpack.id
   argpack = codepack.load_argpack('my_codepack')
+
+  # ArgPack (2)
+  argpack.save()
+  argpack = ArgPack.load('my_argpack')
 
 **6. JSON serialization and deserialization**
 
