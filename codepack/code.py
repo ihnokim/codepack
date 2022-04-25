@@ -6,6 +6,7 @@ from codepack.plugins.callback import Callback
 from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
+from queue import Queue
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -141,7 +142,22 @@ class Code(CodeBase):
             raise AssertionError("either 'function' or 'source' should not be None")
         self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
+    def _collect_linked_ids(self) -> set:
+        ids = set()
+        q = Queue()
+        q.put(self)
+        while not q.empty():
+            code = q.get()
+            ids.add(code.id)
+            for c in {**code.children, **code.parents}.values():
+                if c.id not in ids:
+                    q.put(c)
+        return ids
+
     def link(self, other: 'Code') -> None:
+        linked_ids = self._collect_linked_ids()
+        if other.id in linked_ids:
+            raise ValueError("'%s' is already linked" % other.id)
         self.children[other.id] = other
         other.parents[self.id] = self
         if self.serial_number not in other.dependency:
@@ -255,6 +271,13 @@ class Code(CodeBase):
 
     def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
+
+    @classmethod
+    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+            -> Optional[Union['Code', list]]:
+        if storage_service is None:
+            storage_service = Default.get_service('code', 'storage_service')
+        return storage_service.load(id)
 
     def receive(self, arg: str) -> Dependency:
         self.assert_arg(arg)

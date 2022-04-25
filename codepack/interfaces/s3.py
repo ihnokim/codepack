@@ -53,5 +53,11 @@ class S3(Interface):
     def upload(self, bucket: str, key: str, data: Union[str, bytes], *args: Any, **kwargs: Any) -> dict:
         return self.session.put_object(Bucket=bucket, Key=key, Body=data, *args, **kwargs)
 
+    def download_file(self, bucket: str, key: str, path: str, *args: Any, **kwargs: Any) -> None:
+        self.session.download_file(Bucket=bucket, Key=key, Filename=path, *args, **kwargs)
+
+    def upload_file(self, path: str, bucket: str, key: str, *args: Any, **kwargs: Any) -> None:
+        self.session.upload_file(Filename=path, Bucket=bucket, Key=key, *args, **kwargs)
+
     def close(self) -> None:
         self._closed = True

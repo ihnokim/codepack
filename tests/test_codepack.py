@@ -20,14 +20,33 @@ def test_sync_codepack(default_os_env):
 
     cp = CodePack(id='test_codepack', code=c1, subscribe=c4)
     argpack = cp.make_argpack()
-    argpack['add3']['a'] = 1
-    argpack['add3']['b'] = 2
-    argpack['add3']['c'] = 3
-    argpack['mul2']['a'] = 1
-    argpack['mul2']['b'] = 2
-    argpack['combination']['a'] = 2
-    argpack['combination']['b'] = 5
-    argpack['linear']['b'] = 7
-    argpack['linear']['a'] = 5
+    argpack['add3'](a=1, b=2, c=3)
+    argpack['mul2'](a=1, b=2)
+    argpack['combination'](a=2, b=5)
+    argpack['linear'](a=5, b=7)
     ret = cp(argpack)
     assert ret == 57
+
+
+def test_default_load(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    code1 >> code2
+    code2.receive('b') << code1
+    codepack = CodePack(id='test_codepack', code=code1, subscribe=code2)
+    search_result = CodePack.load(['test_codepack', 'dummy'])
+    assert type(search_result) == list and len(search_result) == 0
+    codepack.save()
+    search_result = CodePack.load(['test_codepack', 'dummy'])
+    assert type(search_result) == list and len(search_result) == 1
+    assert isinstance(search_result[0], CodePack) and search_result[0].id == 'test_codepack'
+    search_result = CodePack.load('dummy')
+    assert search_result is None
+    search_result = CodePack.load('test_codepack')
+    assert search_result is not None
+    assert isinstance(search_result, CodePack) and search_result.id == 'test_codepack'
+    assert search_result.root._collect_linked_ids() == codepack.root._collect_linked_ids()
+    argpack = codepack.make_argpack()
+    argpack['add2'](a=2, b=5)
+    argpack['add3'](a=3, c=2)
+    assert search_result(argpack=argpack) == codepack(argpack=argpack)

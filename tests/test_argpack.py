@@ -1,4 +1,4 @@
-from codepack import Code, CodePack, CodePackSnapshot
+from codepack import Code, CodePack, ArgPack, CodePackSnapshot
 from tests import *
 import pytest
 
@@ -70,3 +70,27 @@ def test_argpack_str(default_os_env):
     assert argpack['mul2']['a'] == 2
     assert argpack.__str__() == 'ArgPack(id: argpack_test, args: {add2(a=3, b=2), mul2(a=2)})'
     assert codepack(argpack=argpack) == 10
+
+
+def test_default_load(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    code1 >> code2
+    code2.receive('b') << code1
+    codepack = CodePack(id='test_codepack', code=code1, subscribe=code2)
+    argpack = codepack.make_argpack()
+    argpack['add2'](a=2, b=5)
+    argpack['add3'](a=3, c=2)
+    search_result = ArgPack.load(['test_codepack', 'dummy'])
+    assert type(search_result) == list and len(search_result) == 0
+    argpack.save()
+    search_result = ArgPack.load(['test_codepack', 'dummy'])
+    assert type(search_result) == list and len(search_result) == 1
+    assert isinstance(search_result[0], ArgPack) and search_result[0].id == 'test_codepack'
+    search_result = ArgPack.load('dummy')
+    assert search_result is None
+    search_result = ArgPack.load('test_codepack')
+    assert search_result is not None
+    assert isinstance(search_result, ArgPack) and search_result.id == 'test_codepack'
+    assert search_result['add2']['a'] == 2 and search_result['add2']['b'] == 5
+    assert search_result['add3']['a'] == 3 and search_result['add3']['c'] == 2

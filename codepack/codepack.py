@@ -144,6 +144,13 @@ class CodePack(CodePackBase):
     def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
 
+    @classmethod
+    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+            -> Optional[Union['CodePack', list]]:
+        if storage_service is None:
+            storage_service = Default.get_service('codepack', 'storage_service')
+        return storage_service.load(id)
+
     def _get_leaves(self) -> set:
         leaves = set()
         q = Queue()
@@ -248,12 +255,12 @@ class CodePack(CodePackBase):
                 root = code
             while len(stack) and stack[-1][1] >= hierarchy:
                 n, h = stack.pop(-1)
-                if len(stack) > 0:
+                if len(stack) > 0 and n.id not in stack[-1][0].children:
                     stack[-1][0] >> n
             stack.append((code, hierarchy))
         while len(stack):
             n, h = stack.pop(-1)
-            if len(stack) > 0:
+            if len(stack) > 0 and n.id not in stack[-1][0].children:
                 stack[-1][0] >> n
         for id, code in codes.items():
             for arg, sender in receive[id].items():
