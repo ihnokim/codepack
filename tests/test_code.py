@@ -267,7 +267,7 @@ def test_update_serial_number(default_os_env):
     assert code4.dependency[new_serial_number].serial_number == new_serial_number
 
 
-def test_collect_linked_ids():
+def test_collect_linked_ids(default_os_env):
     code1 = Code(add2)
     code2 = Code(add3)
     code3 = Code(mul2)
@@ -283,7 +283,7 @@ def test_collect_linked_ids():
     assert code4._collect_linked_ids() == all_ids
 
 
-def test_recursion_detection():
+def test_recursion_detection(default_os_env):
     code1 = Code(add2)
     code2 = Code(add3)
     code3 = Code(mul2)
@@ -305,3 +305,19 @@ def test_recursion_detection():
     assert code2._collect_linked_ids() == all_ids
     assert code3._collect_linked_ids() == all_ids
     assert code4._collect_linked_ids() == all_ids
+
+
+def test_default_load(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    search_result = Code.load(['add2', 'add3'])
+    assert type(search_result) == list and len(search_result) == 0
+    code2.save()
+    search_result = Code.load(['add2', 'add3'])
+    assert type(search_result) == list and len(search_result) == 1
+    assert isinstance(search_result[0], Code) and search_result[0].id == 'add3'
+    search_result = Code.load('add2')
+    assert search_result is None
+    search_result = Code.load('add3')
+    assert search_result is not None
+    assert isinstance(search_result, Code) and search_result.id == 'add3'
