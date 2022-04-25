@@ -248,12 +248,12 @@ class CodePack(CodePackBase):
                 root = code
             while len(stack) and stack[-1][1] >= hierarchy:
                 n, h = stack.pop(-1)
-                if len(stack) > 0:
+                if len(stack) > 0 and n.id not in stack[-1][0].children:
                     stack[-1][0] >> n
             stack.append((code, hierarchy))
         while len(stack):
             n, h = stack.pop(-1)
-            if len(stack) > 0:
+            if len(stack) > 0 and n.id not in stack[-1][0].children:
                 stack[-1][0] >> n
         for id, code in codes.items():
             for arg, sender in receive[id].items():
