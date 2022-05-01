@@ -98,7 +98,7 @@ class Code(CodeBase):
                 for c in callback:
                     self.register_callback(callback=c)
             else:
-                raise TypeError(type(name))
+                raise TypeError(type(name))  # pragma: no cover
         elif isinstance(callback, Callable):
             if isinstance(name, list):
                 _name = name[0]
@@ -112,12 +112,12 @@ class Code(CodeBase):
                 else:
                     _name = callback.__name__
             else:
-                raise TypeError(type(name))
+                raise TypeError(type(name))  # pragma: no cover
             self.callbacks[_name] = callback
         elif callback is None:
             pass
         else:
-            raise TypeError(type(callback))
+            raise TypeError(type(callback))  # pragma: no cover
 
     def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
         for callback in self.callbacks.values():
@@ -278,6 +278,12 @@ class Code(CodeBase):
         if storage_service is None:
             storage_service = Default.get_service('code', 'storage_service')
         return storage_service.load(id)
+
+    @classmethod
+    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+        if storage_service is None:
+            storage_service = Default.get_service('code', 'storage_service')
+        storage_service.remove(id=id)
 
     def receive(self, arg: str) -> Dependency:
         self.assert_arg(arg)
