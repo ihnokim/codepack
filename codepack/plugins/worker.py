@@ -51,7 +51,7 @@ class Worker(Employee):
             elif isinstance(logger, str):
                 self.logger = Default.get_logger(logger)
             else:
-                raise TypeError(logger)
+                raise TypeError(logger)  # pragma: no cover
         else:
             self.logger = None
         if self.logger:
@@ -62,7 +62,7 @@ class Worker(Employee):
                 self.callback = partial(inform_supervisor_of_termination, supervisor=self.supervisor)
             else:
                 self.close()
-                raise TypeError(type(self.supervisor))
+                raise TypeError(type(self.supervisor))  # pragma: no cover
         self.init_docker_manager(docker_manager=docker_manager)
         self.init_interpreter_manager(interpreter_manager=interpreter_manager)
         self.init_callback_service(callback_service=callback_service)
@@ -79,7 +79,7 @@ class Worker(Employee):
         elif isinstance(docker_manager, DockerManager):
             self.docker_manager = docker_manager
         else:
-            raise TypeError(type(docker_manager))
+            raise TypeError(type(docker_manager))  # pragma: no cover
 
     def init_interpreter_manager(self, interpreter_manager: Optional[InterpreterManager] = None) -> None:
         if interpreter_manager is None:
@@ -87,7 +87,7 @@ class Worker(Employee):
         elif isinstance(interpreter_manager, InterpreterManager):
             self.interpreter_manager = interpreter_manager
         else:
-            raise TypeError(type(interpreter_manager))
+            raise TypeError(type(interpreter_manager))  # pragma: no cover
 
     def init_callback_service(self, callback_service: Optional[CallbackService] = None) -> None:
         if callback_service is None:
@@ -95,7 +95,7 @@ class Worker(Employee):
         elif isinstance(callback_service, CallbackService):
             self.callback_service = callback_service
         else:
-            raise TypeError(type(callback_service))
+            raise TypeError(type(callback_service))  # pragma: no cover
 
     def start(self) -> None:
         print('starting worker...')
