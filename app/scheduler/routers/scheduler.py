@@ -1,4 +1,4 @@
-from codepack import CodePack, Default, CodePackSnapshot, ArgPack
+from codepack import CodePack, CodePackSnapshot, ArgPack
 from fastapi import APIRouter
 from ..models.scheduler import CodePackIDJob, CodePackJSONJob, SnapshotJSONJob, IDPairJob
 from ..dependencies import common
@@ -22,8 +22,7 @@ async def register(params: CodePackJSONJob):
 
 @router.post('/register/id')
 async def register_by_id(params: CodePackIDJob):
-    storage_service = Default.get_service('codepack', 'storage_service')
-    codepack = storage_service.load(params.id)
+    codepack = CodePack.load(params.id)
     argpack = ArgPack.from_json(params.argpack)
     common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                   trigger=params.trigger, **params.trigger_config)
@@ -32,10 +31,8 @@ async def register_by_id(params: CodePackIDJob):
 
 @router.post('/register/id-pair')
 async def register_by_id_pair(params: IDPairJob):
-    codepack_storage_service = Default.get_service('codepack', 'storage_service')
-    codepack = codepack_storage_service.load(params.codepack_id)
-    argpack_storage_service = Default.get_service('argpack', 'storage_service')
-    argpack = argpack_storage_service.load(params.argpack_id)
+    codepack = CodePack.load(params.codepack_id)
+    argpack = ArgPack.load(params.argpack_id)
     common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                   trigger=params.trigger, **params.trigger_config)
     return {'serial_number': codepack.serial_number}

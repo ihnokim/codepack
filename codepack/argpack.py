@@ -76,6 +76,12 @@ class ArgPack(Storable):
             storage_service = Default.get_service('argpack', 'storage_service')
         return storage_service.load(id)
 
+    @classmethod
+    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+        if storage_service is None:
+            storage_service = Default.get_service('argpack', 'storage_service')
+        storage_service.remove(id=id)
+
     def __getattr__(self, item: str) -> Arg:
         return getattr(self.args, item)
 

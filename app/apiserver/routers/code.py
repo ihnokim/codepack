@@ -20,8 +20,7 @@ async def run(params: CodeJSON):
 
 @router.post('/run/id')
 async def run_by_id(params: CodeID):
-    storage_service = Default.get_service('code', 'storage_service')
-    code = storage_service.load(params.id)
+    code = Code.load(params.id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
@@ -50,8 +49,7 @@ async def update(code: CodeJSON):
 
 @router.get('/remove/{id}')
 async def remove(id: str):
-    storage_service = Default.get_service('code', 'storage_service')
-    storage_service.remove(id)
+    Code.remove(id)
     return {'id': id}
 
 

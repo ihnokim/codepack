@@ -80,7 +80,7 @@ class CodePack(CodePackBase):
 
     def _set_root(self, code: Code) -> None:
         if not isinstance(code, Code):
-            raise TypeError(type(code))
+            raise TypeError(type(code))  # pragma: no cover
         self.root = code
 
     def __str__(self) -> str:
@@ -150,6 +150,12 @@ class CodePack(CodePackBase):
         if storage_service is None:
             storage_service = Default.get_service('codepack', 'storage_service')
         return storage_service.load(id)
+
+    @classmethod
+    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+        if storage_service is None:
+            storage_service = Default.get_service('codepack', 'storage_service')
+        storage_service.remove(id=id)
 
     def _get_leaves(self) -> set:
         leaves = set()

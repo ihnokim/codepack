@@ -94,3 +94,21 @@ def test_default_load(default_os_env):
     assert isinstance(search_result, ArgPack) and search_result.id == 'test_codepack'
     assert search_result['add2']['a'] == 2 and search_result['add2']['b'] == 5
     assert search_result['add3']['a'] == 3 and search_result['add3']['c'] == 2
+
+
+def test_remove(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code1 >> code2
+    codepack = CodePack(id='test_codepack', code=code1, subscribe=code2)
+    argpack = codepack.make_argpack()
+    ret = ArgPack.load('test_codepack')
+    assert ret is None
+    argpack.save()
+    ret = ArgPack.load('test_codepack')
+    assert ret is not None
+    assert isinstance(ret, ArgPack)
+    assert ret.id == argpack.id
+    ArgPack.remove('test_codepack')
+    ret = ArgPack.load('test_codepack')
+    assert ret is None
