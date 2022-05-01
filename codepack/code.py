@@ -7,6 +7,7 @@ from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
 from queue import Queue
+import inspect
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -201,20 +202,13 @@ class Code(CodeBase):
     def get_args(self) -> dict:
         return super().get_args(function=self.function)
 
-    def print_args(self) -> str:
-        ret = '('
-        for i, (arg, value) in enumerate(self.get_args().items()):
-            if i:
-                ret += ', '
-            ret += arg
-            if value:
-                ret += '=%s' % value
-        ret += ')'
-        return ret
+    def print_params(self) -> str:
+        signature = inspect.signature(self.function)
+        return str(signature)
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, args: {args}, receive: {receive}'
+        ret = 'Code(id: {id}, function: {function}, params: {args}, receive: {receive}'
         for additional_item in ['env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
@@ -222,9 +216,9 @@ class Code(CodeBase):
         return ret
 
     def get_info(self, state: bool = True) -> str:
-        ret = '%s(id: %s, function: %s, args: %s, receive: %s' % (self.__class__.__name__,
-                                                                  self.id, self.function.__name__,
-                                                                  self.print_args(), self.dependency.get_args())
+        ret = '%s(id: %s, function: %s, params: %s, receive: %s' % (self.__class__.__name__,
+                                                                    self.id, self.function.__name__,
+                                                                    self.print_params(), self.dependency.get_args())
         for additional_item in ['env', 'image', 'owner']:
             item = getattr(self, additional_item)
             if item:
