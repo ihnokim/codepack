@@ -143,7 +143,7 @@ class Default:
         elif 'supervisor' in section:
             messenger_type = 'producer'
         else:
-            raise NotImplementedError("'%s' is unknown")
+            raise NotImplementedError("'%s' is unknown")  # pragma: no cover
         if config_path or alias_path or key not in cls.instances:
             config = cls.get_config_instance(config_path=config_path)
             storage_config = config.get_storage_config(section=section, config_path=config_path)

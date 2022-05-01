@@ -25,7 +25,7 @@ class Interface(metaclass=abc.ABCMeta):
             elif isinstance(_ssh_config, dict):
                 self.ssh_config = _ssh_config
             else:
-                raise TypeError(type(_ssh_config))
+                raise TypeError(type(_ssh_config))  # pragma: no cover
         self.config = _config
 
     @abc.abstractmethod
