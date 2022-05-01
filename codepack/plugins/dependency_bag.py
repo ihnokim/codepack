@@ -15,10 +15,10 @@ class DependencyBag(MemoryStorage, Iterable):
 
     def add(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         if isinstance(dependency, Dependency):
-            self.code.assert_param(dependency.arg)
+            self.code.assert_param(dependency.param)
             self.memory[dependency.serial_number] = dependency
         elif isinstance(dependency, dict):
-            self.code.assert_param(dependency['arg'])
+            self.code.assert_param(dependency['param'])
             d = Dependency.from_dict(d=dependency)
             d.bind(self.code)
             self.memory[dependency['serial_number']] = d
@@ -34,18 +34,18 @@ class DependencyBag(MemoryStorage, Iterable):
     def remove(self, serial_number: str) -> None:
         self.memory.pop(serial_number, None)
 
-    def get_args(self) -> dict:
+    def get_params(self) -> dict:
         ret = dict()
         for dependency in self.memory.values():
-            if dependency.arg:
-                ret[dependency.arg] = dependency.id
+            if dependency.param:
+                ret[dependency.param] = dependency.id
         return ret
 
     def load_snapshot(self) -> Optional[Union[CodeSnapshot, dict, list]]:
         return self.code.service['snapshot'].load(serial_number=list(self.memory.keys()))
 
     def check_delivery(self) -> Union[bool, list]:
-        return self.code.service['delivery'].check(serial_number=[k for k, v in self.memory.items() if v.arg])
+        return self.code.service['delivery'].check(serial_number=[k for k, v in self.memory.items() if v.param])
 
     def validate(self, snapshot: list) -> str:
         for s in snapshot:

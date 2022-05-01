@@ -1,4 +1,5 @@
-from codepack import Code, CodePack
+from codepack import Code, CodePack, StorageService
+from codepack.storages import MongoStorage
 from tests import *
 import pytest
 
@@ -159,3 +160,38 @@ def test_get_message(default_os_env):
     assert len(messages) == 1 and 'combination' in messages
     assert messages['combination'] == c3.get_message() == "unsupported operand type(s) for *: 'int' and 'NoneType'"
     assert codepack.get_result() is None
+
+
+def test_parse_codepack_from_str(default_os_env, fake_mongodb):
+    storage = MongoStorage(item_type=CodePack, key='id', mongodb=fake_mongodb,
+                           db='test_db', collection='test_collection')
+    storage_service = StorageService(storage=storage)
+    code1 = Code(dummy_function1, storage_service=storage_service)
+    code2 = Code(dummy_function2, storage_service=storage_service)
+    code1 >> code2
+    code2.receive(param='a') << code1
+    codepack1 = CodePack('test_codepack', code=code1, subscribe=code2, storage_service=storage_service)
+    expected_str = "CodePack(id: test_codepack, subscribe: dummy_function2)\n" \
+                   "| Code(id: dummy_function1, function: dummy_function1, " \
+                   "params: (a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int, receive: {})\n" \
+                   "|- Code(id: dummy_function2, function: dummy_function2, " \
+                   "params: (a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) " \
+                   "-> None, receive: {'a': 'dummy_function1'})"
+    assert codepack1.__str__() == expected_str
+    argpack1 = codepack1.make_argpack()
+    codepack1.save()
+    codepack2 = CodePack.load('test_codepack', storage_service=storage_service)
+    assert codepack1 != codepack2
+    assert codepack2.__str__() == expected_str
+    assert codepack2.codes.keys() == {'dummy_function1', 'dummy_function2'}
+    assert codepack2.codes['dummy_function1'].print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3)" \
+                                                                " -> int"
+    assert codepack2.codes['dummy_function2'].print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3," \
+                                                                " **kwargs: list) -> None"
+    argpack2 = codepack2.make_argpack()
+    assert argpack1.to_dict() == argpack2.to_dict()
+    argpack2['dummy_function1'](a={}, c=2)
+    argpack2['dummy_function2'](c=7, e=63)
+    result = codepack2(argpack2)
+    assert result is None
+    assert codepack2.get_state() == 'TERMINATED'

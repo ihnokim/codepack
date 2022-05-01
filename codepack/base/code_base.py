@@ -8,6 +8,7 @@ import ast
 import inspect
 import dill
 from typing import Optional
+import typing
 
 
 class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
@@ -43,19 +44,25 @@ class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
         # needs to count all other instances, and assert that there is only one FunctionDef
         assert n_function == 1, "'source' should contain only one function."
         namespace = dict()
+        _types = dir(typing)
+        for _type in _types:
+            _class = getattr(typing, _type)
+            if isinstance(_class, typing._Final):
+                namespace[_type] = _class
         # code = compile(tree, filename='blah', mode='exec')
         exec(source, namespace)
         return namespace[getattr(tree.body[0], 'name')]
 
     @staticmethod
-    def get_args(function: Callable) -> OrderedDict:
+    def get_reserved_params(function: Callable) -> OrderedDict:
         ret = OrderedDict()
         argspec = inspect.getfullargspec(function)
-        args = argspec.args
-        defaults = dict(zip(args[-len(argspec.defaults):], argspec.defaults)) if argspec.defaults else dict()
-        for arg in args:
-            if arg in defaults:
-                ret[arg] = defaults[arg]
+        defaults = dict(zip(argspec.args[-len(argspec.defaults):], argspec.defaults)) if argspec.defaults else dict()
+        for arg in argspec.args:
+            ret[arg] = defaults[arg] if arg in defaults else None
+        for kwonlyarg in argspec.kwonlyargs:
+            if argspec.kwonlydefaults is not None and kwonlyarg in argspec.kwonlydefaults:
+                ret[kwonlyarg] = argspec.kwonlydefaults[kwonlyarg]
             else:
-                ret[arg] = None
+                ret[kwonlyarg] = None
         return ret

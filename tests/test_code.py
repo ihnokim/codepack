@@ -3,31 +3,41 @@ from tests import *
 import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
-from typing import Any
 from functools import partial
 
 
-def dummy_callback1(x):
-    pass
-
-
-def dummy_callback2(x1, x2):
-    pass
-
-
-def dummy_callback3(x):
-    pass
-
-
-def test_assert_arg(default_os_env):
+def test_assert_param(default_os_env):
     code1 = Code(add2)
     with pytest.raises(AssertionError):
         code1.assert_param('c')
+    code2 = Code(dummy_function1)
+    reserved_params = ['a', 'b', 'c', 'd']
+    for param in reserved_params:
+        code2.assert_param(param)
+    with pytest.raises(AssertionError):
+        code2.assert_param('e')
+    code3 = Code(dummy_function2)
+    for param in reserved_params + ['e', 'f']:
+        code3.assert_param(param)
+
+
+def test_get_reserved_params(default_os_env):
+    code1 = Code(add3)
+    assert dict(code1.get_reserved_params()) == {'a': None, 'b': None, 'c': 2}
+    code2 = Code(dummy_function1)
+    assert dict(code2.get_reserved_params()) == {'a': None, 'b': 2, 'c': None, 'd': 3}
+    code3 = Code(dummy_function2)
+    assert dict(code3.get_reserved_params()) == {'a': None, 'b': 2, 'c': None, 'd': 3}
 
 
 def test_print_params(default_os_env):
     code1 = Code(add3)
     assert code1.print_params() == '(a, b, c=2)'
+    code2 = Code(dummy_function1)
+    assert code2.print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
+    code3 = Code(dummy_function2)
+    assert code3.print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list)" \
+                                   " -> None"
 
 
 def test_print_info(default_os_env):
@@ -105,12 +115,13 @@ def test_to_db_and_from_db(default_os_env, fake_mongodb):
 
 
 def test_add_dependency(default_os_env):
-    dependency = [{'id': 'test1', 'serial_number': '1234', 'arg': None}, {'id': 'test2', 'serial_number': '5678', 'arg': 'a'}]
+    dependency = [{'id': 'test1', 'serial_number': '1234', 'param': None},
+                  {'id': 'test2', 'serial_number': '5678', 'param': 'a'}]
     code = Code(add2, dependency=dependency)
     assert '1234' in code.dependency and '5678' in code.dependency
-    assert code.dependency['5678'].arg == 'a'
-    assert not code.dependency['1234'].arg
-    tmp = code.dependency.get_args()
+    assert code.dependency['5678'].param == 'a'
+    assert not code.dependency['1234'].param
+    tmp = code.dependency.get_params()
     assert len(tmp) == 1 and 'a' in tmp
 
 
@@ -125,12 +136,12 @@ def test_check_dependency_linkage(default_os_env):
     assert code3.id in code4.parents
     assert code4.id in code3.children
     assert set(code2.dependency.keys()) == set(code3.dependency.keys())
-    assert not code4.dependency[code3.serial_number].arg
+    assert not code4.dependency[code3.serial_number].param
     code4.receive('c') << code3
-    assert code4.dependency[code3.serial_number].arg == 'c'
+    assert code4.dependency[code3.serial_number].param == 'c'
     code3.receive('b') << code1
-    assert code3.dependency[code1.serial_number].arg == 'b'
-    assert not code2.dependency[code1.serial_number].arg
+    assert code3.dependency[code1.serial_number].param == 'b'
+    assert not code2.dependency[code1.serial_number].param
     code3 // code4
     assert len(set(code4.dependency)) == 0
     assert code3.id not in code4.parents
@@ -268,7 +279,7 @@ def test_update_serial_number(default_os_env):
     assert code3.parents[code2.id].serial_number == new_serial_number
     assert old_serial_number not in code3.dependency
     assert new_serial_number in code3.dependency
-    assert code3.dependency[new_serial_number].arg == 'b'
+    assert code3.dependency[new_serial_number].param == 'b'
     assert code3.dependency[new_serial_number].code == code3
     assert code3.dependency[new_serial_number].id == code2.id
     assert code3.dependency[new_serial_number].serial_number == new_serial_number
@@ -276,7 +287,7 @@ def test_update_serial_number(default_os_env):
     assert code4.parents[code2.id].serial_number == new_serial_number
     assert old_serial_number not in code4.dependency
     assert new_serial_number in code4.dependency
-    assert code4.dependency[new_serial_number].arg == 'c'
+    assert code4.dependency[new_serial_number].param == 'c'
     assert code4.dependency[new_serial_number].code == code4
     assert code4.dependency[new_serial_number].id == code2.id
     assert code4.dependency[new_serial_number].serial_number == new_serial_number

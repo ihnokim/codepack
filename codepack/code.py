@@ -199,8 +199,8 @@ class Code(CodeBase):
                 c.add_dependency(d)
         self.serial_number = serial_number
 
-    def get_args(self) -> dict:
-        return super().get_args(function=self.function)
+    def get_reserved_params(self) -> dict:
+        return super().get_reserved_params(function=self.function)
 
     def print_params(self) -> str:
         signature = inspect.signature(self.function)
@@ -208,7 +208,7 @@ class Code(CodeBase):
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, params: {args}, receive: {receive}'
+        ret = 'Code(id: {id}, function: {function}, params: {params}, receive: {receive}'
         for additional_item in ['env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
@@ -218,7 +218,7 @@ class Code(CodeBase):
     def get_info(self, state: bool = True) -> str:
         ret = '%s(id: %s, function: %s, params: %s, receive: %s' % (self.__class__.__name__,
                                                                     self.id, self.function.__name__,
-                                                                    self.print_params(), self.dependency.get_args())
+                                                                    self.print_params(), self.dependency.get_params())
         for additional_item in ['env', 'image', 'owner']:
             item = getattr(self, additional_item)
             if item:
@@ -279,9 +279,9 @@ class Code(CodeBase):
             storage_service = Default.get_service('code', 'storage_service')
         storage_service.remove(id=id)
 
-    def receive(self, arg: str) -> Dependency:
-        self.assert_param(arg)
-        return Dependency(code=self, arg=arg)
+    def receive(self, param: str) -> Dependency:
+        self.assert_param(param)
+        return Dependency(code=self, param=param)
 
     def assert_param(self, param: str) -> None:
         if param:
@@ -300,8 +300,8 @@ class Code(CodeBase):
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         for dependency in self.dependency.values():
-            if dependency.arg and dependency.arg not in kwargs:
-                kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
+            if dependency.param and dependency.param not in kwargs:
+                kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
         ret = self.function(*args, **kwargs)
         self.send_result(item=ret)
         return ret

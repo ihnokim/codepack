@@ -1,4 +1,4 @@
-from codepack import Code, CodePack, Snapshot, CodeSnapshot
+from codepack import CodePack, Snapshot, CodeSnapshot
 from tests import *
 from datetime import datetime
 import pytest
@@ -45,10 +45,10 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     assert 'dependency' in snapshot_dict1
     for dependency in snapshot_dict1['dependency']:
         code3_dependency = code3.dependency[dependency['serial_number']]
-        assert set(dependency.keys()) == {'id', 'serial_number', 'arg'}
+        assert set(dependency.keys()) == {'id', 'serial_number', 'param'}
         assert dependency['id'] == code3_dependency.id
         assert dependency['serial_number'] == code3_dependency.serial_number
-        assert dependency['arg'] == code3_dependency.arg
+        assert dependency['param'] == code3_dependency.param
     assert 'image' in snapshot_dict1
     assert snapshot_dict1['image'] is 'test-image'
     assert 'env' in snapshot_dict1
@@ -163,4 +163,4 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
         for serial_number in code1.dependency.keys():
             assert code1.dependency[serial_number].id == code2.dependency[serial_number].id
             assert code1.dependency[serial_number].serial_number == code2.dependency[serial_number].serial_number
-            assert code1.dependency[serial_number].arg == code2.dependency[serial_number].arg
+            assert code1.dependency[serial_number].param == code2.dependency[serial_number].param
