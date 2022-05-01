@@ -22,7 +22,7 @@ def dummy_callback3(x):
 def test_assert_arg(default_os_env):
     code1 = Code(add2)
     with pytest.raises(AssertionError):
-        code1.assert_arg('c')
+        code1.assert_param('c')
 
 
 def test_print_params(default_os_env):

@@ -15,10 +15,10 @@ class DependencyBag(MemoryStorage, Iterable):
 
     def add(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         if isinstance(dependency, Dependency):
-            self.code.assert_arg(dependency.arg)
+            self.code.assert_param(dependency.arg)
             self.memory[dependency.serial_number] = dependency
         elif isinstance(dependency, dict):
-            self.code.assert_arg(dependency['arg'])
+            self.code.assert_param(dependency['arg'])
             d = Dependency.from_dict(d=dependency)
             d.bind(self.code)
             self.memory[dependency['serial_number']] = d

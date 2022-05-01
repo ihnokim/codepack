@@ -280,12 +280,14 @@ class Code(CodeBase):
         storage_service.remove(id=id)
 
     def receive(self, arg: str) -> Dependency:
-        self.assert_arg(arg)
+        self.assert_param(arg)
         return Dependency(code=self, arg=arg)
 
-    def assert_arg(self, arg: str) -> None:
-        if arg and arg not in self.get_args():
-            raise AssertionError("'%s' is not an argument of %s" % (arg, self.function))
+    def assert_param(self, param: str) -> None:
+        if param:
+            fullargspec = inspect.getfullargspec(self.function)
+            if fullargspec.varkw is None and param not in [*fullargspec.args, *fullargspec.kwonlyargs]:
+                raise AssertionError("'%s' is not a valid parameter of %s" % (param, self.function))
 
     def add_dependency(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         self.dependency.add(dependency=dependency)
