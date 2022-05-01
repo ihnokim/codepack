@@ -47,7 +47,13 @@ class CodeBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
         _types = dir(typing)
         for _type in _types:
             _class = getattr(typing, _type)
-            if isinstance(_class, typing._Final):
+            if hasattr(typing, '_Final'):
+                _base = getattr(typing, '_Final')
+            elif hasattr(typing, '_FinalTypingBase'):
+                _base = getattr(typing, '_FinalTypingBase')
+            else:
+                _base = None
+            if _base is not None and isinstance(_class, _base):
                 namespace[_type] = _class
         # code = compile(tree, filename='blah', mode='exec')
         exec(source, namespace)
