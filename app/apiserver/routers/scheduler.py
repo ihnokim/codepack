@@ -1,4 +1,4 @@
-from codepack import Default, CodePack, CodePackSnapshot, ArgPack, Scheduler
+from codepack import CodePack, CodePackSnapshot, ArgPack, Scheduler
 from fastapi import APIRouter
 from ..models.scheduler import CodePackIDJob, CodePackJSONJob, SnapshotJSONJob, IDPairJob
 from ..dependencies import common
@@ -33,8 +33,7 @@ async def register_by_id(params: CodePackIDJob):
     if isinstance(common.scheduler, str):
         return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id', data=json.dumps(params.dict()))
     elif isinstance(common.scheduler, Scheduler):
-        storage_service = Default.get_service('codepack', 'storage_service')
-        codepack = storage_service.load(params.id)
+        codepack = CodePack.load(params.id)
         argpack = ArgPack.from_json(params.argpack)
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
@@ -48,10 +47,8 @@ async def register_by_id_pair(params: IDPairJob):
     if isinstance(common.scheduler, str):
         return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id-pair', data=json.dumps(params.dict()))
     elif isinstance(common.scheduler, Scheduler):
-        codepack_storage_service = Default.get_service('codepack', 'storage_service')
-        codepack = codepack_storage_service.load(params.codepack_id)
-        argpack_storage_service = Default.get_service('argpack', 'storage_service')
-        argpack = argpack_storage_service.load(params.argpack_id)
+        codepack = CodePack.load(params.codepack_id)
+        argpack = ArgPack.load(params.argpack_id)
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
         return {'serial_number': codepack.serial_number}

@@ -31,7 +31,7 @@ class Scheduler:
         if isinstance(supervisor, str) or isinstance(supervisor, Supervisor) or supervisor is None:
             self.init_supervisor(supervisor=supervisor)
         else:
-            raise TypeError(type(supervisor))
+            raise TypeError(type(supervisor))  # pragma: no cover
 
     def init_scheduler(self, **kwargs: Any) -> None:
         if self.blocking:
@@ -101,7 +101,7 @@ class Scheduler:
         elif isinstance(snapshot, str):
             _snapshot = CodePackSnapshot.from_json(snapshot)
         else:
-            raise TypeError(type(snapshot))
+            raise TypeError(type(snapshot))  # pragma: no cover
         return _snapshot
 
     @staticmethod
