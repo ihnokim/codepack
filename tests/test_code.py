@@ -1,7 +1,21 @@
-from codepack import Code
+from codepack import Code, Callback
 from tests import *
 import pytest
 from datetime import datetime
+from unittest.mock import MagicMock
+from functools import partial
+
+
+def dummy_callback1(x):
+    pass
+
+
+def dummy_callback2(x1, x2):
+    pass
+
+
+def dummy_callback3(x):
+    pass
 
 
 def test_assert_arg(default_os_env):
@@ -321,3 +335,151 @@ def test_default_load(default_os_env):
     search_result = Code.load('add3')
     assert search_result is not None
     assert isinstance(search_result, Code) and search_result.id == 'add3'
+
+
+def test_get_message(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(mul2)
+    code3 = Code(combination)
+    result1 = None
+    with pytest.raises(TypeError):
+        result1 = code1(a=2)
+    assert result1 is None
+    assert code1.get_state() == 'ERROR'
+    assert code1.get_message() == "add2() missing 1 required positional argument: 'b'"
+    result2 = code2(a=2, b=3)
+    assert result2 == 6
+    assert code2.get_state() == 'TERMINATED'
+    assert code2.get_message() == ''
+    assert code3.get_state() == 'UNKNOWN'
+    assert code3.get_message() == ''
+
+
+def test_create_code_without_anything(default_os_env):
+    with pytest.raises(AssertionError):
+        Code()
+
+
+def test_remove(default_os_env):
+    code = Code(add2)
+    ret = Code.load('add2')
+    assert ret is None
+    code.save()
+    ret = Code.load('add2')
+    assert ret is not None
+    assert isinstance(ret, Code)
+    assert ret.id == code.id
+    Code.remove('add2')
+    ret = Code.load('add2')
+    assert ret is None
+
+
+def test_register_callback_with_names(default_os_env):
+    code = Code(add2)
+    code.register_callback(callback=dummy_callback1, name=['callback1', 'callback2', 'callback3'])
+    assert code.callbacks == {'callback1': dummy_callback1}
+
+
+def test_register_multiple_callbacks_without_names(default_os_env):
+    code = Code(add2)
+    code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)])
+    assert len(code.callbacks) == 3
+    assert set(code.callbacks.keys()) == {'dummy_callback1', 'dummy_callback2', 'dummy_callback3'}
+
+
+def test_register_multiple_callbacks_with_one_name(default_os_env):
+    code = Code(add2)
+    with pytest.raises(IndexError):
+        code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)],
+                               name='dummy_callback')
+    assert len(code.callbacks) == 0
+    code.register_callback(callback=[dummy_callback1], name='dummy_callback')
+    assert len(code.callbacks) == 1
+    assert 'dummy_callback' in code.callbacks
+    assert code.callbacks['dummy_callback'] == dummy_callback1
+
+
+def test_register_multiple_callbacks_with_multiple_names(default_os_env):
+    code = Code(add2)
+    _dummy_callback2 = partial(dummy_callback2, 'test')
+    _dummy_callback3 = Callback(dummy_callback3)
+    with pytest.raises(IndexError):
+        code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
+                               name=['dummy_callback'])
+    assert len(code.callbacks) == 0
+    code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
+                           name=['callback1', 'callback2', 'callback3'])
+    assert len(code.callbacks) == 3
+    assert code.callbacks == {'callback1': dummy_callback1,
+                              'callback2': _dummy_callback2,
+                              'callback3': _dummy_callback3}
+
+
+def test_run_callback_with_normal_case(default_os_env):
+    mock_function = MagicMock()
+    code = Code(add2)
+    code.register_callback(callback=mock_function, name='test_function')
+    mock_function.assert_not_called()
+    code(a=3, b=5)
+    arg_list = mock_function.call_args_list
+    assert len(arg_list) == 3
+    seq = ['READY', 'RUNNING', 'TERMINATED']
+    for i, (args, kwargs) in enumerate(arg_list):
+        assert len(args) == 1 and len(kwargs) == 0
+        assert args[0] == {'serial_number': code.serial_number, 'state': seq[i]}
+
+
+def test_run_callback_with_error_case(default_os_env):
+    mock_function = MagicMock()
+    code = Code(add2)
+    code.register_callback(callback=mock_function, name='test_function')
+    mock_function.assert_not_called()
+    with pytest.raises(TypeError):
+        code(a=3)
+    arg_list = mock_function.call_args_list
+    assert len(arg_list) == 3
+    seq = ['READY', 'RUNNING', 'ERROR']
+    for i, (args, kwargs) in enumerate(arg_list):
+        assert len(args) == 1 and len(kwargs) == 0
+        x = {'serial_number': code.serial_number, 'state': seq[i]}
+        if seq[i] == 'ERROR':
+            x['message'] = "add2() missing 1 required positional argument: 'b'"
+        assert args[0] == x
+
+
+def test_run_multiple_callbacks_with_normal_case(default_os_env):
+    mock_function1 = MagicMock()
+    mock_function2 = MagicMock()
+    code = Code(add2)
+    code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
+    mock_function1.assert_not_called()
+    mock_function2.assert_not_called()
+    code(a=3, b=5)
+    for mock_function in [mock_function1, mock_function2]:
+        arg_list = mock_function.call_args_list
+        assert len(arg_list) == 3
+        seq = ['READY', 'RUNNING', 'TERMINATED']
+        for i, (args, kwargs) in enumerate(arg_list):
+            assert len(args) == 1 and len(kwargs) == 0
+            assert args[0] == {'serial_number': code.serial_number, 'state': seq[i]}
+
+
+def test_run_multiple_callbacks_with_error_case(default_os_env):
+    mock_function1 = MagicMock()
+    mock_function2 = MagicMock()
+    code = Code(add2)
+    code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
+    mock_function1.assert_not_called()
+    mock_function2.assert_not_called()
+    with pytest.raises(TypeError):
+        code(a=3)
+    for mock_function in [mock_function1, mock_function2]:
+        arg_list = mock_function.call_args_list
+        assert len(arg_list) == 3
+        seq = ['READY', 'RUNNING', 'ERROR']
+        for i, (args, kwargs) in enumerate(arg_list):
+            assert len(args) == 1 and len(kwargs) == 0
+            x = {'serial_number': code.serial_number, 'state': seq[i]}
+            if seq[i] == 'ERROR':
+                x['message'] = "add2() missing 1 required positional argument: 'b'"
+            assert args[0] == x
