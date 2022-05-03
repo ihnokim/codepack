@@ -171,12 +171,8 @@ def test_parse_codepack_from_str(default_os_env, fake_mongodb):
     code1 >> code2
     code2.receive(param='a') << code1
     codepack1 = CodePack('test_codepack', code=code1, subscribe=code2, storage_service=storage_service)
-    expected_str = "CodePack(id: test_codepack, subscribe: dummy_function2)\n" \
-                   "| Code(id: dummy_function1, function: dummy_function1, " \
-                   "params: (a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int, receive: {})\n" \
-                   "|- Code(id: dummy_function2, function: dummy_function2, " \
-                   "params: (a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) " \
-                   "-> None, receive: {'a': 'dummy_function1'})"
+    expected_str = "CodePack(id: test_codepack, subscribe: dummy_function2)\n| %s\n|- %s"\
+                   % (code1.__str__(), code2.__str__())
     assert codepack1.__str__() == expected_str
     argpack1 = codepack1.make_argpack()
     codepack1.save()
@@ -184,10 +180,8 @@ def test_parse_codepack_from_str(default_os_env, fake_mongodb):
     assert codepack1 != codepack2
     assert codepack2.__str__() == expected_str
     assert codepack2.codes.keys() == {'dummy_function1', 'dummy_function2'}
-    assert codepack2.codes['dummy_function1'].print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3)" \
-                                                                " -> int"
-    assert codepack2.codes['dummy_function2'].print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3," \
-                                                                " **kwargs: list) -> None"
+    assert codepack2.codes['dummy_function1'].print_params() == code1.print_params()
+    assert codepack2.codes['dummy_function2'].print_params() == code2.print_params()
     argpack2 = codepack2.make_argpack()
     assert argpack1.to_dict() == argpack2.to_dict()
     argpack2['dummy_function1'](a={}, c=2)

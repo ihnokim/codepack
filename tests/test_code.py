@@ -1,4 +1,5 @@
-from codepack import Code, Callback
+from codepack import Code, Callback, StorageService
+from codepack.storages import MongoStorage
 from tests import *
 import pytest
 from datetime import datetime
@@ -34,10 +35,32 @@ def test_print_params(default_os_env):
     code1 = Code(add3)
     assert code1.print_params() == '(a, b, c=2)'
     code2 = Code(dummy_function1)
-    assert code2.print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
+    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3) -> int"
+    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
+    assert code2.print_params() == params_old or code2.print_params() == params_new
+    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3, **kwargs:list) -> None"
+    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None"
     code3 = Code(dummy_function2)
-    assert code3.print_params() == "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list)" \
-                                   " -> None"
+    assert code3.print_params() == params_old or code3.print_params() == params_new
+
+
+def test_load_code_with_annotations(default_os_env, fake_mongodb):
+    mongo_storage = MongoStorage(mongodb=fake_mongodb, db='test_db', collection='test_collection',
+                                 item_type=Code, key='id')
+    storage_service = StorageService(storage=mongo_storage)
+    Code(add3, storage_service=storage_service).save()
+    code1 = Code.load('add3', storage_service=storage_service)
+    assert code1.print_params() == '(a, b, c=2)'
+    Code(dummy_function1, storage_service=storage_service).save()
+    code2 = Code.load('dummy_function1', storage_service=storage_service)
+    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3) -> int"
+    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
+    assert code2.print_params() == params_old or code2.print_params() == params_new
+    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3, **kwargs:list) -> None"
+    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None"
+    Code(dummy_function2, storage_service=storage_service).save()
+    code3 = Code.load('dummy_function2', storage_service=storage_service)
+    assert code3.print_params() == params_old or code3.print_params() == params_new
 
 
 def test_print_info(default_os_env):
