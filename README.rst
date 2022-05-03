@@ -97,6 +97,32 @@ the given function name is automatically set to id.
   code = Code(add3)
   result = code(3, b=5)  # result == 10
 
+In order to improve readability of the Code, you can use type annotations and docstrings.
+
+Several classes in :code:`typing` module (e.g. :code:`Any`, :code:`Optional`, etc.) can be added to the annotations.
+However, Code does not understand user-defined and 3rd party modules.
+To use these modules in annotations, it is recommended to enclose them in quotation marks.
+For example, use :code:`'pandas.core.frame.DataFrame'` and :code:`'numpy.ndarray'` instead of
+:code:`DataFrame` and :code:`ndarray`.
+
+The docstring in the function is stored in the :code:`description` attribute in the Code instance.
+The longer, the better!
+
+.. code-block:: python
+
+  from typing import Optional, Any, Union
+
+  def my_function(a: str, b: list, c: Optional['my_module.MyClass'] = None, **kwargs: Any) -> Union[str, dict]:
+    """ You can find this message in code.description. """
+    if c is None:
+      return dict()
+    else:
+      return str()
+
+  code = Code(my_function)
+  print(code)  # Code(id: my_function, function: my_function, params: (a: str, b: list, c: Union[ForwardRef('my_module.MyClass'), NoneType] = None, **kwargs: Any) -> Union[str, dict], receive: {})
+  print(code.description)  # You can find this message in code.description.
+
 **2. Link Codes**
 
 You can create links between Codes with :code:`>>` operator and break links with :code:`//` operator.
