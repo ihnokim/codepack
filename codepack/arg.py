@@ -16,11 +16,11 @@ class Arg(Storable):
             self.kwargs = self.extract(code)
 
     @staticmethod
-    def extract(code: Optional[Code]) -> dict:
+    def extract(code: Code) -> dict:
         ret = dict()
-        for arg, value in code.get_args().items():
-            if arg not in code.dependency.get_args().keys():
-                ret[arg] = value
+        for param, arg in code.get_reserved_params().items():
+            if param not in code.dependency.get_params().keys():
+                ret[param] = arg
         return ret
 
     def __getitem__(self, item: str) -> Any:
@@ -31,8 +31,6 @@ class Arg(Storable):
 
     def __call__(self, **kwargs: Any) -> None:
         for arg, value in kwargs.items():
-            if arg not in self.kwargs:
-                raise TypeError(arg)
             self.kwargs[arg] = value
 
     def to_dict(self) -> dict:
