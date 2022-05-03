@@ -7,6 +7,7 @@ from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
 from queue import Queue
+import inspect
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -198,23 +199,16 @@ class Code(CodeBase):
                 c.add_dependency(d)
         self.serial_number = serial_number
 
-    def get_args(self) -> dict:
-        return super().get_args(function=self.function)
+    def get_reserved_params(self) -> dict:
+        return super().get_reserved_params(function=self.function)
 
-    def print_args(self) -> str:
-        ret = '('
-        for i, (arg, value) in enumerate(self.get_args().items()):
-            if i:
-                ret += ', '
-            ret += arg
-            if value:
-                ret += '=%s' % value
-        ret += ')'
-        return ret
+    def print_params(self) -> str:
+        signature = inspect.signature(self.function)
+        return str(signature)
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, args: {args}, receive: {receive}'
+        ret = 'Code(id: {id}, function: {function}, params: {params}, receive: {receive}'
         for additional_item in ['env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
@@ -222,9 +216,9 @@ class Code(CodeBase):
         return ret
 
     def get_info(self, state: bool = True) -> str:
-        ret = '%s(id: %s, function: %s, args: %s, receive: %s' % (self.__class__.__name__,
-                                                                  self.id, self.function.__name__,
-                                                                  self.print_args(), self.dependency.get_args())
+        ret = '%s(id: %s, function: %s, params: %s, receive: %s' % (self.__class__.__name__,
+                                                                    self.id, self.function.__name__,
+                                                                    self.print_params(), self.dependency.get_params())
         for additional_item in ['env', 'image', 'owner']:
             item = getattr(self, additional_item)
             if item:
@@ -285,13 +279,15 @@ class Code(CodeBase):
             storage_service = Default.get_service('code', 'storage_service')
         storage_service.remove(id=id)
 
-    def receive(self, arg: str) -> Dependency:
-        self.assert_arg(arg)
-        return Dependency(code=self, arg=arg)
+    def receive(self, param: str) -> Dependency:
+        self.assert_param(param)
+        return Dependency(code=self, param=param)
 
-    def assert_arg(self, arg: str) -> None:
-        if arg and arg not in self.get_args():
-            raise AssertionError("'%s' is not an argument of %s" % (arg, self.function))
+    def assert_param(self, param: str) -> None:
+        if param:
+            fullargspec = inspect.getfullargspec(self.function)
+            if fullargspec.varkw is None and param not in [*fullargspec.args, *fullargspec.kwonlyargs]:
+                raise AssertionError("'%s' is not a valid parameter of %s" % (param, self.function))
 
     def add_dependency(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         self.dependency.add(dependency=dependency)
@@ -304,8 +300,8 @@ class Code(CodeBase):
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         for dependency in self.dependency.values():
-            if dependency.arg and dependency.arg not in kwargs:
-                kwargs[dependency.arg] = self.get_result(serial_number=dependency.serial_number)
+            if dependency.param and dependency.param not in kwargs:
+                kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
         ret = self.function(*args, **kwargs)
         self.send_result(item=ret)
         return ret

@@ -1,4 +1,5 @@
-from codepack import Code, CodePack
+from codepack import Code, CodePack, StorageService
+from codepack.storages import MongoStorage
 from tests import *
 import pytest
 
@@ -84,32 +85,32 @@ def test_get_str(default_os_env):
     c5.receive('x') << c3
     cp = CodePack(id='test_codepack', code=c1, subscribe=c4, owner='codepack')
     expected_str1 = "CodePack(id: test_codepack, subscribe: linear, owner: codepack)\n" \
-                    "| Code(id: add3, function: add3, args: (a, b, c=2), receive: {})\n" \
-                    "|- Code(id: combination, function: combination, args: (a, b, c, d), " \
+                    "| Code(id: add3, function: add3, params: (a, b, c=2), receive: {})\n" \
+                    "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
-                    "|-- Code(id: print_x, function: print_x, args: (x), receive: {'x': 'combination'})\n" \
-                    "|-- Code(id: linear, function: linear, args: (a, b, c), " \
+                    "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
+                    "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)\n" \
-                    "| Code(id: mul2, function: mul2, args: (a, b), " \
+                    "| Code(id: mul2, function: mul2, params: (a, b), " \
                     "receive: {}, env: codepack-env, owner: codepack)\n" \
-                    "|- Code(id: combination, function: combination, args: (a, b, c, d), " \
+                    "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
-                    "|-- Code(id: print_x, function: print_x, args: (x), receive: {'x': 'combination'})\n" \
-                    "|-- Code(id: linear, function: linear, args: (a, b, c), " \
+                    "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
+                    "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)"
     expected_str2 = "CodePack(id: test_codepack, subscribe: linear, owner: codepack)\n" \
-                    "| Code(id: mul2, function: mul2, args: (a, b), " \
+                    "| Code(id: mul2, function: mul2, params: (a, b), " \
                     "receive: {}, env: codepack-env, owner: codepack)\n" \
-                    "|- Code(id: combination, function: combination, args: (a, b, c, d), " \
+                    "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
-                    "|-- Code(id: print_x, function: print_x, args: (x), receive: {'x': 'combination'})\n" \
-                    "|-- Code(id: linear, function: linear, args: (a, b, c), " \
+                    "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
+                    "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)\n" \
-                    "| Code(id: add3, function: add3, args: (a, b, c=2), receive: {})\n" \
-                    "|- Code(id: combination, function: combination, args: (a, b, c, d), " \
+                    "| Code(id: add3, function: add3, params: (a, b, c=2), receive: {})\n" \
+                    "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
-                    "|-- Code(id: print_x, function: print_x, args: (x), receive: {'x': 'combination'})\n" \
-                    "|-- Code(id: linear, function: linear, args: (a, b, c), " \
+                    "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
+                    "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)"
     assert cp.__str__() == expected_str1 or cp.__str__() == expected_str2
     assert cp.__repr__() == expected_str1 or cp.__repr__() == expected_str2
@@ -159,3 +160,32 @@ def test_get_message(default_os_env):
     assert len(messages) == 1 and 'combination' in messages
     assert messages['combination'] == c3.get_message() == "unsupported operand type(s) for *: 'int' and 'NoneType'"
     assert codepack.get_result() is None
+
+
+def test_parse_codepack_from_str(default_os_env, fake_mongodb):
+    storage = MongoStorage(item_type=CodePack, key='id', mongodb=fake_mongodb,
+                           db='test_db', collection='test_collection')
+    storage_service = StorageService(storage=storage)
+    code1 = Code(dummy_function1, storage_service=storage_service)
+    code2 = Code(dummy_function2, storage_service=storage_service)
+    code1 >> code2
+    code2.receive(param='a') << code1
+    codepack1 = CodePack('test_codepack', code=code1, subscribe=code2, storage_service=storage_service)
+    expected_str = "CodePack(id: test_codepack, subscribe: dummy_function2)\n| %s\n|- %s"\
+                   % (code1.__str__(), code2.__str__())
+    assert codepack1.__str__() == expected_str
+    argpack1 = codepack1.make_argpack()
+    codepack1.save()
+    codepack2 = CodePack.load('test_codepack', storage_service=storage_service)
+    assert codepack1 != codepack2
+    assert codepack2.__str__() == expected_str
+    assert codepack2.codes.keys() == {'dummy_function1', 'dummy_function2'}
+    assert codepack2.codes['dummy_function1'].print_params() == code1.print_params()
+    assert codepack2.codes['dummy_function2'].print_params() == code2.print_params()
+    argpack2 = codepack2.make_argpack()
+    assert argpack1.to_dict() == argpack2.to_dict()
+    argpack2['dummy_function1'](a={}, c=2)
+    argpack2['dummy_function2'](c=7, e=63)
+    result = codepack2(argpack2)
+    assert result is None
+    assert codepack2.get_state() == 'TERMINATED'
