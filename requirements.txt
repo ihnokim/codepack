@@ -1,7 +1,5 @@
 dill==0.3.4
 pymongo==3.12.1
-numpy
-pandas
 sshtunnel==0.4.0
 PyMySQL==1.0.2
 pymssql==2.2.2
@@ -12,3 +10,6 @@ APScheduler==3.8.1
 kafka-python==2.0.2
 docker==5.0.3
 requests==2.26.0
+numpy
+pandas
+pyreadline
