@@ -1,5 +1,5 @@
 from codepack import CodePack, CodePackSnapshot, ArgPack
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from ..models.scheduler import CodePackIDJob, CodePackJSONJob, SnapshotJSONJob, IDPairJob
 from ..dependencies import common
 
@@ -23,6 +23,8 @@ async def register(params: CodePackJSONJob):
 @router.post('/register/id')
 async def register_by_id(params: CodePackIDJob):
     codepack = CodePack.load(params.id)
+    if codepack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
     argpack = ArgPack.from_json(params.argpack)
     common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                   trigger=params.trigger, **params.trigger_config)
@@ -32,7 +34,11 @@ async def register_by_id(params: CodePackIDJob):
 @router.post('/register/id-pair')
 async def register_by_id_pair(params: IDPairJob):
     codepack = CodePack.load(params.codepack_id)
+    if codepack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.codepack_id)
     argpack = ArgPack.load(params.argpack_id)
+    if argpack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.argpack_id)
     common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                   trigger=params.trigger, **params.trigger_config)
     return {'serial_number': codepack.serial_number}

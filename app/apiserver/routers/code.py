@@ -1,5 +1,5 @@
 from codepack import Default, Code, CodeSnapshot
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from ..models.code import CodeID, CodeJSON, SnapshotJSON
 from ..dependencies import common
 
@@ -21,6 +21,8 @@ async def run(params: CodeJSON):
 @router.post('/run/id')
 async def run_by_id(params: CodeID):
     code = Code.load(params.id)
+    if code is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
@@ -55,7 +57,9 @@ async def remove(id: str):
 
 @router.get('/load/{id}')
 async def load(id: str):
-    code = Code(id=id)
+    code = Code.load(id=id)
+    if code is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % id)
     return {'code': code.to_json()}
 
 

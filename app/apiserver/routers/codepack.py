@@ -1,5 +1,5 @@
 from codepack import Default, CodePack, CodePackSnapshot, ArgPack
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from ..models.codepack import CodePackID, CodePackJSON, SnapshotJSON, IDPair
 from ..dependencies import common
 
@@ -22,6 +22,8 @@ async def run(params: CodePackJSON):
 @router.post('/run/id')
 async def run_by_id(params: CodePackID):
     codepack = CodePack.load(params.id)
+    if codepack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
     argpack = ArgPack.from_json(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
@@ -30,7 +32,11 @@ async def run_by_id(params: CodePackID):
 @router.post('/run/id-pair')
 async def run_by_id_pair(params: IDPair):
     codepack = CodePack.load(params.codepack_id)
+    if codepack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.codepack_id)
     argpack = ArgPack.load(params.argpack_id)
+    if argpack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % params.argpack_id)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
@@ -67,6 +73,8 @@ async def remove(id: str):
 @router.get('/load/{id}')
 async def load(id: str):
     codepack = CodePack.load(id)
+    if codepack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % id)
     return {'codepack': codepack.to_json()}
 
 
