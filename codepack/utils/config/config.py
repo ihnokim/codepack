@@ -53,8 +53,8 @@ class Config:
             raise AttributeError(
                 "path of configuration file should be provided in either 'config_path' or os.environ['%s']"
                 % self.LABEL_CONFIG_PATH)
-        if ret and overwrite_with_os_env:
-            ret = self.collect_values(section=section, config=ret, ignore_error=ignore_error)
+        if overwrite_with_os_env:
+            ret = self.collect_values(section=section, config=ret if ret else dict(), ignore_error=ignore_error)
         return ret
 
     @classmethod
@@ -95,9 +95,10 @@ class Config:
             if k not in values:
                 values[k] = cls.collect_value(section=section, key=k, config=dict())
         default_config = cls.get_default_config(section=section)
-        for key, value in default_config.items():
-            if key not in values:
-                values[key] = value
+        if default_config:
+            for key, value in default_config.items():
+                if key not in values:
+                    values[key] = value
         return values
 
     def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:

@@ -534,3 +534,25 @@ def test_get_storage_config_with_os_env():
         os.environ.pop('CODEPACK_SCHEDULER_DB', None)
         os.environ.pop('CODEPACK_MONGODB_HOST', None)
         os.environ.pop('CODEPACK_MONGODB_USER', None)
+
+
+def test_get_arbitrary_section():
+    try:
+        os.environ['CODEPACK_CONFIG_PATH'] = 'config/sample.ini'
+        config = Config()
+        assert config.get_config('rest_api') == {'my_service': 'https://?:?/?'}
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_PATH')
+
+
+def test_get_arbitrary_section_with_os_env():
+    try:
+        os.environ['CODEPACK_HELLO_WORLD'] = 'hello_world'
+        os.environ['CODEPACK_TESTTEST_TEST_KEY'] = 'test_value'
+        config = Config()
+        assert config.get_config('hello') == {'world': 'hello_world'}
+        assert config.get_config('testtest') == {'test_key': 'test_value'}
+        assert config.get_config('test_test') == {'test_key': 'test_value'}
+    finally:
+        os.environ.pop('CODEPACK_HELLO_WORLD', None)
+        os.environ.pop('CODEPACK_TESTTEST_TEST_KEY', None)
