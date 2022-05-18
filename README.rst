@@ -273,6 +273,18 @@ The configuration is accessible from code via :code:`Config` and :code:`Default`
   scheduler = Default.get_scheduler()
   logger = Default.get_logger()
 
+If the default configuration bothers you, pass :code:`default=False` to :code:`get_config`.
+
+.. code-block:: python
+
+  import os
+
+  os.environ['CODEPACK_SSH_CUSTOM_KEY'] = 'custom_value'
+  config.get_config('ssh')  # {'ssh_host': 'localhost', 'ssh_port': '22', 'custom_key': 'custom_value'}
+  config.get_config('ssh', default=False)  # {'custom_key': 'custom_value'}
+  os.environ.pop('CODEPACK_SSH_CUSTOM_KEY', None)
+  config.get_config('ssh', default=False)  # {}
+
 **8. To use in other machines...**
 
 A Code should be executable in isolated environments different from where it was created.

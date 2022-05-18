@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from codepack import Code, CodePack, Scheduler, JobStore, StorableJob
+from codepack import Code, CodePack, ArgPack, Scheduler, JobStore, StorableJob, CodePackSnapshot
 from codepack.storages import MemoryStorage, FileStorage, MongoStorage, S3Storage
 from tests import *
 
@@ -92,3 +92,51 @@ def test_s3_storage_jobstore_codepack_snapshot(mock_client):
     assert hasattr(scheduler.jobstores['codepack'], 'storage')
     assert isinstance(scheduler.jobstores['codepack'].storage, S3Storage)
     assert scheduler.jobstores['codepack'].storage == storage
+
+
+def test_scheduler_get_instances(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    code1 >> code2
+    code2.receive('b') << code1
+    codepack = CodePack('test-codepack', code=code1, subscribe=code2)
+    argpack = codepack.make_argpack()
+    argpack['add2'](a=3, b=5)
+    argpack['add3'](a=2, c=7)
+    snapshot = codepack.to_snapshot(argpack=argpack)
+    _codepack = Scheduler._get_codepack(snapshot=snapshot)
+    _argpack = Scheduler._get_argpack(snapshot=snapshot)
+    _snapshot_from_snapshot = Scheduler._get_snapshot(snapshot=snapshot)
+    _snapshot_from_dict = Scheduler._get_snapshot(snapshot=snapshot.to_dict())
+    _snapshot_from_json = Scheduler._get_snapshot(snapshot=snapshot.to_json())
+    assert isinstance(_codepack, CodePack)
+    assert isinstance(_argpack, ArgPack)
+    assert isinstance(_snapshot_from_snapshot, CodePackSnapshot)
+    assert isinstance(_snapshot_from_dict, CodePackSnapshot)
+    assert isinstance(_snapshot_from_json, CodePackSnapshot)
+    assert codepack.id == _codepack.id
+    assert argpack.id == _argpack.id
+    assert snapshot.diff(_snapshot_from_snapshot) == {}
+    assert snapshot.diff(_snapshot_from_dict) == {}
+    assert snapshot.diff(_snapshot_from_json) == {}
+    assert codepack.get_structure() == _codepack.get_structure()
+    source1 = codepack.get_source()
+    source2 = _codepack.get_source()
+    for code_id in ['add2', 'add3']:
+        assert source1[code_id].strip() == source2[code_id].strip()
+        assert code_id in _argpack
+    assert _argpack['add2']['a'] == 3 and _argpack['add2']['b'] == 5
+    assert _argpack['add3']['a'] == 2 and _argpack['add3']['c'] == 7
+
+
+def test_scheduler_run_snapshot(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add3)
+    code1 >> code2
+    code2.receive('b') << code1
+    codepack = CodePack('test-codepack', code=code1, subscribe=code2)
+    argpack = codepack.make_argpack()
+    argpack['add2'](a=3, b=5)
+    argpack['add3'](a=2, c=7)
+    snapshot = codepack.to_snapshot(argpack=argpack)
+    assert Scheduler.run_snapshot(snapshot=snapshot) == 17

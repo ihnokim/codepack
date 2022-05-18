@@ -67,7 +67,8 @@ def test_default_get_storage_config():
     assert len(Default.instances) == 0
     config = Default.get_config_instance()
     storage_config = config.get_storage_config('worker')
-    assert storage_config == {'source': 'kafka', 'topic': 'test', 'kafka': {'bootstrap_servers': 'localhost:9092'},
+    assert storage_config == {'background': 'True',
+                              'source': 'kafka', 'topic': 'test', 'kafka': {'bootstrap_servers': 'localhost:9092'},
                               'group_id': 'codepack_worker_test', 'interval': '5',
                               'supervisor': 'http://localhost:8000', 'script_path': 'scripts/run_snapshot.py',
                               'logger': 'worker-logger'}
