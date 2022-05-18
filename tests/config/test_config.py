@@ -50,7 +50,7 @@ def test_config_path():
 def test_config_path_priority():
     try:
         config = Config()
-        _config = config.get_config(section='logger', ignore_error=True)
+        _config = config.get_config(section='logger')
         assert _config == {'log_dir': 'logs', 'name': 'default-logger',
                            'config_path': os.path.join(config.get_default_config_dir(), 'logging.json')}
         with pytest.raises(AssertionError):
@@ -77,8 +77,8 @@ def test_config_get_value_priority():
         _config = config.get_config(section='logger')
         assert _config == {'name': 'default-logger', 'log_dir': 'logs',
                            'config_path': os.path.join(config.get_default_config_dir(), 'logging.json')}
-        default_value = Config.collect_value(section='logger', key='name', config=dict())
-        assert default_value == 'default-logger'
+        with pytest.raises(AssertionError):
+            _ = Config.collect_value(section='logger', key='name', config=dict())
         name = Config.collect_value(section='logger', key='name', config=_config)
         assert name == 'default-logger'
         os.environ['CODEPACK_LOGGER_NAME'] = 'test-logger'
@@ -110,7 +110,7 @@ def test_get_storage_config_priority():
         storage_config = config.get_storage_config('worker')
         ref = {'group_id': 'codepack_worker_test', 'interval': '5', 'kafka': {'bootstrap_servers': 'localhost:9092'},
                'script_path': 'scripts/run_snapshot.py', 'source': 'kafka', 'supervisor': 'http://localhost:8000',
-               'topic': 'test', 'logger': 'worker-logger'}
+               'topic': 'test', 'logger': 'worker-logger', 'background': 'True'}
         assert storage_config == ref
         os.environ['CODEPACK_WORKER_SCRIPT'] = 'test_script.py'
         os.environ['CODEPACK_WORKER_TOPIC'] = 'test2'
@@ -354,12 +354,9 @@ def test_get_config_without_anything(parse_config):
     ret = config.get_config('worker')
     assert ret is not None
     arg_list = parse_config.call_args_list
-    assert len(arg_list) == 2
+    assert len(arg_list) == 1
     args, kwargs = arg_list[0]
     assert kwargs == {'section': 'worker', 'config_path': config.get_default_config_path()}
-    args, kwargs = arg_list[1]
-    assert kwargs == {'section': 'worker',
-                      'config_path': config.get_default_config_path()}
 
 
 @patch('codepack.utils.config.config.Config.parse_config')
@@ -370,12 +367,9 @@ def test_get_config_without_anything_but_os_env(parse_config):
         ret = config.get_config('worker')
         assert ret is not None
         arg_list = parse_config.call_args_list
-        assert len(arg_list) == 2
+        assert len(arg_list) == 1
         args, kwargs = arg_list[0]
         assert kwargs == {'section': 'worker', 'config_path': 'config/test.ini'}
-        args, kwargs = arg_list[1]
-        assert kwargs == {'section': 'worker',
-                          'config_path': config.get_default_config_path()}
     finally:
         os.environ.pop('CODEPACK_CONFIG_PATH')
 
@@ -457,7 +451,7 @@ def test_collect_values_without_anything_but_os_env():
             os.environ[k] = v
         config = Config()
         ret = config.get_config('worker')
-        assert ret == {'background': 'True', 'dummy': 'dummy_value',
+        assert ret == {'dummy': 'dummy_value',
                        'group_id': 'codepack_worker_test',
                        'interval': '5',
                        'logger': 'dummy-logger',
@@ -556,3 +550,38 @@ def test_get_arbitrary_section_with_os_env():
     finally:
         os.environ.pop('CODEPACK_HELLO_WORLD', None)
         os.environ.pop('CODEPACK_TESTTEST_TEST_KEY', None)
+
+
+def test_get_config_without_default():
+    try:
+        config = Config()
+        assert config.get_config('arbitrary') == {}
+        os.environ['CODEPACK_SSH_CUSTOM_KEY'] = 'custom_value'
+        config1 = Config('config/sample.ini')
+        assert config.get_config('arbitrary') == {}
+        assert config1.get_config('ssh') == {'ssh_host': '1.2.3.4',
+                                             'ssh_password': '?',
+                                             'ssh_port': '22',
+                                             'ssh_username': '?'}
+        config2 = Config()
+        assert config.get_config('arbitrary') == {}
+        assert config2.get_config('ssh', config_path='config/sample.ini') == {'ssh_host': '1.2.3.4',
+                                                                              'ssh_password': '?',
+                                                                              'ssh_port': '22',
+                                                                              'ssh_username': '?'}
+        config3 = Config()
+        assert config.get_config('arbitrary') == {}
+        assert config3.get_config('ssh') == {'custom_key': 'custom_value', 'ssh_host': 'localhost', 'ssh_port': '22'}
+        os.environ['CODEPACK_CONFIG_PATH'] = 'config/sample.ini'
+        config4 = Config()
+        assert config.get_config('arbitrary') == {}
+        assert config4.get_config('ssh') == {'custom_key': 'custom_value',
+                                             'ssh_host': '1.2.3.4', 'ssh_password': '?',
+                                             'ssh_port': '22', 'ssh_username': '?'}
+        os.environ.pop('CODEPACK_CONFIG_PATH', None)
+        config5 = Config()
+        assert config.get_config('arbitrary') == {}
+        assert config5.get_config('ssh', default=False) == {'custom_key': 'custom_value'}
+    finally:
+        os.environ.pop('CODEPACK_CONFIG_PATH', None)
+        os.environ.pop('CODEPACK_SSH_CUSTOM_KEY', None)

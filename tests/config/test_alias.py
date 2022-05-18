@@ -93,8 +93,8 @@ def test_alias_path_argument():
         a = Alias(data='codepack/utils/config/default/alias.ini')
         assert a['storage_service'] == StorageService
         os.environ[os_env] = 'config'
-        with pytest.raises(configparser.NoSectionError):
-            Alias(data='config/test.ini')
+        alias = Alias(data='config/test.ini')
+        assert alias.aliases == {}
     finally:
         os.environ.pop(os_env, None)
 

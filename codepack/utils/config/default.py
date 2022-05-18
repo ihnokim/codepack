@@ -197,7 +197,7 @@ class Default:
         key = section
         if config_path or alias_path or key not in cls.instances:
             config = cls.get_config_instance(config_path=config_path)
-            manager_config = config.get_config(section=section, config_path=config_path, ignore_error=True)
+            manager_config = config.get_config(section=section, config_path=config_path)
             manager_class = cls.get_class_from_alias(section, alias_path=alias_path)
             instance = manager_class(**manager_config)
             if config_path is None and alias_path is None:
@@ -215,7 +215,11 @@ class Default:
             logger_name = logger_config.get('name', None)
             if name is not None:
                 logger_name = name
-            logger = config.get_logger(config_path=logger_config['config_path'], name=logger_name)
+            if 'config_path' in logger_config:
+                _config_path = logger_config['config_path']
+            else:
+                _config_path = None
+            logger = config.get_logger(name=logger_name, config_path=_config_path)
             if config_path is None:
                 cls.instances[key] = logger
             return logger
