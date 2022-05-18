@@ -1,5 +1,5 @@
 from codepack import ArgPack
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from ..models.argpack import ArgPackJSON
 
 
@@ -33,4 +33,6 @@ async def remove(id: str):
 @router.get('/load/{id}')
 async def load(id: str):
     argpack = ArgPack.load(id)
+    if argpack is None:
+        raise HTTPException(status_code=404, detail="'%s' not found" % id)
     return {'argpack': argpack.to_json()}
