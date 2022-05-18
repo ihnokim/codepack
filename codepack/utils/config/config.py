@@ -20,16 +20,15 @@ class Config:
             self.config_path = None
 
     @staticmethod
-    def parse_config(section: str, config_path: str, ignore_error: bool = False) -> Optional[dict]:
+    def parse_config(section: str, config_path: str) -> dict:
         cp = ConfigParser()
         cp.read(config_path)
-        if ignore_error and not cp.has_section(section):
-            return None
+        if not cp.has_section(section):
+            return dict()
         items = cp.items(section)
         return {item[0]: item[1] for item in items}
 
-    def get_config(self, section: str, config_path: Optional[str] = None,
-                   ignore_error: Optional[bool] = False) -> Optional[dict]:
+    def get_config(self, section: str, config_path: Optional[str] = None, default: bool = True) -> dict:
         overwrite_with_os_env = False
         parse_default_config = False
         _config_path = None
@@ -37,24 +36,20 @@ class Config:
             _config_path = self.get_config_path(path=config_path)
         elif self.config_path:
             _config_path = self.config_path
-        elif self.LABEL_CONFIG_PATH in os.environ:
-            overwrite_with_os_env = True
-            _config_path = self.get_config_path(os.environ.get(self.LABEL_CONFIG_PATH))
         else:
             overwrite_with_os_env = True
-            parse_default_config = True
+            if self.LABEL_CONFIG_PATH in os.environ:
+                _config_path = self.get_config_path(os.environ.get(self.LABEL_CONFIG_PATH))
+            elif default:
+                parse_default_config = True
         if _config_path:
             ret = self.parse_config(section=section, config_path=self.get_config_path(_config_path))
         elif parse_default_config:
             ret = self.get_default_config(section=section)
-        elif ignore_error:
-            return None
         else:
-            raise AttributeError(
-                "path of configuration file should be provided in either 'config_path' or os.environ['%s']"
-                % self.LABEL_CONFIG_PATH)
+            ret = dict()
         if overwrite_with_os_env:
-            ret = self.collect_values(section=section, config=ret if ret else dict(), ignore_error=ignore_error)
+            ret = self.collect_values(section=section, config=ret)
         return ret
 
     @classmethod
@@ -73,14 +68,10 @@ class Config:
             value = os.environ.get(env)
         elif key in config:
             value = config[key]
+        elif ignore_error:
+            return None
         else:
-            default_config = cls.get_default_config(section=section)
-            if default_config and key in default_config:
-                value = default_config[key]
-            elif ignore_error:
-                return None
-            else:
-                raise AssertionError(cls._os_env_missing_error_message(section=section, key=key))
+            raise AssertionError(cls._os_env_missing_error_message(section=section, key=key))
         if section in {'conn', 'alias', 'logger'} and key in {'path', 'config_path'}:
             value = cls.get_config_path(value)
         return value
@@ -93,16 +84,17 @@ class Config:
         for key, value in {k: v for k, v in os.environ.items() if cls.os_env(key=section) in k}.items():
             k = key.replace(cls.os_env(key=section), '').lower()
             if k not in values:
-                values[k] = cls.collect_value(section=section, key=k, config=dict())
-        default_config = cls.get_default_config(section=section)
-        if default_config:
-            for key, value in default_config.items():
-                if key not in values:
-                    values[key] = value
+                _value = cls.collect_value(section=section, key=k, config=dict(), ignore_error=ignore_error)
+                if _value:
+                    values[k] = _value
         return values
 
     def get_storage_config(self, section: str, config_path: Optional[str] = None) -> dict:
         config = self.get_config(section=section, config_path=config_path)
+        default_config = self.get_default_config(section=section)
+        for k, v in default_config.items():
+            if k not in config:
+                config[k] = v
         source = config.get('source', None)
         if source == 'memory':
             pass
@@ -121,7 +113,10 @@ class Config:
         return config
 
     @staticmethod
-    def get_logger(config_path: str, name: Optional[str] = None) -> logging.Logger:
+    def get_logger(name: Optional[str] = None, config_path: Optional[str] = None) -> logging.Logger:
+        if config_path is None:
+            default_logger_config = Config.get_default_config('logger')
+            config_path = default_logger_config['config_path']
         with open(config_path, 'r') as f:
             config = json.load(f)
             if 'handlers' in config:
@@ -149,9 +144,9 @@ class Config:
         return os.path.join(cls.get_default_config_dir(), 'default.ini')
 
     @classmethod
-    def get_default_config(cls, section: str) -> Optional[dict]:
+    def get_default_config(cls, section: str) -> dict:
         default_config_path = cls.get_default_config_path()
-        ret = None
+        ret = dict()
         try:
             if os.path.isfile(default_config_path):
                 ret = cls.parse_config(section=section, config_path=default_config_path)
@@ -164,8 +159,6 @@ class Config:
                     ret['config_path'] = os.path.join(default_dir, 'logging.json')
                 elif section == 'worker' and 'script_path' not in ret:
                     ret['script_path'] = os.path.join(default_dir, 'scripts/run_snapshot.py')
-        except Exception:
-            return None
         finally:
             return ret
 
