@@ -11,7 +11,7 @@ with open("requirements.txt", "r") as f:
 
 setuptools.setup(
     name="codepack",
-    version="0.4.1",
+    version="0.4.2",
     author="ihnokim",
     author_email="ihnokim58@gmail.com",
     description="CodePack is the package to easily make, run, and manage workflows",
