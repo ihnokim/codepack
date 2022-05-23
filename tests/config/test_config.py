@@ -90,7 +90,7 @@ def test_config_get_value_priority():
         config = Config()
         _config = config.get_config(section='logger')
         assert _config == {'name': 'default-logger',
-                           'config_path': os.path.join('config', 'logging.json'),
+                           'config_path': 'logging.json',
                            'log_dir': 'logs'}
         name = Config.collect_value(section='logger', key='name', config=_config)
         assert name == 'default-logger'
@@ -338,12 +338,13 @@ def test_if_default_services_have_single_instance_for_each_service(testdir_snaps
 def test_config_dir():
     path = Config.collect_value(section='?', key='path', config={'path': 'config/test.ini'})
     assert path == 'config/test.ini'
+    assert Config.collect_value(section='conn', key='path', config={'path': 'test.ini'}) == 'test.ini'
     with pytest.raises(AssertionError):
-        Config.collect_value(section='conn', key='path', config={'path': 'test.ini'})
+        Config.get_config_path('test.ini')
     try:
         os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-        path = Config.collect_value(section='conn', key='path', config={'path': 'test.ini'})
-        assert path == os.path.join('config', 'test.ini')
+        assert Config.collect_value(section='conn', key='path', config={'path': 'test.ini'}) == 'test.ini'
+        assert Config.get_config_path('test.ini') == os.path.join('config', 'test.ini')
     finally:
         os.environ.pop('CODEPACK_CONFIG_DIR', None)
 
@@ -585,3 +586,26 @@ def test_get_config_without_default():
     finally:
         os.environ.pop('CODEPACK_CONFIG_PATH', None)
         os.environ.pop('CODEPACK_SSH_CUSTOM_KEY', None)
+
+
+def test_get_path_in_logger_section():
+    try:
+        config = Config()
+        os.environ['CODEPACK_LOGGER_TEST_KEY'] = 'test_value'
+        default_config_dir = config.get_default_config_dir()
+        assert config.get_config('logger') == {'config_path': os.path.join(default_config_dir, 'logging.json'),
+                                               'log_dir': 'logs', 'name': 'default-logger', 'test_key': 'test_value'}
+        assert config.get_config('logger', default=False) == {'test_key': 'test_value'}
+        os.environ['CODEPACK_LOGGER_CONFIG_PATH'] = 'test1.test'
+        assert config.get_config('logger') == {'config_path': 'test1.test',
+                                               'log_dir': 'logs', 'name': 'default-logger', 'test_key': 'test_value'}
+        assert config.get_config('logger', default=False) == {'config_path': 'test1.test', 'test_key': 'test_value'}
+        os.environ['CODEPACK_LOGGER_PATH'] = 'test2.test'
+        assert config.get_config('logger') == {'config_path': 'test1.test', 'path': 'test2.test',
+                                               'log_dir': 'logs', 'name': 'default-logger', 'test_key': 'test_value'}
+        assert config.get_config('logger', default=False) == {'config_path': 'test1.test', 'path': 'test2.test',
+                                                              'test_key': 'test_value'}
+    finally:
+        os.environ.pop('CODEPACK_LOGGER_TEST_KEY', None)
+        os.environ.pop('CODEPACK_LOGGER_CONFIG_PATH', None)
+        os.environ.pop('CODEPACK_LOGGER_PATH', None)

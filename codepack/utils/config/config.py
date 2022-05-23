@@ -72,8 +72,6 @@ class Config:
             return None
         else:
             raise AssertionError(cls._os_env_missing_error_message(section=section, key=key))
-        if section in {'conn', 'alias', 'logger'} and key in {'path', 'config_path'}:
-            value = cls.get_config_path(value)
         return value
 
     @classmethod
