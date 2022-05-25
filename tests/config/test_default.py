@@ -91,10 +91,10 @@ def test_default_get_class_from_alias():
         Default.alias = None
         Default.instances = dict()
         isinstance(Default.get_class_from_alias(alias='memory_storage'), MemoryStorage.__class__)
-        os.environ['CODEPACK_ALIAS_MEMORY_STORAGE'] = 'codepack.storage.file_storage.FileStorage'
+        os.environ['CODEPACK__ALIAS__MEMORY_STORAGE'] = 'codepack.storage.file_storage.FileStorage'
         memory_storage = Default.get_class_from_alias(alias='file_storage')
         assert isinstance(memory_storage, MemoryStorage.__class__)
-        os.environ.pop('CODEPACK_ALIAS_MEMORY_STORAGE', None)
+        os.environ.pop('CODEPACK__ALIAS__MEMORY_STORAGE', None)
         Default.config = None
         Default.alias = None
         os.environ['CODEPACK_ALIAS_PATH'] = 'codepack/utils/config/default/alias.ini'
@@ -113,7 +113,7 @@ def test_default_get_class_from_alias():
         memory_storage = Default.get_class_from_alias(alias='memory_storage')
         assert isinstance(memory_storage, MemoryStorage.__class__)
     finally:
-        os.environ.pop('CODEPACK_ALIAS_MEMORY_STORAGE', None)
+        os.environ.pop('CODEPACK__ALIAS__MEMORY_STORAGE', None)
         os.environ.pop('CODEPACK_ALIAS_PATH', None)
         os.environ.pop('CODEPACK_CONFIG_DIR', None)
         os.environ.pop('CODEPACK_CONFIG_PATH', None)
@@ -139,11 +139,11 @@ def test_get_default_scheduler():
 @patch('pymongo.MongoClient')
 def test_get_default_scheduler_with_some_os_env(mock_client):
     try:
-        os.environ['CODEPACK_SCHEDULER_SOURCE'] = 'mongodb'
-        os.environ['CODEPACK_SCHEDULER_DB'] = 'test_db'
-        os.environ['CODEPACK_SCHEDULER_COLLECTION'] = 'test_collection'
-        os.environ['CODEPACK_SCHEDULER_SUPERVISOR'] = 'dummy_supervisor'
-        os.environ['CODEPACK_MONGODB_REPLICASET'] = 'TEST'
+        os.environ['CODEPACK__SCHEDULER__SOURCE'] = 'mongodb'
+        os.environ['CODEPACK__SCHEDULER__DB'] = 'test_db'
+        os.environ['CODEPACK__SCHEDULER__COLLECTION'] = 'test_collection'
+        os.environ['CODEPACK__SCHEDULER__SUPERVISOR'] = 'dummy_supervisor'
+        os.environ['CODEPACK__MONGODB__REPLICASET'] = 'TEST'
         scheduler = Default.get_scheduler()
         assert isinstance(scheduler, Scheduler)
         assert 'codepack' in scheduler.jobstores
@@ -157,11 +157,11 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
         assert scheduler.supervisor == 'dummy_supervisor'
         mock_client.assert_called_once_with(host='localhost', port=27017, replicaset='TEST')
     finally:
-        os.environ.pop('CODEPACK_SCHEDULER_SOURCE', None)
-        os.environ.pop('CODEPACK_SCHEDULER_DB', None)
-        os.environ.pop('CODEPACK_SCHEDULER_COLLECTION', None)
-        os.environ.pop('CODEPACK_SCHEDULER_SUPERVISOR', None)
-        os.environ.pop('CODEPACK_MONGODB_REPLICASET', None)
+        os.environ.pop('CODEPACK__SCHEDULER__SOURCE', None)
+        os.environ.pop('CODEPACK__SCHEDULER__DB', None)
+        os.environ.pop('CODEPACK__SCHEDULER__COLLECTION', None)
+        os.environ.pop('CODEPACK__SCHEDULER__SUPERVISOR', None)
+        os.environ.pop('CODEPACK__MONGODB__REPLICASET', None)
 
 
 @patch('docker.DockerClient')
@@ -218,9 +218,9 @@ def test_get_default_worker_with_os_env(mock_kafka_consumer, mock_docker_client)
 
 def test_get_default_supervisor():
     try:
-        os.environ['CODEPACK_CODESNAPSHOT_SOURCE'] = 'mongodb'
-        os.environ['CODEPACK_CODESNAPSHOT_DB'] = 'test_db'
-        os.environ['CODEPACK_CODESNAPSHOT_COLLECTION'] = 'test_collection'
+        os.environ['CODEPACK__CODE_SNAPSHOT__SOURCE'] = 'mongodb'
+        os.environ['CODEPACK__CODE_SNAPSHOT__DB'] = 'test_db'
+        os.environ['CODEPACK__CODE_SNAPSHOT__COLLECTION'] = 'test_collection'
         supervisor = Default.get_employee('supervisor')
         assert isinstance(supervisor, Supervisor)
         assert isinstance(supervisor.messenger, MemoryMessenger)
@@ -228,18 +228,18 @@ def test_get_default_supervisor():
         assert isinstance(supervisor.snapshot_service, SnapshotService)
         assert isinstance(supervisor.snapshot_service.storage, MongoStorage)
     finally:
-        os.environ.pop('CODEPACK_CODESNAPSHOT_SOURCE', None)
-        os.environ.pop('CODEPACK_CODESNAPSHOT_DB', None)
-        os.environ.pop('CODEPACK_CODESNAPSHOT_COLLECTION', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__SOURCE', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__DB', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__COLLECTION', None)
 
 
 @patch('kafka.KafkaProducer')
 def test_get_default_supervisor_with_os_env(mock_kafka_producer):
     try:
         os.environ['CODEPACK_CONFIG_PATH'] = 'config/test.ini'
-        os.environ['CODEPACK_CODESNAPSHOT_SOURCE'] = 'mongodb'
-        os.environ['CODEPACK_CODESNAPSHOT_DB'] = 'test_db'
-        os.environ['CODEPACK_CODESNAPSHOT_COLLECTION'] = 'test_collection'
+        os.environ['CODEPACK__CODE_SNAPSHOT__SOURCE'] = 'mongodb'
+        os.environ['CODEPACK__CODE_SNAPSHOT__DB'] = 'test_db'
+        os.environ['CODEPACK__CODE_SNAPSHOT__COLLECTION'] = 'test_collection'
         supervisor = Default.get_employee('supervisor')
         assert isinstance(supervisor, Supervisor)
         arg_list = mock_kafka_producer.call_args_list
@@ -254,9 +254,9 @@ def test_get_default_supervisor_with_os_env(mock_kafka_producer):
         assert isinstance(supervisor.snapshot_service.storage, MongoStorage)
     finally:
         os.environ.pop('CODEPACK_CONFIG_PATH', None)
-        os.environ.pop('CODEPACK_CODESNAPSHOT_SOURCE', None)
-        os.environ.pop('CODEPACK_CODESNAPSHOT_DB', None)
-        os.environ.pop('CODEPACK_CODESNAPSHOT_COLLECTION', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__SOURCE', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__DB', None)
+        os.environ.pop('CODEPACK__CODE_SNAPSHOT__COLLECTION', None)
 
 
 @patch('docker.DockerClient')
