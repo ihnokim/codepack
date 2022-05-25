@@ -24,10 +24,11 @@ def test_combine_requirements():
 
 def test_extract_requirements_from_file():
     requirements = DockerManager.extract_requirements_from_file('requirements.txt')
-    assert requirements == ['dill==0.3.4', 'pymongo==3.12.1', 'sshtunnel==0.4.0', 'PyMySQL==1.0.2', 'pymssql==2.2.2',
-                            'boto3==1.19.6', 'cx-Oracle==8.2.1', 'parse==1.19.0',
-                            'APScheduler==3.8.1', 'kafka-python==2.0.2',
-                            'docker==5.0.3', 'requests==2.26.0', 'numpy', 'pandas', 'pyreadline']
+    extra_requirements = DockerManager.extract_requirements_from_file('extra-requirements.txt')
+    assert requirements == ['dill==0.3.4', 'parse==1.19.0', 'requests==2.26.0', 'pyreadline', 'pymongo==3.12.1']
+    assert extra_requirements == ['sshtunnel==0.4.0', 'PyMySQL==1.0.2', 'pymssql==2.2.2', 'boto3==1.19.6',
+                                  'cx-Oracle==8.2.1', 'APScheduler==3.8.1', 'kafka-python==2.0.2',
+                                  'docker==5.0.3', 'numpy', 'pandas']
 
 
 @patch('docker.DockerClient')

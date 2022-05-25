@@ -1,6 +1,5 @@
 from codepack.utils.config.config import Config
 import abc
-import sshtunnel
 from copy import deepcopy
 from typing import Any, Union
 
@@ -45,6 +44,7 @@ class Interface(metaclass=abc.ABCMeta):
 
     def bind(self, host: str, port: Union[str, int]) -> tuple:
         if self.ssh_config:
+            import sshtunnel
             _ssh_config = self.exclude_keys(self.ssh_config, keys=['ssh_host', 'ssh_port'])
             self.ssh = sshtunnel.SSHTunnelForwarder((self.ssh_config['ssh_host'], int(self.ssh_config['ssh_port'])),
                                                     remote_bind_address=(host, int(port)),

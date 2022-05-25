@@ -1,12 +1,12 @@
 from codepack.interfaces.interface import Interface
 import abc
-import numpy as np
 from typing import Optional, Any
 
 
 class SQLInterface(Interface, metaclass=abc.ABCMeta):
     @staticmethod
     def isnan(value: Any) -> bool:
+        import numpy as np
         ret = False
         try:
             ret = np.isnan(value)
