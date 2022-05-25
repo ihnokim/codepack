@@ -11,7 +11,7 @@ class Config:
     PREFIX = 'CODEPACK'
     LABEL_CONFIG_DIR = '%s_CONFIG_DIR' % PREFIX
     LABEL_CONFIG_PATH = '%s_CONFIG_PATH' % PREFIX
-    LABEL_LOGGER_LOG_DIR = '%s_LOGGER_LOG_DIR' % PREFIX
+    LABEL_LOGGER_LOG_DIR = '%s__LOGGER__LOG_DIR' % PREFIX
 
     def __init__(self, config_path: Optional[str] = None) -> None:
         if config_path:
@@ -162,7 +162,7 @@ class Config:
 
     @classmethod
     def os_env(cls, key: str, value: Optional[str] = None) -> str:
-        ret = '%s_%s_' % (cls.PREFIX, key.replace('_', '').upper())
+        ret = '%s__%s__' % (cls.PREFIX, key.upper())
         if value:
             ret += value.upper()
         return ret

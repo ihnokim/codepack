@@ -1,4 +1,10 @@
-codepack
-jupyter
-uvicorn[standard]
-fastapi
+sshtunnel==0.4.0
+PyMySQL==1.0.2
+pymssql==2.2.2
+boto3==1.19.6
+cx-Oracle==8.2.1
+APScheduler==3.8.1
+kafka-python==2.0.2
+docker==5.0.3
+numpy
+pandas

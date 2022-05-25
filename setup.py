@@ -9,9 +9,13 @@ with open("requirements.txt", "r") as f:
     requirements = [x.strip() for x in f.readlines()]
 
 
+with open("extra-requirements.txt", "r") as f:
+    extra_requirements = [x.strip() for x in f.readlines()]
+
+
 setuptools.setup(
     name="codepack",
-    version="0.4.2",
+    version="0.5.0",
     author="ihnokim",
     author_email="ihnokim58@gmail.com",
     description="CodePack is the package to easily make, run, and manage workflows",
@@ -20,6 +24,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     keywords=["codepack", "workflow", "pipeline"],
     install_requires=requirements,
+    extras_require={'all': extra_requirements},
     package_data={'codepack': ['utils/config/default/*', 'utils/config/default/scripts/*']},
     data_files=[("codepack/config", ["config/logging.json", "config/codepack.ini", "config/sample.ini"])],
     classifiers=[

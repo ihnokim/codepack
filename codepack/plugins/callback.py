@@ -20,7 +20,7 @@ class Callback(Storable, Callable):
             self.context = context
         if isinstance(function, partial):
             self.function = function.func
-            for i, k in enumerate(CodeBase.get_args(self.function).keys()):
+            for i, k in enumerate(CodeBase.get_reserved_params(self.function).keys()):
                 if i >= len(function.args):
                     break
                 if k not in self.context:

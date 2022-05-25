@@ -1,7 +1,6 @@
 from codepack.utils.config.config import Config
 from codepack.utils.config.alias import Alias
 import inspect
-from docker.errors import DockerException
 from typing import Optional, TypeVar
 
 
@@ -175,6 +174,7 @@ class Default:
     @classmethod
     def get_docker_manager(cls, section: str = 'docker_manager',
                            config_path: Optional[str] = None, alias_path: Optional[str] = None) -> Manager:
+        from docker.errors import DockerException
         key = section
         if config_path or alias_path or key not in cls.instances:
             config = cls.get_config_instance(config_path=config_path)
