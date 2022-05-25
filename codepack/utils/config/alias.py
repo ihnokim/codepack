@@ -21,8 +21,8 @@ class Alias:
             raise TypeError(type(data))  # pragma: no cover
 
     @classmethod
-    def get_env(cls, item: str) -> str:
-        return ('%s_%s_%s' % (Config.PREFIX, cls.PREFIX, item)).upper()
+    def os_env(cls, item: str) -> str:
+        return ('%s__%s__%s' % (Config.PREFIX, cls.PREFIX, item)).upper()
 
     @staticmethod
     def get_class(module: str, name: str) -> type:
@@ -31,8 +31,8 @@ class Alias:
     def __getitem__(self, item: str) -> type:
         if self.aliases:
             path = self.aliases[item]
-        elif self.get_env(item) in os.environ:
-            path = os.environ.get(self.get_env(item))
+        elif self.os_env(item) in os.environ:
+            path = os.environ.get(self.os_env(item))
         elif '%s_ALIAS_PATH' % Config.PREFIX in os.environ:
             aliases = Config.parse_config(section='alias', config_path=os.environ['%s_ALIAS_PATH' % Config.PREFIX])
             path = aliases[item]
@@ -42,7 +42,7 @@ class Alias:
                 path = aliases[item]
             else:
                 raise AttributeError("%s not found in os.environ['%s'], os.environ['%s'], and os.environ['%s']"
-                                     % (item, self.get_env(item),
+                                     % (item, self.os_env(item),
                                         '%s_ALIAS_PATH' % Config.PREFIX, Config.LABEL_CONFIG_PATH))
         tokens = path.split('.')
         module = '.'.join(tokens[:-1])

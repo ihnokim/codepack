@@ -74,7 +74,7 @@ def test_memory_worker_run_snapshot_with_image(mock_docker_client):
     mock_docker_client.return_value.containers.run.assert_called_once_with(
         auto_remove=True,
         command=['python', 'run_snapshot.py', '%s.json' % sn, '-p', '.', '-l', 'worker-logger'],
-        dns=['8.8.8.8'], environment=['CODEPACK_LOGGER_LOG_DIR=/usr/logs'],
+        dns=['8.8.8.8'], environment=['CODEPACK__LOGGER__LOG_DIR=/usr/logs'],
         image='dummy', name=id(worker.docker_manager),
         volumes=['%s:/usr/src/codepack' % script_dir, '%s:/usr/logs' % os.path.abspath(Config.get_log_dir())],
         working_dir='/usr/src/codepack')
@@ -96,7 +96,7 @@ def test_memory_worker_run_snapshot_with_image_and_callback(mock_docker_client):
         auto_remove=True,
         command=['python', 'run_snapshot.py', '%s.json' % sn, '-p', '.', '-l', 'worker-logger',
                  '-c', 'dummy_callback_function'],
-        dns=['8.8.8.8'], environment=['CODEPACK_LOGGER_LOG_DIR=/usr/logs'],
+        dns=['8.8.8.8'], environment=['CODEPACK__LOGGER__LOG_DIR=/usr/logs'],
         image='dummy', name=id(worker.docker_manager),
         volumes=['%s:/usr/src/codepack' % script_dir, '%s:/usr/logs' % os.path.abspath(Config.get_log_dir())],
         working_dir='/usr/src/codepack')

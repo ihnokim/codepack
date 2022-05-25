@@ -252,9 +252,9 @@ the connection information should also be included.
 
 If it is too annoying to modify the configuration file,
 you can overwrite configuration values with OS environment variables:
-:code:`CODEPACK_<SECTION>_<KEY>=<VALUE>`.
+:code:`CODEPACK__<SECTION>__<KEY>=<VALUE>`.
 For example, if the IP address of the MongoDB has changed to localhost,
-set :code:`CODEPACK_MONGODB_HOST=localhost`.
+set :code:`CODEPACK__MONGODB__HOST=localhost`.
 
 The configuration is accessible from code via :code:`Config` and :code:`Default` classes.
 
@@ -279,10 +279,10 @@ If the default configuration bothers you, pass :code:`default=False` to :code:`g
 
   import os
 
-  os.environ['CODEPACK_SSH_CUSTOM_KEY'] = 'custom_value'
+  os.environ['CODEPACK__SSH__CUSTOM_KEY'] = 'custom_value'
   config.get_config('ssh')  # {'ssh_host': 'localhost', 'ssh_port': '22', 'custom_key': 'custom_value'}
   config.get_config('ssh', default=False)  # {'custom_key': 'custom_value'}
-  os.environ.pop('CODEPACK_SSH_CUSTOM_KEY', None)
+  os.environ.pop('CODEPACK__SSH__CUSTOM_KEY', None)
   config.get_config('ssh', default=False)  # {}
 
 **8. To use in other machines...**
