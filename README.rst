@@ -63,7 +63,7 @@ Check `PyPI <https://pypi.org/project/codepack/>`_ for more details.
 
   $ pip install codepack
 
-If you want to try sample apps provided in `app <https://github.com/ihnokim/codepack/tree/master/app>`_,
+If you want to try sample apps provided in `apps <https://github.com/ihnokim/codepack/tree/master/apps>`_,
 you need to install additional packages.
 
 .. code-block::

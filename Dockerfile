@@ -18,12 +18,12 @@ RUN mkdir -p config
 RUN mkdir -p logs
 RUN mkdir -p scripts
 RUN mkdir -p jupyter/notebook
-RUN mkdir -p app
+RUN mkdir -p apps
 
 COPY entry_point.sh .
 COPY extra-requirements.txt .
 COPY config config
-COPY app app
+COPY apps apps
 
 RUN chmod 755 entry_point.sh
 
