@@ -1,3 +1,4 @@
+from codepack import __version__
 from codepack import Scheduler, Default
 from codepack.plugins.service import Service
 from fastapi import FastAPI, Request
@@ -5,7 +6,7 @@ from .routers import code, codepack, argpack, scheduler
 from .dependencies import common
 
 
-app = FastAPI(title='CodePack API Server', version='0.4.2')
+app = FastAPI(title='CodePack API Server', version=__version__)
 app.include_router(code.router)
 app.include_router(codepack.router)
 app.include_router(argpack.router)

@@ -1,3 +1,6 @@
+__version__ = '0.4.2'
+
+
 from .code import Code
 from .codepack import CodePack
 from .arg import Arg
