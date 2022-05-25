@@ -5,7 +5,7 @@ from .routers import scheduler
 from .dependencies import common
 
 
-app = FastAPI()
+app = FastAPI(title='CodePack Scheduler', version='0.4.2')
 app.include_router(scheduler.router)
 
 

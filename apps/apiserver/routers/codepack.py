@@ -7,7 +7,8 @@ from ..dependencies import common
 router = APIRouter(
     prefix='/codepack',
     tags=['codepack'],
-    responses={404: {'description': 'Not found'}},
+    responses={404: {'description': 'Not Found'},
+               409: {'description': 'Conflict'}},
 )
 
 
@@ -23,7 +24,7 @@ async def run(params: CodePackJSON):
 async def run_by_id(params: CodePackID):
     codepack = CodePack.load(params.id)
     if codepack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
+        raise HTTPException(status_code=404, detail='%s not found' % params.id)
     argpack = ArgPack.from_json(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
@@ -33,10 +34,10 @@ async def run_by_id(params: CodePackID):
 async def run_by_id_pair(params: IDPair):
     codepack = CodePack.load(params.codepack_id)
     if codepack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.codepack_id)
+        raise HTTPException(status_code=404, detail='%s not found' % params.codepack_id)
     argpack = ArgPack.load(params.argpack_id)
     if argpack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.argpack_id)
+        raise HTTPException(status_code=404, detail='%s not found' % params.argpack_id)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
@@ -53,18 +54,21 @@ async def run_by_snapshot(params: SnapshotJSON):
 @router.post('/save')
 async def save(codepack: CodePackJSON):
     tmp = CodePack.from_json(codepack.codepack)
-    tmp.save()
+    try:
+        tmp.save()
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return {'id': tmp.id}
 
 
-@router.post('/update')
+@router.patch('/update')
 async def update(codepack: CodePackJSON):
     tmp = CodePack.from_json(codepack.codepack)
     tmp.save(update=True)
     return {'id': tmp.id}
 
 
-@router.get('/remove/{id}')
+@router.delete('/remove/{id}')
 async def remove(id: str):
     CodePack.remove(id)
     return {'id': id}
@@ -74,7 +78,7 @@ async def remove(id: str):
 async def load(id: str):
     codepack = CodePack.load(id)
     if codepack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % id)
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     return {'codepack': codepack.to_json()}
 
 

@@ -7,7 +7,8 @@ from ..dependencies import common
 router = APIRouter(
     prefix='/code',
     tags=['code'],
-    responses={404: {'description': 'Not found'}},
+    responses={404: {'description': 'Not Found'},
+               409: {'description': 'Conflict'}},
 )
 
 
@@ -22,7 +23,7 @@ async def run(params: CodeJSON):
 async def run_by_id(params: CodeID):
     code = Code.load(params.id)
     if code is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
+        raise HTTPException(status_code=404, detail='%s not found' % params.id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
@@ -38,18 +39,21 @@ async def run_by_snapshot(params: SnapshotJSON):
 @router.post('/save')
 async def save(code: CodeJSON):
     tmp = Code.from_json(code.code)
-    tmp.save()
+    try:
+        tmp.save()
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return {'id': tmp.id}
 
 
-@router.post('/update')
+@router.patch('/update')
 async def update(code: CodeJSON):
     tmp = Code.from_json(code.code)
     tmp.save(update=True)
     return {'id': tmp.id}
 
 
-@router.get('/remove/{id}')
+@router.delete('/remove/{id}')
 async def remove(id: str):
     Code.remove(id)
     return {'id': id}
@@ -59,7 +63,7 @@ async def remove(id: str):
 async def load(id: str):
     code = Code.load(id=id)
     if code is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % id)
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     return {'code': code.to_json()}
 
 
