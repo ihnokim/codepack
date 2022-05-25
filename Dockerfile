@@ -16,7 +16,6 @@ WORKDIR /opt/codepack
 
 RUN mkdir -p config
 RUN mkdir -p logs
-RUN mkdir -p scripts
 RUN mkdir -p jupyter/notebook
 RUN mkdir -p apps
 
@@ -32,6 +31,6 @@ ENV CODEPACK_CONFIG_PATH codepack.ini
 ENV CODEPACK__LOGGER__LOG_DIR /opt/codepack/logs
 
 RUN python -m pip install --upgrade pip --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
-RUN pip install --upgrade --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org -r extra-requirements.txt
+RUN pip install --upgrade --trusted-host pypi.python.org --trusted-host pypi.org --trusted-host files.pythonhosted.org -r app-requirements.txt
 
 ENTRYPOINT ["/opt/codepack/entry_point.sh"]

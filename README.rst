@@ -63,12 +63,15 @@ Check `PyPI <https://pypi.org/project/codepack/>`_ for more details.
 
   $ pip install codepack
 
+This will install CodePack with minimal dependencies.
+You can activate full features by using :code:`pip install codepack[all]` command.
+
 If you want to try sample apps provided in `apps <https://github.com/ihnokim/codepack/tree/master/apps>`_,
 you need to install additional packages.
 
 .. code-block::
 
-  $ pip install codepack jupyter uvicorn[standard] fastapi
+  $ pip install codepack[all] jupyter uvicorn[standard] fastapi
 
 To run unit tests, use following commands.
 

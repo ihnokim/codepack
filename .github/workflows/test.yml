@@ -23,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest pytest-cov mongomock
         pip install -r requirements.txt
+        pip install -r extra-requirements.txt
     - name: Run Tests
       run: |
         pytest --cov=codepack tests
