@@ -70,7 +70,11 @@ async def update(codepack: CodePackJSON):
 
 @router.delete('/remove/{id}')
 async def remove(id: str):
-    CodePack.remove(id)
+    storage_service = Default.get_service('codepack', 'storage_service')
+    if storage_service.check(id=id):
+        CodePack.remove(id)
+    else:
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     return {'id': id}
 
 

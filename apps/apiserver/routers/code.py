@@ -55,7 +55,11 @@ async def update(code: CodeJSON):
 
 @router.delete('/remove/{id}')
 async def remove(id: str):
-    Code.remove(id)
+    storage_service = Default.get_service('code', 'storage_service')
+    if storage_service.check(id=id):
+        Code.remove(id)
+    else:
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     return {'id': id}
 
 
