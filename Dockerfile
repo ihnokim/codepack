@@ -20,7 +20,7 @@ RUN mkdir -p jupyter/notebook
 RUN mkdir -p apps
 
 COPY entry_point.sh .
-COPY extra-requirements.txt .
+COPY app-requirements.txt .
 COPY config config
 COPY apps apps
 
