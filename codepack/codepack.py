@@ -9,9 +9,10 @@ from queue import Queue
 from typing import Any, TypeVar, Optional, Union
 
 
-CodePackSnapshot = TypeVar('CodePackSnapshot', bound='codepack.plugins.snapshots.codepack_snapshot.CodePackSnapshot')
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')
-StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
+CodePackSnapshot = TypeVar('CodePackSnapshot',
+                           bound='codepack.plugins.snapshots.codepack_snapshot.CodePackSnapshot')  # noqa: F821
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')  # noqa: F821
+StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')  # noqa: F821
 
 
 class CodePack(CodePackBase):
@@ -256,7 +257,8 @@ class CodePack(CodePackBase):
                                          env=attr.get('env', None), image=attr.get('image', None),
                                          owner=attr.get('owner', None))
             code = codes[attr['id']]
-            receive[code.id] = literal_eval(attr['receive'])
+            dependent_params = attr.get('receive', None)
+            receive[code.id] = literal_eval(dependent_params) if dependent_params else dict()
             if i == 0:
                 root = code
             while len(stack) and stack[-1][1] >= hierarchy:

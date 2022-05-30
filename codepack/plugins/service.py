@@ -2,7 +2,7 @@ import abc
 from typing import TypeVar
 
 
-Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')
+Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')  # noqa: F821
 
 
 class Service(metaclass=abc.ABCMeta):

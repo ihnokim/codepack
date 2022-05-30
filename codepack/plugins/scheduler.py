@@ -8,10 +8,10 @@ import json
 from typing import Optional, Union, Callable, TypeVar, Any
 
 
-BaseJobStore = TypeVar('BaseJobStore', bound='apscheduler.jobstores.base.BaseJobStore')
-BaseTrigger = TypeVar('BaseTrigger', bound='apscheduler.triggers.base.BaseTrigger')
-Job = TypeVar('Job', bound='apscheduler.job.Job')
-Response = TypeVar('Response', bound='requests.models.Response')
+BaseJobStore = TypeVar('BaseJobStore', bound='apscheduler.jobstores.base.BaseJobStore')  # noqa: F821
+BaseTrigger = TypeVar('BaseTrigger', bound='apscheduler.triggers.base.BaseTrigger')  # noqa: F821
+Job = TypeVar('Job', bound='apscheduler.job.Job')  # noqa: F821
+Response = TypeVar('Response', bound='requests.models.Response')  # noqa: F821
 
 
 class Scheduler:

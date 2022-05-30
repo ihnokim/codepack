@@ -44,7 +44,8 @@ class DynamoDB(SQLInterface):
             if start_key:
                 params['ExclusiveStartKey'] = start_key
             response = self.session.query(**params)
-            items = [{k: preprocess(self.td.deserialize(v), *preprocess_args, **preprocess_kwargs) for k, v in item.items()}
+            items = [{k: preprocess(self.td.deserialize(v), *preprocess_args, **preprocess_kwargs)
+                      for k, v in item.items()}
                      for item in response.get('Items', list()) if dummy_column not in item]
             start_key = response.get('LastEvaluatedKey', None)
             done = start_key is None

@@ -4,8 +4,8 @@ from collections.abc import Iterable
 from typing import Union, Optional, Type, TypeVar, KeysView, ValuesView, ItemsView, Iterator
 
 
-Code = TypeVar('Code', bound='codepack.code.Code')
-CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
+Code = TypeVar('Code', bound='codepack.code.Code')  # noqa: F821
+CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')  # noqa: F821
 
 
 class DependencyBag(MemoryStorage, Iterable):

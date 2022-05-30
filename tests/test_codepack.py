@@ -1,6 +1,6 @@
 from codepack import Code, CodePack, StorageService
 from codepack.storages import MongoStorage
-from tests import *
+from tests import add2, add3, mul2, combination, linear, print_x, dummy_function1, dummy_function2
 import pytest
 
 
@@ -85,14 +85,14 @@ def test_get_str(default_os_env):
     c5.receive('x') << c3
     cp = CodePack(id='test_codepack', code=c1, subscribe=c4, owner='codepack')
     expected_str1 = "CodePack(id: test_codepack, subscribe: linear, owner: codepack)\n" \
-                    "| Code(id: add3, function: add3, params: (a, b, c=2), receive: {})\n" \
+                    "| Code(id: add3, function: add3, params: (a, b, c=2))\n" \
                     "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
                     "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
                     "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)\n" \
                     "| Code(id: mul2, function: mul2, params: (a, b), " \
-                    "receive: {}, env: codepack-env, owner: codepack)\n" \
+                    "env: codepack-env, owner: codepack)\n" \
                     "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
                     "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
@@ -100,13 +100,13 @@ def test_get_str(default_os_env):
                     "receive: {'c': 'combination'}, owner: codepack)"
     expected_str2 = "CodePack(id: test_codepack, subscribe: linear, owner: codepack)\n" \
                     "| Code(id: mul2, function: mul2, params: (a, b), " \
-                    "receive: {}, env: codepack-env, owner: codepack)\n" \
+                    "env: codepack-env, owner: codepack)\n" \
                     "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
                     "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \
                     "|-- Code(id: linear, function: linear, params: (a, b, c), " \
                     "receive: {'c': 'combination'}, owner: codepack)\n" \
-                    "| Code(id: add3, function: add3, params: (a, b, c=2), receive: {})\n" \
+                    "| Code(id: add3, function: add3, params: (a, b, c=2))\n" \
                     "|- Code(id: combination, function: combination, params: (a, b, c, d), " \
                     "receive: {'c': 'add3', 'd': 'mul2'}, image: my-image:0.0.1)\n" \
                     "|-- Code(id: print_x, function: print_x, params: (x), receive: {'x': 'combination'})\n" \

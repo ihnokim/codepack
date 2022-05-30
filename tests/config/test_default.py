@@ -1,6 +1,6 @@
-from codepack.storages import MemoryStorage, FileStorage, MongoStorage, MemoryMessenger
-from codepack import DeliveryService, CallbackService, SnapshotService,\
-    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, JobStore, StorableJob
+from codepack.storages import MemoryStorage, MongoStorage, MemoryMessenger
+from codepack import DeliveryService, SnapshotService,\
+    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, StorableJob
 from unittest.mock import patch
 from collections.abc import Callable
 import os
@@ -173,10 +173,7 @@ def test_get_default_worker_without_os_env(mock_docker_client):
     assert worker.supervisor is None
     mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
     assert worker.docker_manager.docker.session == mock_docker_client()
-    assert isinstance(worker.callback_service, CallbackService)
-    assert isinstance(worker.callback_service.storage, FileStorage)
     default_dir = Default.get_config_instance().get_default_config_dir()
-    assert worker.callback_service.storage.path == os.path.join(default_dir, 'scripts')
     assert isinstance(worker.logger, logging.Logger)
     assert worker.logger.name == 'worker-logger'
     assert hasattr(worker, 'script') and worker.script == 'run_snapshot.py'
@@ -202,7 +199,6 @@ def test_get_default_worker_with_os_env(mock_kafka_consumer, mock_docker_client)
         assert getattr(worker.messenger, 'consumer').session is mock_kafka_consumer()
         mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
         assert worker.docker_manager.docker.session == mock_docker_client()
-        assert isinstance(worker.callback_service, CallbackService)
         assert isinstance(worker.logger, logging.Logger)
         assert worker.logger.name == 'worker-logger'
         assert hasattr(worker, 'script') and worker.script == 'run_snapshot.py'

@@ -2,7 +2,7 @@ from codepack import Config, Default, Code
 from codepack.storages import MemoryMessenger
 from unittest.mock import patch
 import os
-from tests import *
+from tests import add2
 
 
 def dummy_callback_function(x):
@@ -35,7 +35,6 @@ def test_memory_worker_run_snapshot_with_env(mock_subprocess_run):
         [os.path.join(worker.interpreter_manager.path, 'test_env', 'bin', 'python'),
          os.path.join(script_dir, 'run_snapshot.py'),
          os.path.join(script_dir, '%s.json' % sn),
-         '-p', script_dir,
          '-l', 'worker-logger'])
     worker.stop()
 
@@ -55,9 +54,7 @@ def test_memory_worker_run_snapshot_with_env_and_callback(mock_subprocess_run):
         [os.path.join(worker.interpreter_manager.path, 'test_env', 'bin', 'python'),
          os.path.join(script_dir, 'run_snapshot.py'),
          os.path.join(script_dir, '%s.json' % sn),
-         '-p', script_dir,
-         '-l', 'worker-logger',
-         '-c', 'dummy_callback_function'])
+         '-l', 'worker-logger'])
     worker.stop()
 
 
@@ -73,7 +70,7 @@ def test_memory_worker_run_snapshot_with_image(mock_docker_client):
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_docker_client.return_value.containers.run.assert_called_once_with(
         auto_remove=True,
-        command=['python', 'run_snapshot.py', '%s.json' % sn, '-p', '.', '-l', 'worker-logger'],
+        command=['python', 'run_snapshot.py', '%s.json' % sn, '-l', 'worker-logger'],
         dns=['8.8.8.8'], environment=['CODEPACK__LOGGER__LOG_DIR=/usr/logs'],
         image='dummy', name=id(worker.docker_manager),
         volumes=['%s:/usr/src/codepack' % script_dir, '%s:/usr/logs' % os.path.abspath(Config.get_log_dir())],
@@ -94,8 +91,7 @@ def test_memory_worker_run_snapshot_with_image_and_callback(mock_docker_client):
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_docker_client.return_value.containers.run.assert_called_once_with(
         auto_remove=True,
-        command=['python', 'run_snapshot.py', '%s.json' % sn, '-p', '.', '-l', 'worker-logger',
-                 '-c', 'dummy_callback_function'],
+        command=['python', 'run_snapshot.py', '%s.json' % sn, '-l', 'worker-logger'],
         dns=['8.8.8.8'], environment=['CODEPACK__LOGGER__LOG_DIR=/usr/logs'],
         image='dummy', name=id(worker.docker_manager),
         volumes=['%s:/usr/src/codepack' % script_dir, '%s:/usr/logs' % os.path.abspath(Config.get_log_dir())],

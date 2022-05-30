@@ -2,11 +2,9 @@ from codepack.code import Code
 from codepack.plugins.snapshots.code_snapshot import CodeSnapshot
 from codepack.plugins.supervisor import Supervisor
 from codepack.plugins.employee import Employee
-from codepack.storages.file_storage import FileStorage
 from codepack.utils.config.default import Default
 from codepack.plugins.docker_manager import DockerManager
 from codepack.plugins.interpreter_manager import InterpreterManager
-from codepack.plugins.callback_service import CallbackService
 from codepack.utils.functions import inform_supervisor_of_termination
 from functools import partial
 import logging
@@ -15,7 +13,7 @@ import sys
 from typing import TypeVar, Union, Optional, Callable
 
 
-Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')
+Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')  # noqa: F821
 
 
 class Worker(Employee):
@@ -24,7 +22,6 @@ class Worker(Employee):
                  supervisor: Optional[Union[Supervisor, str]] = None, background: Union[bool, str] = False,
                  docker_manager: Optional[DockerManager] = None,
                  interpreter_manager: Optional[InterpreterManager] = None,
-                 callback_service: Optional[CallbackService] = None,
                  logger: Optional[Union[logging.Logger, str]] = None) -> None:
         super().__init__(messenger=messenger)
         self.interval = float(interval)
@@ -40,7 +37,6 @@ class Worker(Employee):
             self.background = background
         self.docker_manager = None
         self.interpreter_manager = None
-        self.callback_service = None
         self.script_path = script_path
         self.script_dir = os.path.abspath(os.path.dirname(self.script_path))
         self.script = os.path.basename(self.script_path)
@@ -65,7 +61,6 @@ class Worker(Employee):
                 raise TypeError(type(self.supervisor))  # pragma: no cover
         self.init_docker_manager(docker_manager=docker_manager)
         self.init_interpreter_manager(interpreter_manager=interpreter_manager)
-        self.init_callback_service(callback_service=callback_service)
 
     @staticmethod
     def log(function: Callable, message: str) -> None:
@@ -89,14 +84,6 @@ class Worker(Employee):
         else:
             raise TypeError(type(interpreter_manager))  # pragma: no cover
 
-    def init_callback_service(self, callback_service: Optional[CallbackService] = None) -> None:
-        if callback_service is None:
-            self.callback_service = Default.get_service('callback', 'callback_service')
-        elif isinstance(callback_service, CallbackService):
-            self.callback_service = callback_service
-        else:
-            raise TypeError(type(callback_service))  # pragma: no cover
-
     def start(self) -> None:
         print('starting worker...')
         self.messenger.receive(callback=self.work, background=self.background,
@@ -114,16 +101,11 @@ class Worker(Employee):
 
     def run_snapshot(self, snapshot: CodeSnapshot) -> str:
         snapshot_path = None
-        cb_id = None
         code = Code.from_snapshot(snapshot)
         code.register_callback(callback=self.callback)
         try:
             if code.image or code.env:
                 state = code.check_dependency()
-                if self.callback:
-                    cb_id = self.callback_service.push(self.callback)
-                else:
-                    cb_id = None
                 if state == 'READY':
                     filepath = '%s.json' % code.serial_number
                     snapshot_path = os.path.join(self.script_dir, filepath)
@@ -131,27 +113,15 @@ class Worker(Employee):
                     snapshot.to_file(snapshot_path)
                     if code.env:
                         _command = ['python', script_path, snapshot_path]
-                        if isinstance(self.callback_service.storage, FileStorage):
-                            _command.append('-p')
-                            _command.append(self.callback_service.storage.path)
                         if self.logger:
                             _command.append('-l')
                             _command.append(self.logger.name)
-                        if cb_id:
-                            _command.append('-c')
-                            _command.append(cb_id)
                         self.interpreter_manager.run(env=code.env, command=_command)
                     else:  # if code.image:
                         _command = ['python', self.script, filepath]
-                        if isinstance(self.callback_service.storage, FileStorage):
-                            _command.append('-p')
-                            _command.append('.')
                         if self.logger:
                             _command.append('-l')
                             _command.append(self.logger.name)
-                        if cb_id:
-                            _command.append('-c')
-                            _command.append(cb_id)
                         ret = self.docker_manager.run(image=code.image, command=_command, path=self.script_dir)
                         print(ret.decode('utf-8').strip())
                 else:
@@ -168,6 +138,4 @@ class Worker(Employee):
         finally:
             if snapshot_path:
                 DockerManager.remove_file_if_exists(path=snapshot_path)
-            if cb_id and self.callback_service.exist(name=cb_id):
-                self.callback_service.remove(name=cb_id)
             return snapshot['serial_number']

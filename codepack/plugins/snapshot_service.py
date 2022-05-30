@@ -5,8 +5,8 @@ from codepack.plugins.state import State
 from typing import Union, TypeVar, Optional, Any
 
 
-Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')
-Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')
+Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')  # noqa: F821
+Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # noqa: F821
 
 
 class SnapshotService(Service):

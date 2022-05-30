@@ -12,7 +12,8 @@ class Delivery(Storable):
         self.timestamp = timestamp if timestamp else datetime.now().timestamp()
 
     def __str__(self) -> str:
-        return '%s(id: %s, serial_number: %s)' % (self.__class__.__name__, self.id, self.serial_number)  # pragma: no cover
+        return '%s(id: %s, serial_number: %s)' % \
+               (self.__class__.__name__, self.id, self.serial_number)  # pragma: no cover
 
     def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover

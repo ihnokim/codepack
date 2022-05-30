@@ -1,5 +1,5 @@
 from codepack import Code, State, Snapshot
-from tests import *
+from tests import add2, add3
 
 
 def test_state_eq():

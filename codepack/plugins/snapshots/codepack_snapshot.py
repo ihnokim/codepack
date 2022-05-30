@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import TypeVar, Optional, Union
 
 
-CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')
+CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')  # noqa: F821
 
 
 class CodePackSnapshot(Snapshot):
