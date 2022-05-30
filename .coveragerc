@@ -1,8 +1,12 @@
 [run]
 source = codepack
+omit =
+  */__init__.py
 
 [report]
 exclude_lines =
     def __repr__
     def __str__
     pragma: no cover
+omit =
+  */__init__.py
