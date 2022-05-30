@@ -8,13 +8,11 @@ __lazy_imports__ = {
 }
 
 
-def __getattr__(name):
-    path = __lazy_imports__.get(name)
-    if not path:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    import operator
-    without_prefix = path.split('.', 1)[-1]
-    getter = operator.attrgetter(f'{without_prefix}.{name}')
-    val = getter(__import__(path))
-    globals()[name] = val
-    return val
+__required__ = {
+    'MemoryStorage', 'FileStorage', 'MongoStorage',
+}
+
+
+def __getattr__(name: str) -> type:
+    from codepack import _import_one
+    return _import_one(module_name=__name__, module_map=__lazy_imports__, name=name)
