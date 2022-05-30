@@ -1,35 +1,49 @@
+import codepack.storages
+import codepack.interfaces
+
+
 __version__ = '0.5.0'
 
-from .code import Code
-from .codepack import CodePack
-from .arg import Arg
-from .argpack import ArgPack
 
-from .utils.config.config import Config
-from .utils.config.default import Default
-from .utils.config.alias import Alias
-from .utils.looper import Looper
-from .utils.common import Common
+__lazy_imports__ = {
+    'Code': 'codepack.code',
+    'CodePack': 'codepack.codepack',
+    'Arg': 'codepack.arg',
+    'ArgPack': 'codepack.argpack',
+    'Config': 'codepack.utils.config.config',
+    'Default': 'codepack.utils.config.default',
+    'Alias': 'codepack.utils.config.alias',
+    'Looper': 'codepack.utils.looper',
+    'Common': 'codepack.utils.common',
+    'DependencyBag': 'codepack.plugins.dependency_bag',
+    'DependencyMonitor': 'codepack.plugins.dependency_monitor',
+    'StorageService': 'codepack.plugins.storage_service',
+    'SnapshotService': 'codepack.plugins.snapshot_service',
+    'DeliveryService': 'codepack.plugins.delivery_service',
+    'Dependency': 'codepack.plugins.dependency',
+    'Delivery': 'codepack.plugins.delivery',
+    'Callback': 'codepack.plugins.callback',
+    'Snapshot': 'codepack.plugins.snapshots.snapshot',
+    'CodeSnapshot': 'codepack.plugins.snapshots.code_snapshot',
+    'CodePackSnapshot': 'codepack.plugins.snapshots.codepack_snapshot',
+    'State': 'codepack.plugins.state',
+    'Worker': 'codepack.plugins.worker',
+    'Supervisor': 'codepack.plugins.supervisor',
+    'DockerManager': 'codepack.plugins.docker_manager',
+    'InterpreterManager': 'codepack.plugins.interpreter_manager',
+    'Scheduler': 'codepack.plugins.scheduler',
+    'JobStore': 'codepack.plugins.jobstore',
+    'StorableJob': 'codepack.plugins.storable_job',
+}
 
-from .plugins.dependency_bag import DependencyBag
-from .plugins.dependency_monitor import DependencyMonitor
-from .plugins.storage_service import StorageService
-from .plugins.snapshot_service import SnapshotService
-from .plugins.delivery_service import DeliveryService
-from .plugins.dependency import Dependency
-from .plugins.delivery import Delivery
-from .plugins.callback import Callback
-from .plugins.snapshots.snapshot import Snapshot
-from .plugins.snapshots.code_snapshot import CodeSnapshot
-from .plugins.snapshots.codepack_snapshot import CodePackSnapshot
-from .plugins.state import State
-try:
-    from .plugins.worker import Worker
-    from .plugins.supervisor import Supervisor
-    from .plugins.docker_manager import DockerManager
-    from .plugins.interpreter_manager import InterpreterManager
-    from .plugins.scheduler import Scheduler
-    from .plugins.jobstore import JobStore
-    from .plugins.storable_job import StorableJob
-except Exception:
-    pass
+
+def __getattr__(name):
+    path = __lazy_imports__.get(name)
+    if not path:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import operator
+    without_prefix = path.split('.', 1)[-1]
+    getter = operator.attrgetter(f'{without_prefix}.{name}')
+    val = getter(__import__(path))
+    globals()[name] = val
+    return val
