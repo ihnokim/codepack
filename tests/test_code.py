@@ -5,6 +5,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
 from functools import partial
+import codepack.utils.functions
 
 
 def test_assert_param(default_os_env):
@@ -68,18 +69,18 @@ def test_print_info(default_os_env):
     code2 = Code(add3, image='test-image', owner='admin')
     code1 >> code2
     code2.receive('b') << code1
-    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b), receive: {}," \
+    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
                                " env: test-env, state: UNKNOWN)"
     assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " image: test-image, owner: admin, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b), receive: {}, env: test-env)"
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b), env: test-env)"
     assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                           " image: test-image, owner: admin)"
     code1.image = 'test-image2'
     code1.owner = 'admin2'
-    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b), receive: {}," \
+    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
                                " env: test-env, image: test-image2, owner: admin2, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b), receive: {}," \
+    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b)," \
                                           " env: test-env, image: test-image2, owner: admin2)"
     code2.owner = None
     assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
@@ -91,6 +92,13 @@ def test_print_info(default_os_env):
                                " state: UNKNOWN)"
     assert code2.get_info(
         state=False) == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'})"
+
+
+def test_partial_print_info(default_os_env):
+    plus2 = partial(add2, b=3)
+    code = Code(plus2, owner='admin')
+    assert code.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
+                              " context: {'b': 3}, owner: admin, state: UNKNOWN)"
 
 
 def test_get_function_from_source(default_os_env):
@@ -272,16 +280,6 @@ def test_default_arg(default_os_env):
     assert ret == 6 and code2.get_state() == 'TERMINATED'
 
 
-def test_load_code_from_storage_service_with_id(default_os_env):
-    code1 = Code(add2)
-    code1.save()
-    code2 = Code(id='add2', serial_number='1234')
-    assert code1.source == code2.source
-    assert code1(1, 2) == code2(1, 2)
-    assert code1.serial_number != code2.serial_number
-    assert code2.serial_number == '1234'
-
-
 def test_update_serial_number(default_os_env):
     code1 = Code(add2)
     code2 = Code(mul2)
@@ -412,14 +410,17 @@ def test_remove(default_os_env):
 def test_register_callback_with_names(default_os_env):
     code = Code(add2)
     code.register_callback(callback=dummy_callback1, name=['callback1', 'callback2', 'callback3'])
-    assert code.callbacks == {'callback1': dummy_callback1}
+    assert len(code.callback) == 1
+    assert 'callback1' in code.callback
+    assert isinstance(code.callback['callback1'], Callback)
+    assert code.callback['callback1'].to_dict() == Callback(dummy_callback1).to_dict()
 
 
 def test_register_multiple_callbacks_without_names(default_os_env):
     code = Code(add2)
     code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)])
-    assert len(code.callbacks) == 3
-    assert set(code.callbacks.keys()) == {'dummy_callback1', 'dummy_callback2', 'dummy_callback3'}
+    assert len(code.callback) == 3
+    assert set(code.callback.keys()) == {'dummy_callback1', 'dummy_callback2', 'dummy_callback3'}
 
 
 def test_register_multiple_callbacks_with_one_name(default_os_env):
@@ -427,11 +428,12 @@ def test_register_multiple_callbacks_with_one_name(default_os_env):
     with pytest.raises(IndexError):
         code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)],
                                name='dummy_callback')
-    assert len(code.callbacks) == 0
+    assert len(code.callback) == 0
     code.register_callback(callback=[dummy_callback1], name='dummy_callback')
-    assert len(code.callbacks) == 1
-    assert 'dummy_callback' in code.callbacks
-    assert code.callbacks['dummy_callback'] == dummy_callback1
+    assert len(code.callback) == 1
+    assert 'dummy_callback' in code.callback
+    assert isinstance(code.callback['dummy_callback'], Callback)
+    assert code.callback['dummy_callback'].to_dict() == Callback(dummy_callback1).to_dict()
 
 
 def test_register_multiple_callbacks_with_multiple_names(default_os_env):
@@ -441,17 +443,22 @@ def test_register_multiple_callbacks_with_multiple_names(default_os_env):
     with pytest.raises(IndexError):
         code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
                                name=['dummy_callback'])
-    assert len(code.callbacks) == 0
+    assert len(code.callback) == 0
     code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
                            name=['callback1', 'callback2', 'callback3'])
-    assert len(code.callbacks) == 3
-    assert code.callbacks == {'callback1': dummy_callback1,
-                              'callback2': _dummy_callback2,
-                              'callback3': _dummy_callback3}
+    assert len(code.callback) == 3
+    for callback_name in ['callback1', 'callback2', 'callback3']:
+        assert callback_name in code.callback
+        assert isinstance(code.callback[callback_name], Callback)
+    assert code.callback['callback1'].to_dict() == Callback(dummy_callback1).to_dict()
+    assert code.callback['callback2'].to_dict() == Callback(_dummy_callback2).to_dict()
+    assert code.callback['callback3'] == _dummy_callback3
 
 
 def test_run_callback_with_normal_case(default_os_env):
     mock_function = MagicMock()
+    mock_function.__name__ = 'dummy_name'
+    mock_function.__code__ = MagicMock()
     code = Code(add2)
     code.register_callback(callback=mock_function, name='test_function')
     mock_function.assert_not_called()
@@ -466,6 +473,8 @@ def test_run_callback_with_normal_case(default_os_env):
 
 def test_run_callback_with_error_case(default_os_env):
     mock_function = MagicMock()
+    mock_function.__name__ = 'dummy_name'
+    mock_function.__code__ = MagicMock()
     code = Code(add2)
     code.register_callback(callback=mock_function, name='test_function')
     mock_function.assert_not_called()
@@ -485,6 +494,10 @@ def test_run_callback_with_error_case(default_os_env):
 def test_run_multiple_callbacks_with_normal_case(default_os_env):
     mock_function1 = MagicMock()
     mock_function2 = MagicMock()
+    mock_function1.__name__ = 'dummy_name1'
+    mock_function2.__name__ = 'dummy_name2'
+    mock_function1.__code__ = MagicMock()
+    mock_function2.__code__ = MagicMock()
     code = Code(add2)
     code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
     mock_function1.assert_not_called()
@@ -502,6 +515,10 @@ def test_run_multiple_callbacks_with_normal_case(default_os_env):
 def test_run_multiple_callbacks_with_error_case(default_os_env):
     mock_function1 = MagicMock()
     mock_function2 = MagicMock()
+    mock_function1.__name__ = 'dummy_name1'
+    mock_function2.__name__ = 'dummy_name2'
+    mock_function1.__code__ = MagicMock()
+    mock_function2.__code__ = MagicMock()
     code = Code(add2)
     code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
     mock_function1.assert_not_called()
@@ -518,3 +535,22 @@ def test_run_multiple_callbacks_with_error_case(default_os_env):
             if seq[i] == 'ERROR':
                 x['message'] = "add2() missing 1 required positional argument: 'b'"
             assert args[0] == x
+
+
+def test_get_source_of_function_defined_in_string():
+    mock_function1 = MagicMock()
+    mock_function1.__name__ = 'dummy_name'
+    mock_function1.__code__ = MagicMock()
+    mock_function1.__code__.co_filename = '<string>'
+    with pytest.raises(AssertionError):
+        codepack.utils.functions.get_source(mock_function1)
+
+
+def test_partial_code_run(default_os_env):
+    plus1 = partial(add2, b=1)
+    code = Code(plus1)
+    assert code.id == 'add2'
+    assert code(3) == 4
+    assert code(4, b=5) == 9
+    with pytest.raises(TypeError):
+        code(4, 5)
