@@ -2,7 +2,7 @@ from codepack.storages.storable import Storable
 from typing import Optional, Any, TypeVar, Iterator
 
 
-Code = TypeVar('Code', bound='codepack.code.Code')
+Code = TypeVar('Code', bound='codepack.code.Code')  # noqa: F821
 
 
 class Arg(Storable):

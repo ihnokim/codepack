@@ -1,7 +1,7 @@
 from unittest.mock import patch
 from codepack import Code, CodePack, ArgPack, Scheduler, JobStore, StorableJob, CodePackSnapshot
 from codepack.storages import MemoryStorage, FileStorage, MongoStorage, S3Storage
-from tests import *
+from tests import add2, add3, hello
 
 
 def test_memory_storage_jobstore_codepack_snapshot():

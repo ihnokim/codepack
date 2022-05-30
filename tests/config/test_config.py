@@ -1,6 +1,6 @@
 from codepack import Code, Config, Default, DeliveryService, SnapshotService, StorageService
 from codepack.storages import MemoryStorage, FileStorage, MongoStorage
-from tests import *
+from tests import add2, add3
 from unittest.mock import patch
 import pytest
 import os

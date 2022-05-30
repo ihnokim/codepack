@@ -1,6 +1,7 @@
 from codepack import Code, Callback, StorageService
 from codepack.storages import MongoStorage
-from tests import *
+from tests import add2, add3, mul2, print_x, combination, linear,\
+    dummy_function1, dummy_function2, dummy_callback1, dummy_callback2, dummy_callback3
 import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
@@ -74,8 +75,8 @@ def test_print_info(default_os_env):
     assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " image: test-image, owner: admin, state: UNKNOWN)"
     assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b), env: test-env)"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
-                                          " image: test-image, owner: admin)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2)," \
+                                          " receive: {'b': 'add2'}, image: test-image, owner: admin)"
     code1.image = 'test-image2'
     code1.owner = 'admin2'
     assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
@@ -85,8 +86,8 @@ def test_print_info(default_os_env):
     code2.owner = None
     assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " image: test-image, state: UNKNOWN)"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
-                                          " image: test-image)"
+    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2)," \
+                                          " receive: {'b': 'add2'}, image: test-image)"
     code2.image = None
     assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " state: UNKNOWN)"
@@ -245,7 +246,7 @@ def test_validate_dependency_result(default_os_env):
     code2(3, 4)
     code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
     ret = code3(a=3)
-    assert ret is 7
+    assert ret == 7
     assert code3.get_state() == 'TERMINATED'
     code2(3, 4)
     snapshots = code3.dependency.load_snapshot()
@@ -355,7 +356,7 @@ def test_recursion_detection(default_os_env):
 
 
 def test_default_load(default_os_env):
-    code1 = Code(add2)
+    _ = Code(add2)
     code2 = Code(add3)
     search_result = Code.load(['add2', 'add3'])
     assert type(search_result) == list and len(search_result) == 0
@@ -550,7 +551,13 @@ def test_partial_code_run(default_os_env):
     plus1 = partial(add2, b=1)
     code = Code(plus1)
     assert code.id == 'add2'
+    assert code.context == {'b': 1}
     assert code(3) == 4
     assert code(4, b=5) == 9
     with pytest.raises(TypeError):
         code(4, 5)
+    snapshot = code.to_snapshot()
+    code2 = Code.from_snapshot(snapshot)
+    assert code2.id == 'add2'
+    assert code2.context == {'b': 1}
+    assert code2(4) == 5

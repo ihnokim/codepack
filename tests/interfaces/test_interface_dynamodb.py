@@ -67,6 +67,7 @@ def test_dynamodb_select(mock_client):
     d = DynamoDB(config={})
     d.session.query.return_value = dict()
     d.select(table='codepack', columns=['c1', 'c2', 'c3'], test_key1='test_value1', test_key2=123, test_key3=1.23)
-    mock_client().query.assert_called_once_with(KeyConditionExpression=
-                                                "test_key1 = 'test_value1' and test_key2 = 123 and test_key3 = 1.23",
-                                                ProjectionExpression='c1,c2,c3', TableName='codepack')
+    mock_client().query.assert_called_once_with(
+        KeyConditionExpression="test_key1 = 'test_value1' and test_key2 = 123 and test_key3 = 1.23",
+        ProjectionExpression='c1,c2,c3', TableName='codepack',
+    )

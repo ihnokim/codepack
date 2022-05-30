@@ -1,7 +1,7 @@
 from codepack import Code, SnapshotService, Snapshot, CodeSnapshot
 from codepack.storages import MemoryStorage, FileStorage, MongoStorage
 from datetime import datetime
-from tests import *
+from tests import add2, add3
 import os
 
 

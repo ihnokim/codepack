@@ -1,6 +1,6 @@
-from codepack.storages import MemoryStorage, FileStorage, MongoStorage, MemoryMessenger
+from codepack.storages import MemoryStorage, MongoStorage, MemoryMessenger
 from codepack import DeliveryService, SnapshotService,\
-    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, JobStore, StorableJob
+    Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, StorableJob
 from unittest.mock import patch
 from collections.abc import Callable
 import os

@@ -136,8 +136,8 @@ def test_mssql_insert_many(mock_client):
     mock_client().commit.assert_not_called()
     mock_client().rollback.assert_not_called()
     rows2 = [{'test_key1': 'test_value1', 'test_key2': 1.23, 'test_key3': 123},
-            {'test_key1': 'test_value2', 'test_key2': 2.34, 'test_key3': 234},
-            {'test_key1': 'test_value3', 'test_key2': 3.45, 'test_key3': 345}]
+             {'test_key1': 'test_value2', 'test_key2': 2.34, 'test_key3': 234},
+             {'test_key1': 'test_value3', 'test_key2': 3.45, 'test_key3': 345}]
     m.insert_many(db='codepack', table='table1', rows=rows2, commit=True)
     assert mock_client().cursor().execute.call_count == 6
     mock_client().cursor().fetchall.assert_not_called()

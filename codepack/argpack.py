@@ -4,8 +4,8 @@ from codepack.storages.storable import Storable
 from typing import Optional, TypeVar, Union, Iterator
 
 
-CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')
-StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
+CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')  # noqa: F821
+StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')  # noqa: F821
 
 
 class ArgPack(Storable):

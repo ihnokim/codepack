@@ -1,6 +1,6 @@
 from codepack import Code, CodePack, StorageService
 from codepack.storages import MongoStorage
-from tests import *
+from tests import add2, add3, mul2, combination, linear, print_x, dummy_function1, dummy_function2
 import pytest
 
 

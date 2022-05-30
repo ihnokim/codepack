@@ -1,6 +1,6 @@
 from codepack import Default, Code, CodePack
 from codepack.storages import MemoryMessenger
-from tests import *
+from tests import add2, mul2, combination
 
 
 def test_memory_supervisor_run_code():

@@ -13,7 +13,7 @@ import sys
 from typing import TypeVar, Union, Optional, Callable
 
 
-Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')
+Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')  # noqa: F821
 
 
 class Worker(Employee):
@@ -101,7 +101,6 @@ class Worker(Employee):
 
     def run_snapshot(self, snapshot: CodeSnapshot) -> str:
         snapshot_path = None
-        cb_id = None
         code = Code.from_snapshot(snapshot)
         code.register_callback(callback=self.callback)
         try:

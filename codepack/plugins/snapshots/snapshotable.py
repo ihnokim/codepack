@@ -2,7 +2,7 @@ import abc
 from typing import Any, TypeVar
 
 
-Snapshot = TypeVar('Snapshot', bound='codepack.plugins.snapshots.snapshot.Snapshot')
+Snapshot = TypeVar('Snapshot', bound='codepack.plugins.snapshots.snapshot.Snapshot')  # noqa: F821
 
 
 class Snapshotable(metaclass=abc.ABCMeta):
