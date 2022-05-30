@@ -256,7 +256,8 @@ class CodePack(CodePackBase):
                                          env=attr.get('env', None), image=attr.get('image', None),
                                          owner=attr.get('owner', None))
             code = codes[attr['id']]
-            receive[code.id] = literal_eval(attr['receive'])
+            dependent_params = attr.get('receive', None)
+            receive[code.id] = literal_eval(dependent_params) if dependent_params else dict()
             if i == 0:
                 root = code
             while len(stack) and stack[-1][1] >= hierarchy:

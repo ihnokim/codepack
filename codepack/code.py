@@ -8,6 +8,7 @@ from functools import partial
 from typing import Any, TypeVar, Union, Optional
 from queue import Queue
 import inspect
+import codepack.utils.functions
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -18,7 +19,7 @@ State = TypeVar('State', bound='codepack.plugins.state.State')
 
 
 class Code(CodeBase):
-    def __init__(self, function: Optional[Callable] = None, source: Optional[str] = None,
+    def __init__(self, function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
                  id: Optional[str] = None, serial_number: Optional[str] = None,
                  dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
                  delivery_service: Optional[DeliveryService] = None,
@@ -26,13 +27,13 @@ class Code(CodeBase):
                  storage_service: Optional[StorageService] = None,
                  state: Optional[Union[State, str]] = None, callback: Optional[Union[list, Callable, Callback]] = None,
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None) -> None:
-        super().__init__(id=id, serial_number=serial_number)
+        super().__init__(id=id, serial_number=serial_number, function=function, source=source)
         self.parents = None
         self.children = None
         self.dependency = None
         self.config_path = None
         self.service = None
-        self.callbacks = dict()
+        self.callback = dict()
         self.env = None
         self.image = None
         self.owner = None
@@ -40,7 +41,6 @@ class Code(CodeBase):
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
                           config_path=config_path)
-        self.set_function(function=function, source=source)
         if id is None:
             self.id = self.function.__name__
         self.init_linkage()
@@ -81,7 +81,7 @@ class Code(CodeBase):
             _value = value
         setattr(self, key, _value)
 
-    def register_callback(self, callback: Union[list, Callable, Callback],
+    def register_callback(self, callback: Union[list, dict, Callable, Callback],
                           name: Optional[Union[list, str]] = None) -> None:
         if isinstance(callback, list):
             if isinstance(name, list):
@@ -114,34 +114,29 @@ class Code(CodeBase):
                     _name = callback.__name__
             else:
                 raise TypeError(type(name))  # pragma: no cover
-            self.callbacks[_name] = callback
+            self.callback[_name] = callback if isinstance(callback, Callback) else Callback(function=callback)
+        elif isinstance(callback, dict):
+            _callback = Callback.from_dict(callback)
+            if isinstance(name, list):
+                _name = name[0]
+            elif isinstance(name, str):
+                _name = name
+            elif name is None:
+                _name = _callback.id
+            else:
+                raise TypeError(type(name))  # pragma: no cover
+            self.callback[_name] = _callback
         elif callback is None:
             pass
         else:
             raise TypeError(type(callback))  # pragma: no cover
 
     def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
-        for callback in self.callbacks.values():
+        for callback in self.callback.values():
             d = {'serial_number': self.serial_number, 'state': state if state else self.get_state()}
             if message:
                 d['message'] = message
             callback(d)
-    
-    def set_function(self, function: Optional[Callable] = None, source: Optional[str] = None) -> None:
-        if source:
-            source = source.strip()
-            self.function = self.get_function(source)
-            self.source = source
-        elif function:
-            self.function = function
-            self.source = self.get_source(self.function)
-        elif self.id:
-            tmp = self.service['storage'].load(id=self.id)
-            self.function = self.get_function(tmp.source)
-            self.source = tmp.source
-        else:
-            raise AssertionError("either 'function' or 'source' should not be None")
-        self.description = self.function.__doc__.strip() if self.function.__doc__ is not None else str()
 
     def _collect_linked_ids(self) -> set:
         ids = set()
@@ -200,7 +195,7 @@ class Code(CodeBase):
         self.serial_number = serial_number
 
     def get_reserved_params(self) -> dict:
-        return super().get_reserved_params(function=self.function)
+        return codepack.utils.functions.get_reserved_params(function=self.function)
 
     def print_params(self) -> str:
         signature = inspect.signature(self.function)
@@ -208,18 +203,21 @@ class Code(CodeBase):
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, params: {params}, receive: {receive}'
-        for additional_item in ['env', 'image', 'owner', 'state']:
+        ret = 'Code(id: {id}, function: {function}, params: {params}'
+        for additional_item in ['receive', 'context', 'env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
         ret += ')'
         return ret
 
     def get_info(self, state: bool = True) -> str:
-        ret = '%s(id: %s, function: %s, params: %s, receive: %s' % (self.__class__.__name__,
+        ret = '%s(id: %s, function: %s, params: %s' % (self.__class__.__name__,
                                                                     self.id, self.function.__name__,
-                                                                    self.print_params(), self.dependency.get_params())
-        for additional_item in ['env', 'image', 'owner']:
+                                                                    self.print_params())
+        dependent_params = self.dependency.get_params()
+        if dependent_params:
+            ret += ', receive: %s' % dependent_params
+        for additional_item in ['context', 'env', 'image', 'owner']:
             item = getattr(self, additional_item)
             if item:
                 ret += ', %s: %s' % (additional_item, item)
@@ -299,6 +297,9 @@ class Code(CodeBase):
         return self.dependency.get_state()
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:
+        for k, v in self.context.items():
+            if k not in kwargs:
+                kwargs[k] = v
         for dependency in self.dependency.values():
             if dependency.param and dependency.param not in kwargs:
                 kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
@@ -328,12 +329,13 @@ class Code(CodeBase):
         d['env'] = self.env
         d['image'] = self.image
         d['owner'] = self.owner
+        d['context'] = self.context
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> 'Code':
         return cls(id=d['_id'], source=d['source'],
-                   env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None))
+                   env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None), context=d.get('context', dict()))
 
     def to_snapshot(self, *args: Any, **kwargs: Any) -> CodeSnapshot:
         return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
@@ -342,4 +344,5 @@ class Code(CodeBase):
     def from_snapshot(cls, snapshot: CodeSnapshot) -> 'Code':
         return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
                    state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
-                   env=snapshot['env'], image=snapshot['image'], owner=snapshot['owner'])
+                   env=snapshot['env'], image=snapshot['image'], owner=snapshot['owner'], context=snapshot['context'],
+                   callback=snapshot['callback'])

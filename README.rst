@@ -123,7 +123,7 @@ The longer, the better!
       return str()
 
   code = Code(my_function)
-  print(code)  # Code(id: my_function, function: my_function, params: (a: str, b: list, c: Union[ForwardRef('my_module.MyClass'), NoneType] = None, **kwargs: Any) -> Union[str, dict], receive: {})
+  print(code)  # Code(id: my_function, function: my_function, params: (a: str, b: list, c: Union[ForwardRef('my_module.MyClass'), NoneType] = None, **kwargs: Any) -> Union[str, dict])
   print(code.description)  # You can find this message in code.description.
 
 **2. Link Codes**

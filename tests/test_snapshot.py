@@ -1,4 +1,5 @@
-from codepack import CodePack, Snapshot, CodeSnapshot
+from codepack import CodePack, Snapshot, CodeSnapshot, Callback
+from functools import partial
 from tests import *
 from datetime import datetime
 import pytest
@@ -164,3 +165,28 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
             assert code1.dependency[serial_number].id == code2.dependency[serial_number].id
             assert code1.dependency[serial_number].serial_number == code2.dependency[serial_number].serial_number
             assert code1.dependency[serial_number].param == code2.dependency[serial_number].param
+
+
+def test_embedded_callback(default_os_env):
+    def my_callback1(x):
+        print('x is %s' % x)
+
+    def my_callback2(x, y):
+        print(x, y)
+
+    code = Code(add2)
+
+    tmp = partial(my_callback2, y='hello')
+    code.register_callback([my_callback1, tmp])
+
+    snapshot1 = code.to_snapshot()
+    snapshot2 = CodeSnapshot.from_dict(snapshot1.to_dict())
+
+    callback_sources = [{'context': {}, 'id': 'my_callback1', 'source': "    def my_callback1(x):\n        print('x is %s' % x)\n"},
+                        {'context': {'y': 'hello'}, 'id': 'my_callback2', 'source': '    def my_callback2(x, y):\n        print(x, y)\n'}]
+
+    assert snapshot1.callback == callback_sources
+    assert snapshot2.callback == callback_sources
+
+    code2 = Code.from_snapshot(snapshot2)
+    assert set(code2.callback.keys()) == {'my_callback1', 'my_callback2'}

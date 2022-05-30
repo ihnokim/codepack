@@ -16,7 +16,6 @@ from .plugins.dependency_monitor import DependencyMonitor
 from .plugins.storage_service import StorageService
 from .plugins.snapshot_service import SnapshotService
 from .plugins.delivery_service import DeliveryService
-from .plugins.callback_service import CallbackService
 from .plugins.dependency import Dependency
 from .plugins.delivery import Delivery
 from .plugins.callback import Callback
