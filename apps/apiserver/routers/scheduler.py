@@ -96,7 +96,7 @@ async def register_by_snapshot(params: SnapshotJSONJob):
 @router.delete('/unregister/{id}')
 async def unregister(id: str):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.get, 'scheduler/unregister/%s' % id)
+        return redirect_to_remote_scheduler(requests.delete, 'scheduler/unregister/%s' % id)
     elif isinstance(common.scheduler, Scheduler):
         try:
             common.scheduler.remove_job(job_id=id)

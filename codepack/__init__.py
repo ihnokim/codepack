@@ -4,7 +4,7 @@ import codepack.storages as storages
 import codepack.interfaces as interfaces
 
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 
 
 __lazy_imports__ = {
