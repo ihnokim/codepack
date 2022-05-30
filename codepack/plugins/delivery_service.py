@@ -2,7 +2,7 @@ from codepack.plugins.service import Service
 from typing import Union, TypeVar, Optional, Any
 
 
-Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')
+Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')  # noqa: F821
 
 
 class DeliveryService(Service):

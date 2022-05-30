@@ -1,6 +1,6 @@
 from codepack import Code, StorageService
 from codepack.storages import MemoryStorage, FileStorage, MongoStorage
-from tests import *
+from tests import add2, hello
 import os
 
 

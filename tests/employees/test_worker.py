@@ -2,7 +2,7 @@ from codepack import Config, Default, Code
 from codepack.storages import MemoryMessenger
 from unittest.mock import patch
 import os
-from tests import *
+from tests import add2
 
 
 def dummy_callback_function(x):

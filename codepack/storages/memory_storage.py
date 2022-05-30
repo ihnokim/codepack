@@ -2,7 +2,7 @@ from codepack.storages.storage import Storage
 from typing import TypeVar, Type, Union, Optional, Any
 
 
-Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')
+Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # noqa: F821
 
 
 class MemoryStorage(Storage):

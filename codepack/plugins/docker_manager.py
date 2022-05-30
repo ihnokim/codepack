@@ -9,8 +9,8 @@ from docker import DockerClient
 import json
 
 
-Image = TypeVar('Image', bound='docker.models.images.Image')
-Model = TypeVar('Model', bound='docker.models.resource.Model')
+Image = TypeVar('Image', bound='docker.models.images.Image')  # noqa: F821
+Model = TypeVar('Model', bound='docker.models.resource.Model')  # noqa: F821
 
 
 class DockerManager(Manager):

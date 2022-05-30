@@ -21,7 +21,7 @@ class MySQL(SQLInterface):
     @staticmethod
     def eval_cursor_object(cursorclass: Union[str, pymysql.cursors.Cursor]) -> pymysql.cursors.Cursor:
         if type(cursorclass) == str:
-            pat = re.compile("\A(pymysql)[.]cursors[.][^.]*(Cursor)\Z")
+            pat = re.compile("\A(pymysql)[.]cursors[.][^.]*(Cursor)\Z")  # noqa: W605
             assert pat.match(cursorclass), "'cursorclass' should be one of the cursor objects of pymysql"
             return eval(cursorclass)
         else:

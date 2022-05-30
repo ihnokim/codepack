@@ -1,5 +1,5 @@
 from codepack import Code, DependencyMonitor
-from tests import *
+from tests import add3, mul2, combination, linear, print_x
 import time
 
 

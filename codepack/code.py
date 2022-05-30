@@ -19,7 +19,8 @@ State = TypeVar('State', bound='codepack.plugins.state.State')
 
 
 class Code(CodeBase):
-    def __init__(self, function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
+    def __init__(self,
+                 function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
                  id: Optional[str] = None, serial_number: Optional[str] = None,
                  dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
                  delivery_service: Optional[DeliveryService] = None,
@@ -27,7 +28,7 @@ class Code(CodeBase):
                  storage_service: Optional[StorageService] = None,
                  state: Optional[Union[State, str]] = None, callback: Optional[Union[list, Callable, Callback]] = None,
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None) -> None:
-        super().__init__(id=id, serial_number=serial_number, function=function, source=source)
+        super().__init__(id=id, serial_number=serial_number, function=function, source=source, context=context)
         self.parents = None
         self.children = None
         self.dependency = None
@@ -212,8 +213,8 @@ class Code(CodeBase):
 
     def get_info(self, state: bool = True) -> str:
         ret = '%s(id: %s, function: %s, params: %s' % (self.__class__.__name__,
-                                                                    self.id, self.function.__name__,
-                                                                    self.print_params())
+                                                       self.id, self.function.__name__,
+                                                       self.print_params())
         dependent_params = self.dependency.get_params()
         if dependent_params:
             ret += ', receive: %s' % dependent_params
@@ -335,7 +336,8 @@ class Code(CodeBase):
     @classmethod
     def from_dict(cls, d: dict) -> 'Code':
         return cls(id=d['_id'], source=d['source'],
-                   env=d.get('env', None), image=d.get('image', None), owner=d.get('owner', None), context=d.get('context', dict()))
+                   env=d.get('env', None), image=d.get('image', None),
+                   owner=d.get('owner', None), context=d.get('context', dict()))
 
     def to_snapshot(self, *args: Any, **kwargs: Any) -> CodeSnapshot:
         return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
@@ -344,5 +346,6 @@ class Code(CodeBase):
     def from_snapshot(cls, snapshot: CodeSnapshot) -> 'Code':
         return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
                    state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
-                   env=snapshot['env'], image=snapshot['image'], owner=snapshot['owner'], context=snapshot['context'],
+                   env=snapshot['env'], image=snapshot['image'],
+                   owner=snapshot['owner'], context=snapshot['context'],
                    callback=snapshot['callback'])

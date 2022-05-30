@@ -9,8 +9,8 @@ from posixpath import join as posixpath_join
 from typing import Any, Optional, Union, TypeVar
 
 
-MongoDB = TypeVar('MongoDB', bound='codepack.interfaces.mongodb.MongoDB')
-MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')
+MongoDB = TypeVar('MongoDB', bound='codepack.interfaces.mongodb.MongoDB')  # noqa: F821
+MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')  # noqa: F821
 
 
 class Storable(metaclass=abc.ABCMeta):

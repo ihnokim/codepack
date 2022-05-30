@@ -9,8 +9,8 @@ except ImportError:  # pragma: nocover
     import pickle
 
 
-Job = TypeVar('Job', bound='apscheduler.job.Job')
-Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')
+Job = TypeVar('Job', bound='apscheduler.job.Job')  # noqa: F821
+Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')  # noqa: F821
 
 
 class JobStore(BaseJobStore):

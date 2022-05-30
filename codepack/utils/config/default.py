@@ -4,11 +4,11 @@ import inspect
 from typing import Optional, TypeVar
 
 
-Service = TypeVar('Service', bound='codepack.plugins.service.Service')
-Scheduler = TypeVar('Scheduler', bound='codepack.plugins.scheduler.Scheduler')
-Employee = TypeVar('Employee', bound='codepack.plugins.employee.Employee')
-Manager = TypeVar('Manager', bound='codepack.plugins.manager.Manager')
-Logger = TypeVar('Logger', bound='logging.Logger')
+Service = TypeVar('Service', bound='codepack.plugins.service.Service')  # noqa: F821
+Scheduler = TypeVar('Scheduler', bound='codepack.plugins.scheduler.Scheduler')  # noqa: F821
+Employee = TypeVar('Employee', bound='codepack.plugins.employee.Employee')  # noqa: F821
+Manager = TypeVar('Manager', bound='codepack.plugins.manager.Manager')  # noqa: F821
+Logger = TypeVar('Logger', bound='logging.Logger')  # noqa: F821
 
 
 class Default:

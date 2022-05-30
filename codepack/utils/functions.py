@@ -8,7 +8,9 @@ import dill
 import typing
 
 
-def inform_supervisor_of_termination(x: dict, supervisor: Union[str, 'codepack.plugins.supervisor.Supervisor']) -> None:
+def inform_supervisor_of_termination(x: dict,
+                                     supervisor: Union[str, 'codepack.plugins.supervisor.Supervisor'])\
+        -> None:  # noqa: F821
     import requests
     from codepack.plugins.supervisor import Supervisor
     if x['state'] == 'TERMINATED':

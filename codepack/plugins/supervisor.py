@@ -8,8 +8,8 @@ from codepack.argpack import ArgPack
 from typing import TypeVar, Optional, Union
 
 
-Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')
+Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')  # noqa: F821
+SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')  # noqa: F821
 
 
 class Supervisor(Employee):

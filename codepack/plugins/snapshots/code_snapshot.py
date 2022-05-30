@@ -4,7 +4,7 @@ from codepack.plugins.callback import Callback
 from typing import TypeVar, Optional
 
 
-Code = TypeVar('Code', bound='codepack.code.Code')
+Code = TypeVar('Code', bound='codepack.code.Code')  # noqa: F821
 
 
 class CodeSnapshot(Snapshot):

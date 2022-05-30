@@ -3,7 +3,8 @@ from codepack.utils.looper import Looper
 from typing import Callable, Optional, TypeVar
 
 
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshots.snapshot_service.SnapshotService')
+SnapshotService = TypeVar('SnapshotService',
+                          bound='codepack.plugins.snapshots.snapshot_service.SnapshotService')  # noqa: F821
 
 
 class DependencyMonitor:
