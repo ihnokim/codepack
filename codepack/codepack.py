@@ -191,10 +191,10 @@ class CodePack(CodePackBase):
 
     def _recursive_run(self, code: Code, argpack: Union[ArgPack, dict]) -> None:
         for p in code.parents.values():
-            if p.get_state() != 'TERMINATED':
-                code.update_state('WAITING')
+            if p.get_state() != State.TERMINATED:
+                code.update_state(State.WAITING)
                 self._recursive_run(p, argpack)
-        code.update_state('READY')
+        code.update_state(State.READY)
         code(**argpack[code.id])
 
     def sync_run(self, argpack: Union[ArgPack, dict]) -> None:
@@ -206,7 +206,7 @@ class CodePack(CodePackBase):
             code(**argpack[id])
 
     def __call__(self, argpack: Optional[Union[ArgPack, dict]] = None, sync: bool = True) -> Any:
-        self.init_code_state(state='READY', argpack=argpack)
+        self.init_code_state(state=State.READY, argpack=argpack)
         self.save_snapshot(argpack=argpack)
         if not argpack:
             argpack = self.make_argpack()
@@ -226,7 +226,7 @@ class CodePack(CodePackBase):
                 code.update_state(state, kwargs=_kwargs)
 
     def get_result(self) -> Optional[Any]:
-        if self.subscribe and self.codes[self.subscribe].get_state() == 'TERMINATED':
+        if self.subscribe and self.codes[self.subscribe].get_state() == State.TERMINATED:
             return self.codes[self.subscribe].get_result()
         else:
             return None
