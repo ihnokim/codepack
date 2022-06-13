@@ -3,19 +3,21 @@ from codepack.base.code_base import CodeBase
 from codepack.plugins.dependency import Dependency
 from codepack.plugins.dependency_bag import DependencyBag
 from codepack.plugins.callback import Callback
+from codepack.plugins.state import State
 from collections.abc import Iterable, Callable
 from functools import partial
 from typing import Any, TypeVar, Union, Optional
 from queue import Queue
-import inspect
+import codepack.utils.exceptions
 import codepack.utils.functions
+import inspect
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
 DeliveryService = TypeVar('DeliveryService', bound='codepack.plugins.delivery_service.DeliveryService')
 SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')
 StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')
-State = TypeVar('State', bound='codepack.plugins.state.State')
+# State = TypeVar('State', bound='codepack.plugins.state.State')
 
 
 class Code(CodeBase):
@@ -313,12 +315,26 @@ class Code(CodeBase):
         try:
             state = self.check_dependency()
             self.update_state(state, args=args, kwargs=kwargs)
-            if state == 'READY':
-                self.update_state('RUNNING', args=args, kwargs=kwargs)
+            if state == State.READY:
+                self.update_state(State.RUNNING, args=args, kwargs=kwargs)
                 ret = self._run(*args, **kwargs)
-                self.update_state('TERMINATED', args=args, kwargs=kwargs)
+                self.update_state(State.TERMINATED, args=args, kwargs=kwargs)
+        except codepack.utils.exceptions.UnknownState as e:
+            self.update_state(State.UNKNOWN, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.NewState as e:
+            self.update_state(State.NEW, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.ReadyState as e:
+            self.update_state(State.READY, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.WaitingState as e:
+            self.update_state(State.WAITING, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.RunningState as e:
+            self.update_state(State.RUNNING, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.TerminateState as e:
+            self.update_state(State.TERMINATED, args=args, kwargs=kwargs, message=str(e))
+        except codepack.utils.exceptions.ErrorState as e:
+            self.update_state(State.ERROR, args=args, kwargs=kwargs, message=str(e))
         except Exception as e:
-            self.update_state('ERROR', args=args, kwargs=kwargs, message=str(e))
+            self.update_state(State.ERROR, args=args, kwargs=kwargs, message=str(e))
             raise e
         return ret
 
