@@ -14,8 +14,8 @@ router = APIRouter(
 
 @router.post('/run')
 async def run(params: CodePackJSON):
-    codepack = CodePack.from_json(params.codepack)
-    argpack = ArgPack.from_json(params.argpack)
+    codepack = CodePack.from_dict(params.codepack)
+    argpack = ArgPack.from_dict(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
@@ -25,7 +25,7 @@ async def run_by_id(params: CodePackID):
     codepack = CodePack.load(params.id)
     if codepack is None:
         raise HTTPException(status_code=404, detail='%s not found' % params.id)
-    argpack = ArgPack.from_json(params.argpack)
+    argpack = ArgPack.from_dict(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
@@ -44,7 +44,7 @@ async def run_by_id_pair(params: IDPair):
 
 @router.post('/run/snapshot')
 async def run_by_snapshot(params: SnapshotJSON):
-    snapshot = CodePackSnapshot.from_json(params.snapshot)
+    snapshot = CodePackSnapshot.from_dict(params.snapshot)
     codepack = CodePack.from_snapshot(snapshot)
     argpack = ArgPack.from_dict(snapshot.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
@@ -53,7 +53,7 @@ async def run_by_snapshot(params: SnapshotJSON):
 
 @router.post('/save')
 async def save(codepack: CodePackJSON):
-    tmp = CodePack.from_json(codepack.codepack)
+    tmp = CodePack.from_dict(codepack.codepack)
     try:
         tmp.save()
     except ValueError as e:
@@ -63,7 +63,7 @@ async def save(codepack: CodePackJSON):
 
 @router.patch('/update')
 async def update(codepack: CodePackJSON):
-    tmp = CodePack.from_json(codepack.codepack)
+    tmp = CodePack.from_dict(codepack.codepack)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -83,7 +83,7 @@ async def load(id: str):
     codepack = CodePack.load(id)
     if codepack is None:
         raise HTTPException(status_code=404, detail='%s not found' % id)
-    return {'codepack': codepack.to_json()}
+    return codepack.to_dict()
 
 
 @router.get('/state/{serial_number}')

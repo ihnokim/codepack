@@ -14,7 +14,7 @@ router = APIRouter(
 
 @router.post('/run')
 async def run(params: CodeJSON):
-    code = Code.from_json(params.code)
+    code = Code.from_dict(params.code)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
@@ -30,7 +30,7 @@ async def run_by_id(params: CodeID):
 
 @router.post('/run/snapshot')
 async def run_by_snapshot(params: SnapshotJSON):
-    snapshot = CodeSnapshot.from_json(params.snapshot)
+    snapshot = CodeSnapshot.from_dict(params.snapshot)
     code = Code.from_snapshot(snapshot)
     common.supervisor.run_code(code=code, args=snapshot.args, kwargs=snapshot.kwargs)
     return {'serial_number': code.serial_number}
@@ -38,7 +38,7 @@ async def run_by_snapshot(params: SnapshotJSON):
 
 @router.post('/save')
 async def save(code: CodeJSON):
-    tmp = Code.from_json(code.code)
+    tmp = Code.from_dict(code.code)
     try:
         tmp.save()
     except ValueError as e:
@@ -48,7 +48,7 @@ async def save(code: CodeJSON):
 
 @router.patch('/update')
 async def update(code: CodeJSON):
-    tmp = Code.from_json(code.code)
+    tmp = Code.from_dict(code.code)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -68,7 +68,7 @@ async def load(id: str):
     code = Code.load(id=id)
     if code is None:
         raise HTTPException(status_code=404, detail='%s not found' % id)
-    return {'code': code.to_json()}
+    return code.to_dict()
 
 
 @router.get('/state/{serial_number}')
