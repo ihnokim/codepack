@@ -13,7 +13,7 @@ router = APIRouter(
 
 @router.post('/save')
 async def save(argpack: ArgPackJSON):
-    tmp = ArgPack.from_json(argpack.argpack)
+    tmp = ArgPack.from_dict(argpack.argpack)
     try:
         tmp.save()
     except ValueError as e:
@@ -23,7 +23,7 @@ async def save(argpack: ArgPackJSON):
 
 @router.patch('/update')
 async def update(argpack: ArgPackJSON):
-    tmp = ArgPack.from_json(argpack.argpack)
+    tmp = ArgPack.from_dict(argpack.argpack)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -43,4 +43,4 @@ async def load(id: str):
     argpack = ArgPack.load(id)
     if argpack is None:
         raise HTTPException(status_code=404, detail="%s not found" % id)
-    return {'argpack': argpack.to_json()}
+    return argpack.to_dict()
