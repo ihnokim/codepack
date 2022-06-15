@@ -4,7 +4,6 @@ from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
 from ..models.scheduler import CodePackIDJob, CodePackJSONJob, SnapshotJSONJob, IDPairJob
 from ..dependencies import common
 import requests
-import json
 import os
 
 
@@ -19,10 +18,10 @@ router = APIRouter(
 @router.post('/register')
 async def register(params: CodePackJSONJob):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register', data=json.dumps(params.dict()))
+        return redirect_to_remote_scheduler(requests.post, 'scheduler/register', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
-        codepack = CodePack.from_json(params.codepack)
-        argpack = ArgPack.from_json(params.argpack)
+        codepack = CodePack.from_dict(params.codepack)
+        argpack = ArgPack.from_dict(params.argpack)
         try:
             common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
@@ -37,12 +36,12 @@ async def register(params: CodePackJSONJob):
 @router.post('/register/id')
 async def register_by_id(params: CodePackIDJob):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id', data=json.dumps(params.dict()))
+        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
         codepack = CodePack.load(params.id)
         if codepack is None:
             raise HTTPException(status_code=404, detail='%s not found' % params.id)
-        argpack = ArgPack.from_json(params.argpack)
+        argpack = ArgPack.from_dict(params.argpack)
         try:
             common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
@@ -57,7 +56,7 @@ async def register_by_id(params: CodePackIDJob):
 @router.post('/register/id-pair')
 async def register_by_id_pair(params: IDPairJob):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id-pair', data=json.dumps(params.dict()))
+        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id-pair', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
         codepack = CodePack.load(params.codepack_id)
         if codepack is None:
@@ -79,9 +78,9 @@ async def register_by_id_pair(params: IDPairJob):
 @router.post('/register/snapshot')
 async def register_by_snapshot(params: SnapshotJSONJob):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/snapshot', data=json.dumps(params.dict()))
+        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/snapshot', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
-        snapshot = CodePackSnapshot.from_json(params.snapshot)
+        snapshot = CodePackSnapshot.from_dict(params.snapshot)
         try:
             common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class CodePackID(BaseModel):
     id: str
-    argpack: str = '{}'
+    argpack: dict = {}
 
 
 class IDPair(BaseModel):
@@ -12,9 +12,9 @@ class IDPair(BaseModel):
 
 
 class CodePackJSON(BaseModel):
-    codepack: str
-    argpack: str = '{}'
+    codepack: dict
+    argpack: dict = {}
 
 
 class SnapshotJSON(BaseModel):
-    snapshot: str
+    snapshot: dict
