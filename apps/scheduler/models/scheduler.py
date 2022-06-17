@@ -9,7 +9,7 @@ class Job(BaseModel):
 
 class CodePackIDJob(Job):
     id: str
-    argpack: str = '{}'
+    argpack: dict = {}
 
 
 class IDPairJob(Job):
@@ -18,9 +18,9 @@ class IDPairJob(Job):
 
 
 class CodePackJSONJob(Job):
-    codepack: str
-    argpack: str = '{}'
+    codepack: dict
+    argpack: dict = {}
 
 
 class SnapshotJSONJob(Job):
-    snapshot: str
+    snapshot: dict
