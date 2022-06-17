@@ -117,7 +117,7 @@ class Scheduler:
         _snapshot = Scheduler._get_snapshot(snapshot)
         if isinstance(Scheduler.supervisor, str):
             return requests.post('%s/codepack/run/snapshot' % Scheduler.supervisor,
-                                 data=json.dumps({'snapshot': _snapshot.to_json()}))
+                                 json={'snapshot': _snapshot.to_dict()})
         else:
             codepack = Scheduler._get_codepack(_snapshot)
             argpack = Scheduler._get_argpack(_snapshot)

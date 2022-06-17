@@ -15,8 +15,8 @@ router = APIRouter(
 
 @router.post('/register')
 async def register(params: CodePackJSONJob):
-    codepack = CodePack.from_json(params.codepack)
-    argpack = ArgPack.from_json(params.argpack)
+    codepack = CodePack.from_dict(params.codepack)
+    argpack = ArgPack.from_dict(params.argpack)
     try:
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
@@ -31,7 +31,7 @@ async def register_by_id(params: CodePackIDJob):
     codepack = CodePack.load(params.id)
     if codepack is None:
         raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
-    argpack = ArgPack.from_json(params.argpack)
+    argpack = ArgPack.from_dict(params.argpack)
     try:
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
@@ -60,7 +60,7 @@ async def register_by_id_pair(params: IDPairJob):
 
 @router.post('/register/snapshot')
 async def register_by_snapshot(params: SnapshotJSONJob):
-    snapshot = CodePackSnapshot.from_json(params.snapshot)
+    snapshot = CodePackSnapshot.from_dict(params.snapshot)
     try:
         common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
