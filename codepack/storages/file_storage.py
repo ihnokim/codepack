@@ -1,6 +1,6 @@
 from codepack.storages.storage import Storage
 from codepack.storages.storable import Storable
-from shutil import rmtree
+from codepack.utils.functions import mkdir, rmdir
 from glob import glob
 import os
 from typing import Type, Union, Optional, Any
@@ -19,31 +19,11 @@ class FileStorage(Storage):
             self.new_path = False
         else:
             self.new_path = True
-            self.mkdir(path)
+            mkdir(path)
 
     def close(self) -> None:
         if self.new_path:
-            self.rmdir(self.path)
-
-    @staticmethod
-    def mkdir(path: str) -> None:
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-    @staticmethod
-    def rmdir(path: str) -> None:
-        if os.path.exists(path):
-            rmtree(path)
-
-    @staticmethod
-    def empty_dir(path: str) -> None:
-        for item in glob(os.path.join(path, '*')):
-            if os.path.isfile(item):
-                os.remove(item)
-            elif os.path.isdir(item):
-                rmtree(item)
-            else:
-                raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
+            rmdir(self.path)
 
     def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
         if isinstance(key, str):

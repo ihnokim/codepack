@@ -316,6 +316,12 @@ class Code(CodeBase):
         builtin_print(msg)
         self.logger.info(msg)
 
+    def get_log_dir(self) -> str:
+        return os.path.join(Config.get_log_dir(), self.id)
+
+    def get_log_path(self) -> str:
+        return os.path.join(self.get_log_dir(), '%s.log' % self.serial_number)
+
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         for k, v in self.context.items():
             if k not in kwargs:
@@ -325,7 +331,10 @@ class Code(CodeBase):
                 kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
         if self.log:
             old_print = builtins.print
-            handler = logging.FileHandler(os.path.join(Config.get_log_dir(), '%s.log' % self.serial_number))
+            log_dir = self.get_log_dir()
+            log_path = self.get_log_path()
+            codepack.utils.functions.mkdir(log_dir)
+            handler = logging.FileHandler(log_path)
             formatter = logging.Formatter('%(asctime)s %(message)s')
             try:
                 handler.setFormatter(formatter)
