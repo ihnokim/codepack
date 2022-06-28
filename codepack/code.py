@@ -1,4 +1,5 @@
 from codepack.utils.config.default import Default
+from codepack.utils.config.config import Config
 from codepack.base.code_base import CodeBase
 from codepack.plugins.dependency import Dependency
 from codepack.plugins.dependency_bag import DependencyBag
@@ -11,6 +12,9 @@ from queue import Queue
 import codepack.utils.exceptions
 import codepack.utils.functions
 import inspect
+import logging
+import builtins
+import os
 
 
 CodeSnapshot = TypeVar('CodeSnapshot', bound='codepack.plugins.snapshots.code_snapshot.CodeSnapshot')
@@ -29,7 +33,8 @@ class Code(CodeBase):
                  snapshot_service: Optional[SnapshotService] = None,
                  storage_service: Optional[StorageService] = None,
                  state: Optional[Union[State, str]] = None, callback: Optional[Union[list, Callable, Callback]] = None,
-                 env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None) -> None:
+                 env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None,
+                 log: bool = False) -> None:
         super().__init__(id=id, serial_number=serial_number, function=function, source=source, context=context)
         self.parents = None
         self.children = None
@@ -40,6 +45,9 @@ class Code(CodeBase):
         self.env = None
         self.image = None
         self.owner = None
+        self.log = log
+        self.logger = None
+        self.init_logger()
         self.init_service(delivery_service=delivery_service,
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
@@ -53,6 +61,11 @@ class Code(CodeBase):
         self._set_str_attr(key='image', value=image)
         self._set_str_attr(key='owner', value=owner)
         self.update_state(state)
+
+    def init_logger(self) -> None:
+        self.logger = logging.getLogger('code')
+        if self.logger.level == logging.NOTSET or self.logger.level > logging.INFO:
+            self.logger.setLevel(logging.INFO)
 
     def init_linkage(self) -> None:
         self.parents = dict()
@@ -299,6 +312,10 @@ class Code(CodeBase):
     def check_dependency(self) -> str:
         return self.dependency.get_state()
 
+    def _log(self, msg: str, builtin_print: Callable) -> None:
+        builtin_print(msg)
+        self.logger.info(msg)
+
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         for k, v in self.context.items():
             if k not in kwargs:
@@ -306,7 +323,21 @@ class Code(CodeBase):
         for dependency in self.dependency.values():
             if dependency.param and dependency.param not in kwargs:
                 kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
-        ret = self.function(*args, **kwargs)
+        if self.log:
+            old_print = builtins.print
+            handler = logging.FileHandler(os.path.join(Config.get_log_dir(), '%s.log' % self.serial_number))
+            formatter = logging.Formatter('%(asctime)s %(message)s')
+            try:
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+                builtins.print = partial(self._log, builtin_print=old_print)
+                ret = self.function(*args, **kwargs)
+            finally:
+                builtins.print = old_print
+                self.logger.removeHandler(handler)
+                handler.close()
+        else:
+            ret = self.function(*args, **kwargs)
         self.send_result(item=ret)
         return ret
 
