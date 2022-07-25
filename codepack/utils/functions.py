@@ -6,6 +6,9 @@ import ast
 import inspect
 import dill
 import typing
+from shutil import rmtree
+from glob import glob
+import os
 
 
 def inform_supervisor_of_termination(x: dict, supervisor: Union[str, 'codepack.plugins.supervisor.Supervisor']) -> None:  # noqa: F821, E501
@@ -70,3 +73,23 @@ def get_reserved_params(function: Callable) -> OrderedDict:
         else:
             ret[kwonlyarg] = None
     return ret
+
+
+def mkdir(path: str) -> None:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+
+def rmdir(path: str) -> None:
+    if os.path.exists(path):
+        rmtree(path)
+
+
+def empty_dir(path: str) -> None:
+    for item in glob(os.path.join(path, '*')):
+        if os.path.isfile(item):
+            os.remove(item)
+        elif os.path.isdir(item):
+            rmtree(item)
+        else:
+            raise NotImplementedError('%s is unknown' % item)  # pragma: no cover
