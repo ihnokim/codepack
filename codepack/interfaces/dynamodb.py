@@ -13,9 +13,14 @@ class DynamoDB(SQLInterface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> BaseClient:
-        if 'config' not in self.config and 'config' not in kwargs:
-            self.config['config'] = Config(retries=dict(max_attempts=3))
-        self.session = boto3.client(*args, **self.config, **kwargs)
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
+        if 'config' not in _config:
+            tmp = Config(retries=dict(max_attempts=3))
+            _config['config'] = tmp
+            self.config['config'] = tmp
+        self.session = boto3.client(*args, **_config)
         self._closed = False
         return self.session
 

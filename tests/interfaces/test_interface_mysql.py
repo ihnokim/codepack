@@ -31,7 +31,7 @@ def test_mysql_init_with_sshtunnel_from_config_file(mock_client, mock_ssh):
                     'cursorclass': 'pymysql.cursors.Cursor', 'sshtunnel': 'config/test.ini:ssh'}
     m = MySQL(config=mysql_config)
     assert m.ssh_config == {'ssh_host': 'localhost', 'ssh_port': '22', 'ssh_username': 'test', 'ssh_password': '1234'}
-    mock_ssh.assert_called_once_with(('localhost', 22), remote_bind_address=('localhost', 3306),
+    mock_ssh.assert_called_once_with(ssh_address_or_host=('localhost', 22), remote_bind_address=('localhost', 3306),
                                      ssh_password='1234', ssh_username='test')
     arg_list = mock_client.call_args_list
     assert len(arg_list) == 1
@@ -45,7 +45,7 @@ def test_mysql_init_with_sshtunnel_from_config_file(mock_client, mock_ssh):
     assert m.session is mock_client()
     m.close()
     mock_client().close.assert_called_once()
-    mock_ssh().stop.assert_called_once()
+    mock_ssh().close.assert_called_once()
     assert m.closed()
 
 
@@ -58,11 +58,11 @@ def test_mysql_init_with_sshtunnel_from_dict(mock_client, mock_ssh):
                                   'ssh_username': 'test', 'ssh_password': '1234'}}
     m = MySQL(config=mysql_config)
     assert m.ssh_config == {'ssh_host': 'localhost', 'ssh_password': '1234', 'ssh_port': '22', 'ssh_username': 'test'}
-    mock_ssh.assert_called_once_with(('localhost', 22), remote_bind_address=('localhost', 3306),
+    mock_ssh.assert_called_once_with(ssh_address_or_host=('localhost', 22), remote_bind_address=('localhost', 3306),
                                      ssh_password='1234', ssh_username='test')
     m.close()
     mock_client().close.assert_called_once()
-    mock_ssh().stop.assert_called_once()
+    mock_ssh().close.assert_called_once()
     assert m.closed()
 
 

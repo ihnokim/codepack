@@ -10,9 +10,12 @@ class KafkaProducer(Interface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> kafka.KafkaProducer:
-        if 'value_serializer' not in self.config and 'value_serializer' not in kwargs:
-            kwargs['value_serializer'] = lambda x: json.dumps(x).encode('utf-8')
-        self.session = kafka.KafkaProducer(**self.config, **kwargs)
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
+        if 'value_serializer' not in _config:
+            _config['value_serializer'] = lambda x: json.dumps(x).encode('utf-8')
+        self.session = kafka.KafkaProducer(**_config)
         self._closed = False
         return self.session
 
@@ -26,9 +29,6 @@ class KafkaProducer(Interface):
         self.session.flush()
 
     def close(self) -> None:
-        self.session.close()
         if not self.closed():
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
+            self.session.close()
             self._closed = True

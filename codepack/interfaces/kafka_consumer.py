@@ -1,7 +1,6 @@
 from codepack.interfaces.interface import Interface
 from codepack.utils.looper import Looper
 import kafka
-from copy import deepcopy
 import json
 from typing import Any, Optional, Callable
 
@@ -13,14 +12,16 @@ class KafkaConsumer(Interface):
         self.looper = None
 
     def connect(self, *args: Any, **kwargs: Any) -> kafka.KafkaConsumer:
-        if 'value_deserializer' not in self.config and 'value_deserializer' not in kwargs:
-            kwargs['value_deserializer'] = lambda x: json.loads(x.decode('utf-8'))
-        if 'topic' in self.config:
-            _config = deepcopy(self.config)
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
+        if 'value_deserializer' not in _config:
+            _config['value_deserializer'] = lambda x: json.loads(x.decode('utf-8'))
+        if 'topic' in _config:
             _topic = _config.pop('topic')
-            self.session = kafka.KafkaConsumer(_topic, *args, **_config, **kwargs)
+            self.session = kafka.KafkaConsumer(_topic, *args, **_config)
         else:
-            self.session = kafka.KafkaConsumer(*args, **self.config, **kwargs)
+            self.session = kafka.KafkaConsumer(*args, **_config)
         self._closed = False
         return self.session
 
@@ -46,10 +47,7 @@ class KafkaConsumer(Interface):
             return None
 
     def close(self) -> None:
-        self.stop()
-        self.session.close()
         if not self.closed():
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
+            self.stop()
+            self.session.close()
             self._closed = True

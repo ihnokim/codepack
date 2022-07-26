@@ -10,11 +10,17 @@ class MySQL(SQLInterface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> pymysql.connections.Connection:
-        host, port = self.bind(host=self.config['host'], port=self.config['port'])
-        _config = self.exclude_keys(self.config, keys=['host', 'port'])
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
         if 'cursorclass' in _config:
-            _config['cursorclass'] = self.eval_cursor_object(_config['cursorclass'])
-        self.session = pymysql.connect(host=host, port=port, *args, **_config, **kwargs)
+            _config['cursorclass'] = self.eval_cursor_object(_config.pop('cursorclass'))
+        if self.ssh_config:
+            self.inspect_config_for_sshtunnel(config=_config, host_key='host', port_key='port')
+            _host, _port = self.set_sshtunnel(host=_config['host'], port=int(_config['port']))
+            _config['host'] = _host
+            _config['port'] = _port
+        self.session = pymysql.connect(*args, **_config)
         self._closed = False
         return self.session
 
@@ -134,9 +140,7 @@ class MySQL(SQLInterface):
         return q
 
     def close(self) -> None:
+        self.close_sshtunnel()
         if not self.closed():
             self.session.close()
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
             self._closed = True
