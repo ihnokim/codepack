@@ -17,22 +17,27 @@ class OracleDB(SQLInterface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> cx_Oracle.Connection:
-        host, port = self.bind(host=self.config['host'], port=self.config['port'])
-        exclude_keys = ['host', 'port']
-        if 'service_name' in self.config:
-            exclude_keys += ['service_name']
-            dsn = cx_Oracle.makedsn(host=host, port=port, service_name=self.config['service_name'])
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
+        if self.ssh_config:
+            self.inspect_config_for_sshtunnel(config=_config, host_key='host', port_key='port')
+            _host, _port = self.set_sshtunnel(host=_config['host'], port=int(_config['port']))
+            _config['host'] = _host
+            _config['port'] = _port
+        if 'dsn' in _config:
+            pass
+        elif 'host' in _config and 'port' in _config:
+            tmp = {'host': _config.pop('host'), 'port': _config.pop('port')}
+            if 'service_name' in _config:
+                tmp['service_name'] = _config.pop('service_name')
+            _config['dsn'] = cx_Oracle.makedsn(**tmp)
         else:
-            dsn = cx_Oracle.makedsn(host=host, port=port)
+            raise ValueError('connection info is invalid')
         self.as_dict = False
-        if 'as_dict' in self.config:
-            self.as_dict = self.eval_bool(self.config['as_dict'])
-            exclude_keys += ['as_dict']
-        if 'as_dict' in kwargs:
-            self.as_dict = self.eval_bool(kwargs['as_dict'])
-            kwargs = self.exclude_keys(kwargs, keys=['as_dict'])
-        _config = self.exclude_keys(self.config, keys=exclude_keys)
-        self.session = cx_Oracle.connect(dsn=dsn, *args, **_config, **kwargs)
+        if 'as_dict' in _config:
+            self.as_dict = self.eval_bool(_config.pop('as_dict'))
+        self.session = cx_Oracle.connect(*args, **_config)
         self._closed = False
         return self.session
 
@@ -67,9 +72,7 @@ class OracleDB(SQLInterface):
                 return None
 
     def close(self) -> None:
+        self.close_sshtunnel()
         if not self.closed():
             self.session.close()
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
             self._closed = True

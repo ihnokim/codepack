@@ -9,11 +9,19 @@ class MongoDB(Interface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> pymongo.mongo_client.MongoClient:
-        host, port = self.bind(host=self.config['host'], port=self.config['port'])
-        _config = self.exclude_keys(self.config, keys=['host', 'port'])
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
         if 'connect' in _config:
             _config['connect'] = self.eval_bool(_config['connect'])
-        self.session = pymongo.MongoClient(host=host, port=port, *args, **_config, **kwargs)
+        if 'port' in _config:
+            _config['port'] = int(_config['port'])
+        if self.ssh_config:
+            self.inspect_config_for_sshtunnel(config=_config, host_key='host', port_key='port')
+            _host, _port = self.set_sshtunnel(host=_config['host'], port=int(_config['port']))
+            _config['host'] = _host
+            _config['port'] = _port
+        self.session = pymongo.MongoClient(*args, **_config)
         self._closed = False
         return self.session
 
@@ -26,9 +34,7 @@ class MongoDB(Interface):
         return self.__getitem__(item)
 
     def close(self) -> None:
-        self.session.close()
+        self.close_sshtunnel()
         if not self.closed():
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
+            self.session.close()
             self._closed = True

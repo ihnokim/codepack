@@ -9,7 +9,10 @@ class Docker(Interface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> docker.DockerClient:
-        self.session = docker.DockerClient(*args, **self.config, **kwargs)
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
+        self.session = docker.DockerClient(*args, **_config)
         self._closed = False
         return self.session
 

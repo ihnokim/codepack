@@ -10,15 +10,19 @@ class MSSQL(SQLInterface):
         self.connect(*args, **kwargs)
 
     def connect(self, *args: Any, **kwargs: Any) -> pymssql.Connection:
-        host, port = self.bind(host=self.config['host'], port=self.config['port'])
-        _config = self.exclude_keys(self.config, keys=['host', 'port'])
+        _config = {k: v for k, v in self.config.items()}
+        for k, v in kwargs.items():
+            _config[k] = v
         self.as_dict = False
         if 'as_dict' in _config:
-            self.as_dict = self.eval_bool(_config['as_dict'])
-        if 'as_dict' in kwargs:
-            self.as_dict = self.eval_bool(kwargs['as_dict'])
+            self.as_dict = self.eval_bool(_config.pop('as_dict'))
         _config['as_dict'] = self.as_dict
-        self.session = pymssql.connect(host=host, port=port, *args, **_config, **kwargs)
+        if self.ssh_config:
+            self.inspect_config_for_sshtunnel(config=_config, host_key='host', port_key='port')
+            _host, _port = self.set_sshtunnel(host=_config['host'], port=int(_config['port']))
+            _config['host'] = _host
+            _config['port'] = _port
+        self.session = pymssql.connect(*args, **_config)
         self._closed = False
         return self.session
 
@@ -123,9 +127,7 @@ class MSSQL(SQLInterface):
             return None
 
     def close(self) -> None:
+        self.close_sshtunnel()
         if not self.closed():
             self.session.close()
-            if self.ssh_config and self.ssh is not None:
-                self.ssh.stop()
-                self.ssh = None
             self._closed = True
