@@ -38,7 +38,7 @@ class Interface(metaclass=abc.ABCMeta):
                                             *args, **kwargs)
 
     @staticmethod
-    def inspect_config_for_sshtunnel(config: dict, host_key: str = 'host', port_key: str = 'port'):
+    def inspect_config_for_sshtunnel(config: dict, host_key: str = 'host', port_key: str = 'port') -> None:
         for key in [host_key, port_key]:
             assert key in config.keys(), "'%s' should be included in config to set sshtunnel" % key
 
@@ -52,11 +52,11 @@ class Interface(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def connect(self, *args: Any, **kwargs: Any) -> Any:
-        """connect to the server"""
+        """initialize session"""
 
     @abc.abstractmethod
     def close(self) -> None:
-        """close the connection to the server"""
+        """close session"""
 
     def close_sshtunnel(self):
         if self.ssh:
