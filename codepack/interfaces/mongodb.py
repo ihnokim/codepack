@@ -1,6 +1,7 @@
 from codepack.interfaces.interface import Interface
 import pymongo
-from typing import Any
+from typing import Any, Optional
+import bson
 
 
 class MongoDB(Interface):
@@ -38,3 +39,7 @@ class MongoDB(Interface):
         if not self.closed():
             self.session.close()
             self._closed = True
+
+    @classmethod
+    def get_objectid(cls, oid: Optional[str] = None) -> bson.objectid.ObjectId:
+        return bson.objectid.ObjectId(oid=oid)
