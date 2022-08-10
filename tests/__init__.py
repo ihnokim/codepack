@@ -72,3 +72,23 @@ def dummy_function1(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int:
 
 def dummy_function2(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None:
     return None
+
+
+def decorator_function(original_function):
+    def wrapper_function(*args, **kwargs):
+        ret = 1
+        ret += original_function(*args, **kwargs)
+        ret += 2
+        return ret
+    return wrapper_function
+
+
+class DecoratorClass:
+    def __init__(self, original_function):
+        self.original_function = original_function
+
+    def __call__(self, *args, **kwargs):
+        ret = 10
+        ret += self.original_function(*args, **kwargs)
+        ret += 20
+        return ret

@@ -34,6 +34,7 @@ class Code(CodeBase):
                  storage_service: Optional[StorageService] = None,
                  state: Optional[Union[State, str]] = None, callback: Optional[Union[list, Callable, Callback]] = None,
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None,
+                 decorator: Optional[Callable] = None,
                  log: bool = False) -> None:
         super().__init__(id=id, serial_number=serial_number, function=function, source=source, context=context)
         self.parents = None
@@ -45,6 +46,7 @@ class Code(CodeBase):
         self.env = None
         self.image = None
         self.owner = None
+        self.decorator = None
         self.log = log
         self.logger = None
         self.init_logger()
@@ -57,6 +59,7 @@ class Code(CodeBase):
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register_callback(callback=callback)
+        self.set_decorator(decorator=decorator)
         self._set_str_attr(key='env', value=env)
         self._set_str_attr(key='image', value=image)
         self._set_str_attr(key='owner', value=owner)
@@ -146,6 +149,9 @@ class Code(CodeBase):
             pass
         else:
             raise TypeError(type(callback))  # pragma: no cover
+
+    def set_decorator(self, decorator: Optional[Callable] = None) -> None:
+        self.decorator = decorator
 
     def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
         for callback in self.callback.values():
@@ -322,6 +328,12 @@ class Code(CodeBase):
     def get_log_path(self) -> str:
         return os.path.join(self.get_log_dir(), '%s.log' % self.serial_number)
 
+    def light(self, *args: Any, **kwargs: Any) -> Any:
+        if self.decorator is not None:
+            return self.decorator(self.function)(*args, **kwargs)
+        else:
+            return self.function(*args, **kwargs)
+
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         for k, v in self.context.items():
             if k not in kwargs:
@@ -340,13 +352,13 @@ class Code(CodeBase):
                 handler.setFormatter(formatter)
                 self.logger.addHandler(handler)
                 builtins.print = partial(self._log, builtin_print=old_print)
-                ret = self.function(*args, **kwargs)
+                ret = self.light(*args, **kwargs)
             finally:
                 builtins.print = old_print
                 self.logger.removeHandler(handler)
                 handler.close()
         else:
-            ret = self.function(*args, **kwargs)
+            ret = self.light(*args, **kwargs)
         self.send_result(item=ret)
         return ret
 

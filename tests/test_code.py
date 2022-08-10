@@ -1,7 +1,8 @@
 from codepack import Code, Callback, StorageService
 from codepack.storages import MongoStorage
 from tests import add2, add3, mul2, print_x, combination, linear,\
-    dummy_function1, dummy_function2, dummy_callback1, dummy_callback2, dummy_callback3
+    dummy_function1, dummy_function2, dummy_callback1, dummy_callback2, dummy_callback3,\
+    decorator_function, DecoratorClass
 import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
@@ -561,3 +562,17 @@ def test_partial_code_run(default_os_env):
     assert code2.id == 'add2'
     assert code2.context == {'b': 1}
     assert code2(4) == 5
+
+
+def test_decorator(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add2, decorator=decorator_function)
+    code3 = Code(add2, decorator=DecoratorClass)
+    result1 = code1.light(3, 5)
+    result2 = code2.light(3, 5)
+    result3 = code3.light(3, 5)
+    assert result1 == 8
+    assert result2 == 11
+    assert result3 == 38
+    code1.set_decorator(decorator_function)
+    assert code1.light(3, 5) == 11
