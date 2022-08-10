@@ -8,12 +8,12 @@ from codepack.argpack import ArgPack
 from typing import TypeVar, Optional, Union
 
 
-Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')  # noqa: F821
+MessageReceiver = TypeVar('MessageReceiver', bound='codepack.storages.message_receiver.MessageReceiver')  # noqa: F821
 SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')  # noqa: F821
 
 
 class Supervisor(Employee):
-    def __init__(self, messenger: Messenger, snapshot_service: Optional[SnapshotService] = None) -> None:
+    def __init__(self, messenger: MessageReceiver, snapshot_service: Optional[SnapshotService] = None) -> None:
         super().__init__(messenger=messenger)
         self.snapshot_service =\
             snapshot_service if snapshot_service else Default.get_service('code_snapshot', 'snapshot_service')

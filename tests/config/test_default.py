@@ -1,4 +1,4 @@
-from codepack.storages import MemoryStorage, MongoStorage, MemoryMessenger
+from codepack.storages import MemoryStorage, MongoStorage, MemoryMessageReceiver, MemoryMessageSender
 from codepack import DeliveryService, SnapshotService,\
     Scheduler, Worker, Supervisor, DockerManager, InterpreterManager, Default, StorableJob
 from unittest.mock import patch
@@ -168,7 +168,7 @@ def test_get_default_scheduler_with_some_os_env(mock_client):
 def test_get_default_worker_without_os_env(mock_docker_client):
     worker = Default.get_employee('worker')
     assert isinstance(worker, Worker)
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     assert worker.messenger.topic == 'codepack'
     assert worker.supervisor is None
     mock_docker_client.assert_called_once_with(base_url='unix://var/run/docker.sock')
@@ -219,7 +219,7 @@ def test_get_default_supervisor():
         os.environ['CODEPACK__CODE_SNAPSHOT__COLLECTION'] = 'test_collection'
         supervisor = Default.get_employee('supervisor')
         assert isinstance(supervisor, Supervisor)
-        assert isinstance(supervisor.messenger, MemoryMessenger)
+        assert isinstance(supervisor.messenger, MemoryMessageSender)
         assert supervisor.messenger.topic == 'codepack'
         assert isinstance(supervisor.snapshot_service, SnapshotService)
         assert isinstance(supervisor.snapshot_service.storage, MongoStorage)

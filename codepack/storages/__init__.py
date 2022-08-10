@@ -3,8 +3,10 @@ __lazy_imports__ = {
     'FileStorage': 'codepack.storages.file_storage',
     'MongoStorage': 'codepack.storages.mongo_storage',
     'S3Storage': 'codepack.storages.s3_storage',
-    'MemoryMessenger': 'codepack.storages.memory_messenger',
-    'KafkaMessenger': 'codepack.storages.kafka_messenger',
+    'MemoryMessageReceiver': 'codepack.storages.memory_message_receiver',
+    'MemoryMessageSender': 'codepack.storages.memory_message_sender',
+    'KafkaMessageReceiver': 'codepack.storages.kafka_message_receiver',
+    'KafkaMessageSender': 'codepack.storages.kafka_message_sender',
 }
 
 
