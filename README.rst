@@ -126,6 +126,25 @@ The longer, the better!
   print(code)  # Code(id: my_function, function: my_function, params: (a: str, b: list, c: Union[ForwardRef('my_module.MyClass'), NoneType] = None, **kwargs: Any) -> Union[str, dict])
   print(code.description)  # You can find this message in code.description.
 
+If you want to attach a decorator to a Code, just pass it to the constructor of the Code.
+You may also use :code:`set_decorator` function after creation of the Code instance.
+One thing to note is that you have to detach the decorator from the function
+before you pass the function and the decorator to the constructor of the Code.
+In other words, a function which is passed to a Code constructor should not include decorator.
+
+.. code-block:: python
+
+  @my_decorator
+  def decorated_add2(a: int, b: int) -> int:  # Do not pass this to the constructor!
+    return a + b
+
+  def add2(a: int, b: int) -> int:  # Detach my_decorator
+    return a + b
+
+  code1 = Code(add2, decorator=my_decorator)
+  code2 = Code(add2)
+  code2.set_decorator(decorator=my_decorator)  # code1 and code2 do same thing.
+
 **2. Link Codes**
 
 You can create links between Codes with :code:`>>` operator and break links with :code:`//` operator.
