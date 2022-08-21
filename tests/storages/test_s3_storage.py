@@ -243,12 +243,12 @@ def test_s3_storage_text_key_search(mock_client, dummy_deliveries_for_text_key_s
     assert all_keys == dummy_keys
     banana_items = storage.text_key_search(key='banana')
     assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
     mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
-                                                                                    Prefix='test_path/banana')
-    _ = storage.text_key_search(key='apple')
-    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
-                                                                                    Prefix='test_path/apple')
-    _ = storage.text_key_search(key='_')
-    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
-                                                                                    Prefix='test_path/_')
+                                                                                    Prefix='test_path/')
     assert mock_client.return_value.get_paginator.return_value.paginate.call_count == 4
