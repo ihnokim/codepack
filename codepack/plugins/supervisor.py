@@ -45,7 +45,7 @@ class Supervisor(Employee):
         for snapshot in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
             dependent_serial_numbers = [snapshot['serial_number'] for snapshot in snapshot['dependency']]
-            dependencies = self.snapshot_service.load(dependent_serial_numbers, projection=['state'])
+            dependencies = self.snapshot_service.load(dependent_serial_numbers, projection=['state', 'serial_number'])
             known_dependent_serial_numbers_set = {dependency['serial_number'] for dependency in dependencies}
             for dependent_serial_number in dependent_serial_numbers:
                 if dependent_serial_number not in known_dependent_serial_numbers_set:

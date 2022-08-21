@@ -61,8 +61,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection
@@ -73,6 +72,9 @@ class MongoStorage(Storage):
             return list(search_result)
         else:
             return [self.item_type.from_dict(d) for d in search_result]
+
+    def text_key_search(self, key: str) -> list:
+        return [x['_id'] for x in self.mongodb[self.db][self.collection].find({'_id': {'$regex': key}})]
 
     def list_all(self) -> list:
         search_result = self.mongodb[self.db][self.collection].find(projection={'_id': 1})
@@ -107,8 +109,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection

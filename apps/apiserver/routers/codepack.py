@@ -1,6 +1,7 @@
 from codepack import Default, CodePack, CodePackSnapshot, ArgPack
 from fastapi import APIRouter, HTTPException
 from ..models.codepack import CodePackID, CodePackJSON, SnapshotJSON, IDPair
+from ..models import SearchQuery
 from ..dependencies import common
 
 
@@ -84,6 +85,12 @@ async def load(id: str):
     if codepack is None:
         raise HTTPException(status_code=404, detail='%s not found' % id)
     return codepack.to_dict()
+
+
+@router.get('/search')
+async def search(search_query: SearchQuery):
+    storage_service = Default.get_service('code', 'storage_service')
+    return storage_service.search(query=search_query.query, projection=search_query.projection)
 
 
 @router.get('/state/{serial_number}')

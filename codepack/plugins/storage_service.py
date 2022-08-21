@@ -18,6 +18,11 @@ class StorageService(Service):
     def load(self, id: Union[str, list]) -> Optional[Union[Storable, dict, list]]:
         return self.storage.load(key=id)
 
+    def search(self, query: str, projection: Optional[list]) -> list:
+        keys = self.storage.text_key_search(key=query)
+        items = self.storage.load(key=keys, projection=projection, to_dict=True)
+        return items
+
     def remove(self, id: Union[str, list]) -> None:
         self.storage.remove(key=id)
 

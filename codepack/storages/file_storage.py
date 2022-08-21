@@ -62,11 +62,19 @@ class FileStorage(Storage):
             if d[key] != value:
                 continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
+                ret.append({k: d[k] for k in projection if k in d})
             elif to_dict:
                 ret.append(d)
             else:
                 ret.append(item)
+        return ret
+
+    def text_key_search(self, key: str) -> list:
+        ret = list()
+        for filename in os.listdir(self.path):
+            k = filename.replace('.json', '')
+            if key in k:
+                ret.append(k)
         return ret
 
     def list_all(self) -> list:
@@ -118,7 +126,7 @@ class FileStorage(Storage):
             ret_instance = self.item_type.from_file(path)
             if projection:
                 d = ret_instance.to_dict()
-                return {k: d[k] for k in set(projection).union({self.key})}
+                return {k: d[k] for k in projection if k in d}
             elif to_dict:
                 return ret_instance.to_dict()
             else:

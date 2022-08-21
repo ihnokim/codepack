@@ -39,8 +39,8 @@ def test_memory_storage(dummy_deliveries):
     search_result = storage.search(key='item', value=json.dumps('y'), projection=['item'])
     assert len(search_result) == 2
     assert type(search_result[0]) == dict and type(search_result[1]) == dict
-    assert set(search_result[0].keys()) == {'item', 'id'}
-    assert set(search_result[1].keys()) == {'item', 'id'}
+    assert set(search_result[0].keys()) == {'item'}
+    assert set(search_result[1].keys()) == {'item'}
     load_result = storage.load(key='???')
     assert load_result is None
     load_result = storage.load(key=['!??', '?!?', '??!'])
@@ -57,8 +57,8 @@ def test_memory_storage(dummy_deliveries):
     load_result = storage.load(key=[dummy_deliveries[1].id, dummy_deliveries[2].id], projection=['timestamp', '_id'])
     assert type(load_result) == list
     assert type(load_result[0]) == dict and type(load_result[1]) == dict
-    assert set(load_result[0].keys()) == {'id', '_id', 'timestamp'}
-    assert set(load_result[1].keys()) == {'id', '_id', 'timestamp'}
+    assert set(load_result[0].keys()) == {'_id', 'timestamp'}
+    assert set(load_result[1].keys()) == {'_id', 'timestamp'}
     storage.close()
     assert not storage.memory
 
@@ -76,3 +76,23 @@ def test_memory_storage_list_all(dummy_deliveries):
     assert sorted([d.id for d in all_items]) == all_keys
     storage.remove(key=all_keys)
     assert len(storage.memory) == len(storage.list_all()) == 0
+
+
+def test_memory_storage_text_key_search(dummy_deliveries_for_text_key_search):
+    storage = MemoryStorage(item_type=Delivery, key='id')
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries_for_text_key_search)
+    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert sorted(storage.memory.keys()) == dummy_keys
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
+    storage.remove(key=all_keys)
+    assert len(storage.memory) == len(storage.text_key_search('banana')) == 0

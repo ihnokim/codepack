@@ -75,7 +75,7 @@ class S3Storage(Storage):
                 d = instance.to_dict()
                 if d[key] == value:
                     if projection:
-                        ret.append({k: d[k] for k in set(projection).union({self.key})})
+                        ret.append({k: d[k] for k in projection if k in d})
                     elif to_dict:
                         ret.append(d)
                     else:
@@ -83,6 +83,9 @@ class S3Storage(Storage):
             except Exception:
                 continue
         return ret
+
+    def text_key_search(self, key: str) -> list:
+        return [k for k in self.list_all() if key in k]
 
     def list_all(self) -> list:
         all_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, ''))
@@ -135,7 +138,7 @@ class S3Storage(Storage):
             ret_instance = self.item_type.from_json(ret_json)
             if projection:
                 d = ret_instance.to_dict()
-                return {k: d[k] for k in set(projection).union({self.key})}
+                return {k: d[k] for k in projection if k in d}
             elif to_dict:
                 return ret_instance.to_dict()
             else:

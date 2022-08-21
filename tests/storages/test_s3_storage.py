@@ -132,7 +132,7 @@ def test_s3_storage_search(mock_client, dummy_deliveries):
     ret = ss.search(key='item', value=json.dumps('y'), projection=['serial_number'])
     assert len(ret) == 2
     assert isinstance(ret[0], dict)
-    assert set(ret[0].keys()) == {'id', 'serial_number'}
+    assert set(ret[0].keys()) == {'serial_number'}
 
 
 @patch('boto3.client')
@@ -222,7 +222,33 @@ def test_s3_storage_load(mock_client, dummy_deliveries):
     assert ret == dummy_deliveries[0].to_dict()
     ret = ss.load(key='obj3', projection=['serial_number'])
     assert isinstance(ret, dict)
-    assert set(ret.keys()) == {'id', 'serial_number'}
+    assert set(ret.keys()) == {'serial_number'}
     ret = ss.load(key=['obj2', 'obj4', 'obj3'])
     assert len(ret) == 2
     assert {x.id for x in ret} == {'obj2', 'obj3'}
+
+
+@patch('boto3.client')
+def test_s3_storage_text_key_search(mock_client, dummy_deliveries_for_text_key_search):
+    config = Config()
+    s3_config = config.get_config('s3')
+    storage = S3Storage(s3=s3_config, item_type=Delivery, key='id', bucket='test_bucket', path='test_path')
+    mock_client.return_value.exceptions.NoSuchKey = Exception
+    mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries_for_text_key_search)
+    mock_client.return_value.get_paginator.return_value.paginate.return_value \
+        = [{'Contents': [{'Key': 'test_path/%s.json' % x.id} for x in dummy_deliveries_for_text_key_search]}]
+    assert storage.key == 'id'
+    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
+    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
+                                                                                    Prefix='test_path/')
+    assert mock_client.return_value.get_paginator.return_value.paginate.call_count == 4
