@@ -8,6 +8,7 @@ __lazy_imports__ = {
     'KafkaConsumer': 'codepack.interfaces.kafka_consumer',
     'KafkaProducer': 'codepack.interfaces.kafka_producer',
     'S3': 'codepack.interfaces.s3',
+    'MemoryMessageQueue': 'codepack.interfaces.memory_message_queue'
 }
 
 

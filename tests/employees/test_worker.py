@@ -1,5 +1,5 @@
 from codepack import Config, Default, Code
-from codepack.storages import MemoryMessenger
+from codepack.storages import MemoryMessageReceiver
 from unittest.mock import patch
 import os
 from tests import add2
@@ -11,7 +11,7 @@ def dummy_callback_function(x):
 
 def test_memory_worker_run_snapshot_with_nothing():
     worker = Default.get_employee('worker')
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     code = Code(add2)
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
@@ -24,7 +24,7 @@ def test_memory_worker_run_snapshot_with_nothing():
 @patch('subprocess.run')
 def test_memory_worker_run_snapshot_with_env(mock_subprocess_run):
     worker = Default.get_employee('worker')
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     code = Code(add2, env='test_env', image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
@@ -43,7 +43,7 @@ def test_memory_worker_run_snapshot_with_env(mock_subprocess_run):
 def test_memory_worker_run_snapshot_with_env_and_callback(mock_subprocess_run):
     worker = Default.get_employee('worker')
     worker.callback = dummy_callback_function
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     code = Code(add2, env='test_env', image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
@@ -61,7 +61,7 @@ def test_memory_worker_run_snapshot_with_env_and_callback(mock_subprocess_run):
 @patch('docker.DockerClient')
 def test_memory_worker_run_snapshot_with_image(mock_docker_client):
     worker = Default.get_employee('worker')
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     code = Code(add2, image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
@@ -82,7 +82,7 @@ def test_memory_worker_run_snapshot_with_image(mock_docker_client):
 def test_memory_worker_run_snapshot_with_image_and_callback(mock_docker_client):
     worker = Default.get_employee('worker')
     worker.callback = dummy_callback_function
-    assert isinstance(worker.messenger, MemoryMessenger)
+    assert isinstance(worker.messenger, MemoryMessageReceiver)
     code = Code(add2, image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))

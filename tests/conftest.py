@@ -1,6 +1,6 @@
 from codepack import Default, Delivery
 from codepack.interfaces import MongoDB
-from codepack.storages import MemoryMessenger
+from codepack.interfaces import MemoryMessageQueue
 import pytest
 import os
 import mongomock
@@ -110,7 +110,7 @@ def init_default():
     Default.alias = None
     Default.config = None
     Default.instances = dict()
-    MemoryMessenger.destroy()
+    MemoryMessageQueue.remove_all_instances()
 
 
 @pytest.fixture(scope='function', autouse=False)
