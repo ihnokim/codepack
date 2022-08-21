@@ -76,3 +76,23 @@ def test_memory_storage_list_all(dummy_deliveries):
     assert sorted([d.id for d in all_items]) == all_keys
     storage.remove(key=all_keys)
     assert len(storage.memory) == len(storage.list_all()) == 0
+
+
+def test_memory_storage_text_key_search(dummy_deliveries_for_text_key_search):
+    storage = MemoryStorage(item_type=Delivery, key='id')
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries_for_text_key_search)
+    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert sorted(storage.memory.keys()) == dummy_keys
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
+    storage.remove(key=all_keys)
+    assert len(storage.memory) == len(storage.text_key_search('banana')) == 0

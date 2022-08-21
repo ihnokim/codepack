@@ -226,3 +226,29 @@ def test_s3_storage_load(mock_client, dummy_deliveries):
     ret = ss.load(key=['obj2', 'obj4', 'obj3'])
     assert len(ret) == 2
     assert {x.id for x in ret} == {'obj2', 'obj3'}
+
+
+@patch('boto3.client')
+def test_s3_storage_text_key_search(mock_client, dummy_deliveries_for_text_key_search):
+    config = Config()
+    s3_config = config.get_config('s3')
+    storage = S3Storage(s3=s3_config, item_type=Delivery, key='id', bucket='test_bucket', path='test_path')
+    mock_client.return_value.exceptions.NoSuchKey = Exception
+    mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries_for_text_key_search)
+    mock_client.return_value.get_paginator.return_value.paginate.return_value \
+        = [{'Contents': [{'Key': 'test_path/%s.json' % x.id} for x in dummy_deliveries_for_text_key_search]}]
+    assert storage.key == 'id'
+    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
+                                                                                    Prefix='test_path/banana')
+    _ = storage.text_key_search(key='apple')
+    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
+                                                                                    Prefix='test_path/apple')
+    _ = storage.text_key_search(key='_')
+    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
+                                                                                    Prefix='test_path/_')
+    assert mock_client.return_value.get_paginator.return_value.paginate.call_count == 4

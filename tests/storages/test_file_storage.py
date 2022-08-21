@@ -83,3 +83,23 @@ def test_file_storage_list_all(testdir_file_storage, dummy_deliveries):
     assert sorted([d.id for d in all_items]) == sorted(all_keys)
     storage.remove(key=all_keys)
     assert len(os.listdir(testdir_file_storage)) == len(storage.list_all()) == 0
+
+
+def test_file_storage_text_key_search(testdir_file_storage, dummy_deliveries_for_text_key_search):
+    storage = FileStorage(item_type=Delivery, key='id', path=testdir_file_storage)
+    assert storage.key == 'id'
+    assert storage.key == 'id'
+    storage.save(item=dummy_deliveries_for_text_key_search)
+    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
+    storage.remove(key=all_keys)
+    assert len(os.listdir(testdir_file_storage)) == len(storage.text_key_search('banana')) == 0

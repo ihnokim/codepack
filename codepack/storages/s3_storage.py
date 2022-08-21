@@ -84,6 +84,10 @@ class S3Storage(Storage):
                 continue
         return ret
 
+    def text_key_search(self, key: str) -> list:
+        some_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, key))
+        return [os.path.basename(obj['Key']).replace('.json', '') for obj in some_obj_info]
+
     def list_all(self) -> list:
         all_obj_info = self.s3.list_objects(bucket=self.bucket, prefix=join(self.path, ''))
         return [os.path.basename(obj['Key']).replace('.json', '') for obj in all_obj_info]

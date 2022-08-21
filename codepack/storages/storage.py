@@ -31,6 +31,10 @@ class Storage(metaclass=abc.ABCMeta):
         """search by key and value"""
 
     @abc.abstractmethod
+    def text_key_search(self, key: str) -> list:
+        """search for items whose key contains given substring"""
+
+    @abc.abstractmethod
     def list_all(self) -> list:
         """list all keys"""
 

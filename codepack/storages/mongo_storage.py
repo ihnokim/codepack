@@ -74,6 +74,9 @@ class MongoStorage(Storage):
         else:
             return [self.item_type.from_dict(d) for d in search_result]
 
+    def text_key_search(self, key: str) -> list:
+        return [x['_id'] for x in self.mongodb[self.db][self.collection].find({'_id': {'$regex': key}})]
+
     def list_all(self) -> list:
         search_result = self.mongodb[self.db][self.collection].find(projection={'_id': 1})
         return [x['_id'] for x in search_result]

@@ -69,6 +69,14 @@ class FileStorage(Storage):
                 ret.append(item)
         return ret
 
+    def text_key_search(self, key: str) -> list:
+        ret = list()
+        for filename in os.listdir(self.path):
+            k = filename.replace('.json', '')
+            if key in k:
+                ret.append(k)
+        return ret
+
     def list_all(self) -> list:
         return [filename.replace('.json', '') for filename in os.listdir(self.path)]
 

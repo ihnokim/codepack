@@ -58,6 +58,9 @@ class MemoryStorage(Storage):
                 ret.append(item)
         return ret
 
+    def text_key_search(self, key: str) -> list:
+        return [k for k in self.memory.keys() if key in k]
+
     def list_all(self) -> list:
         return list(self.memory.keys())
 
