@@ -132,7 +132,7 @@ def test_s3_storage_search(mock_client, dummy_deliveries):
     ret = ss.search(key='item', value=json.dumps('y'), projection=['serial_number'])
     assert len(ret) == 2
     assert isinstance(ret[0], dict)
-    assert set(ret[0].keys()) == {'id', 'serial_number'}
+    assert set(ret[0].keys()) == {'serial_number'}
 
 
 @patch('boto3.client')
@@ -222,7 +222,7 @@ def test_s3_storage_load(mock_client, dummy_deliveries):
     assert ret == dummy_deliveries[0].to_dict()
     ret = ss.load(key='obj3', projection=['serial_number'])
     assert isinstance(ret, dict)
-    assert set(ret.keys()) == {'id', 'serial_number'}
+    assert set(ret.keys()) == {'serial_number'}
     ret = ss.load(key=['obj2', 'obj4', 'obj3'])
     assert len(ret) == 2
     assert {x.id for x in ret} == {'obj2', 'obj3'}

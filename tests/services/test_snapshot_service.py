@@ -15,11 +15,9 @@ def test_memory_code_snapshot_service_save_and_load(default_os_env):
     assert len(storage.memory) == 1
     assert mss.load(snapshot.serial_number) == snapshot.to_dict()
     loaded = mss.load(snapshot.serial_number, projection=['state'])
-    assert set(loaded.keys()) == {'serial_number', 'state'}
+    assert set(loaded.keys()) == {'state'}
     assert 'state' in loaded
     assert loaded['state'] == 'UNKNOWN'
-    assert 'serial_number' in loaded
-    assert loaded['serial_number'] == snapshot.serial_number
 
 
 def test_memory_code_snapshot_service_search_and_remove(default_os_env):
@@ -41,15 +39,14 @@ def test_memory_code_snapshot_service_search_and_remove(default_os_env):
     assert loaded[1]['state'] == 'WAITING'
     loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'], projection=['state'])
     for x in loaded:
-        assert set(x.keys()) == {'state', 'serial_number'}
+        assert set(x.keys()) == {'state'}
     search_result = mss.search(key='state', value='WAITING')
     assert len(search_result) == 1
     assert search_result[0] == snapshot2.to_dict()
     search_result = mss.search(key='state', value='WAITING', projection=['state'])
     assert len(search_result) == 1
-    assert len(search_result[0].keys()) == 2
+    assert len(search_result[0].keys()) == 1
     assert search_result[0]['state'] == 'WAITING'
-    assert search_result[0]['serial_number'] == code2.serial_number
     mss.remove(snapshot2.serial_number)
     loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'])
     assert len(loaded) == 1
@@ -88,11 +85,9 @@ def test_file_code_snapshot_service_save_and_load(default_os_env, testdir_snapsh
     assert len(os.listdir(testdir_snapshot_service)) == 1
     assert fss.load(snapshot.serial_number) == snapshot.to_dict()
     loaded = fss.load(snapshot.serial_number, projection=['state'])
-    assert set(loaded.keys()) == {'serial_number', 'state'}
+    assert set(loaded.keys()) == {'state'}
     assert 'state' in loaded
     assert loaded['state'] == 'UNKNOWN'
-    assert 'serial_number' in loaded
-    assert loaded['serial_number'] == snapshot.serial_number
 
 
 def test_file_code_snapshot_service_search_and_remove(default_os_env, testdir_snapshot_service):
@@ -113,15 +108,14 @@ def test_file_code_snapshot_service_search_and_remove(default_os_env, testdir_sn
     assert loaded[1]['state'] == 'WAITING'
     loaded = fss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'], projection=['state'])
     for x in loaded:
-        assert set(x.keys()) == {'state', 'serial_number'}
+        assert set(x.keys()) == {'state'}
     search_result = fss.search(key='state', value='WAITING')
     assert len(search_result) == 1
     assert search_result[0] == snapshot2.to_dict()
     search_result = fss.search(key='state', value='WAITING', projection=['state'])
     assert len(search_result) == 1
-    assert len(search_result[0].keys()) == 2
+    assert len(search_result[0].keys()) == 1
     assert search_result[0]['state'] == 'WAITING'
-    assert search_result[0]['serial_number'] == code2.serial_number
     fss.remove(snapshot2.serial_number)
     loaded = fss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'])
     assert len(loaded) == 1
@@ -154,11 +148,8 @@ def test_mongo_code_snapshot_service_save_and_load(default_os_env, fake_mongodb)
     assert fake_mongodb[db][collection].count_documents({}) == 1
     assert mss.load(snapshot.serial_number) == snapshot.to_dict()
     loaded = mss.load(snapshot.serial_number, projection=['state'])
-    assert set(loaded.keys()) == {'serial_number', 'state'}
-    assert 'state' in loaded
+    assert set(loaded.keys()) == {'state'}
     assert loaded['state'] == 'UNKNOWN'
-    assert 'serial_number' in loaded
-    assert loaded['serial_number'] == snapshot.serial_number
 
 
 def test_mongo_code_snapshot_service_search_and_remove(default_os_env, fake_mongodb):
@@ -181,15 +172,14 @@ def test_mongo_code_snapshot_service_search_and_remove(default_os_env, fake_mong
     assert loaded[1]['state'] == 'WAITING'
     loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'], projection=['state'])
     for x in loaded:
-        assert set(x.keys()) == {'state', 'serial_number'}
+        assert set(x.keys()) == {'state'}
     search_result = mss.search(key='state', value='WAITING')
     assert len(search_result) == 1
     assert search_result[0] == snapshot2.to_dict()
     search_result = mss.search(key='state', value='WAITING', projection=['state'])
     assert len(search_result) == 1
-    assert len(search_result[0].keys()) == 2
+    assert len(search_result[0].keys()) == 1
     assert search_result[0]['state'] == 'WAITING'
-    assert search_result[0]['serial_number'] == code2.serial_number
     mss.remove(snapshot2.serial_number)
     loaded = mss.load([snapshot1.serial_number, snapshot2.serial_number, '1234'])
     assert len(loaded) == 1

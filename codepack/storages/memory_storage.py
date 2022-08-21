@@ -51,7 +51,7 @@ class MemoryStorage(Storage):
             if d[key] != value:
                 continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
+                ret.append({k: d[k] for k in projection if k in d})
             elif to_dict:
                 ret.append(d)
             else:
@@ -101,7 +101,7 @@ class MemoryStorage(Storage):
                 item = self.memory[key]
                 d = item.to_dict()
                 if projection:
-                    return {k: d[k] for k in set(projection).union({self.key})}
+                    return {k: d[k] for k in projection if k in d}
                 elif to_dict:
                     return d
                 else:

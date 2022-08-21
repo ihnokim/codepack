@@ -40,8 +40,8 @@ def test_file_storage(testdir_file_storage, dummy_deliveries):
     search_result = storage.search(key='item', value=json.dumps('y'), projection=['item'])
     assert len(search_result) == 2
     assert type(search_result[0]) == dict and type(search_result[1]) == dict
-    assert set(search_result[0].keys()) == {'item', 'id'}
-    assert set(search_result[1].keys()) == {'item', 'id'}
+    assert set(search_result[0].keys()) == {'item'}
+    assert set(search_result[1].keys()) == {'item'}
     load_result = storage.load(key='???')
     assert load_result is None
     load_result = storage.load(key=['!??', '?!?', '??!'])
@@ -62,8 +62,8 @@ def test_file_storage(testdir_file_storage, dummy_deliveries):
     load_result = storage.load(key=[dummy_deliveries[1].id, dummy_deliveries[2].id], projection=['timestamp', '_id'])
     assert type(load_result) == list
     assert type(load_result[0]) == dict and type(load_result[1]) == dict
-    assert set(load_result[0].keys()) == {'id', '_id', 'timestamp'}
-    assert set(load_result[1].keys()) == {'id', '_id', 'timestamp'}
+    assert set(load_result[0].keys()) == {'_id', 'timestamp'}
+    assert set(load_result[1].keys()) == {'_id', 'timestamp'}
     storage.new_path = True
     storage.close()
     assert not os.path.exists(testdir_file_storage)

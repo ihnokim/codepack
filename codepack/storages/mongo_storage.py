@@ -61,8 +61,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection
@@ -110,8 +109,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection

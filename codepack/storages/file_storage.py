@@ -62,7 +62,7 @@ class FileStorage(Storage):
             if d[key] != value:
                 continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
+                ret.append({k: d[k] for k in projection if k in d})
             elif to_dict:
                 ret.append(d)
             else:
@@ -126,7 +126,7 @@ class FileStorage(Storage):
             ret_instance = self.item_type.from_file(path)
             if projection:
                 d = ret_instance.to_dict()
-                return {k: d[k] for k in set(projection).union({self.key})}
+                return {k: d[k] for k in projection if k in d}
             elif to_dict:
                 return ret_instance.to_dict()
             else:
