@@ -1,7 +1,7 @@
 from codepack import Default, Code, CodeSnapshot
 from fastapi import APIRouter, HTTPException
-from ..models.code import CodeID, CodeJSON, SnapshotJSON
-from ..models import SearchQuery
+from ..models.code import Args, JsonCode, JsonCodeAndArgs
+from ..models import SearchQuery, JsonSnapshot
 from ..dependencies import common
 
 
@@ -14,23 +14,23 @@ router = APIRouter(
 
 
 @router.post('/run')
-async def run(params: CodeJSON):
+async def run(params: JsonCodeAndArgs):
     code = Code.from_dict(params.code)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
 
-@router.post('/run/id')
-async def run_by_id(params: CodeID):
-    code = Code.load(params.id)
+@router.post('/run/{id}')
+async def run_by_id(id: str, params: Args):
+    code = Code.load(id)
     if code is None:
-        raise HTTPException(status_code=404, detail='%s not found' % params.id)
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
     return {'serial_number': code.serial_number}
 
 
 @router.post('/run/snapshot')
-async def run_by_snapshot(params: SnapshotJSON):
+async def run_by_snapshot(params: JsonSnapshot):
     snapshot = CodeSnapshot.from_dict(params.snapshot)
     code = Code.from_snapshot(snapshot)
     common.supervisor.run_code(code=code, args=snapshot.args, kwargs=snapshot.kwargs)
@@ -38,8 +38,8 @@ async def run_by_snapshot(params: SnapshotJSON):
 
 
 @router.post('/save')
-async def save(code: CodeJSON):
-    tmp = Code.from_dict(code.code)
+async def save(params: JsonCode):
+    tmp = Code.from_dict(params.code)
     try:
         tmp.save()
     except ValueError as e:
@@ -48,8 +48,8 @@ async def save(code: CodeJSON):
 
 
 @router.patch('/update')
-async def update(code: CodeJSON):
-    tmp = Code.from_dict(code.code)
+async def update(params: JsonCode):
+    tmp = Code.from_dict(params.code)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -73,9 +73,9 @@ async def load(id: str):
 
 
 @router.get('/search')
-async def search(search_query: SearchQuery):
+async def search(params: SearchQuery):
     storage_service = Default.get_service('code', 'storage_service')
-    return storage_service.search(query=search_query.query, projection=search_query.projection)
+    return storage_service.search(query=params.query, projection=params.projection)
 
 
 @router.get('/state/{serial_number}')

@@ -7,20 +7,14 @@ class Job(BaseModel):
     trigger_config: dict
 
 
-class CodePackIDJob(Job):
-    id: str
+class JobWithJsonArgPack(Job):
     argpack: dict = {}
 
 
-class IDPairJob(Job):
-    codepack_id: str
-    argpack_id: str
-
-
-class CodePackJSONJob(Job):
+class JobWithJsonCodePackAndJsonArgPack(Job):
     codepack: dict
     argpack: dict = {}
 
 
-class SnapshotJSONJob(Job):
+class JobWithJsonSnapshot(Job):
     snapshot: dict

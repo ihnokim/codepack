@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class ArgPackJSON(BaseModel):
+class JsonArgPack(BaseModel):
     argpack: dict
