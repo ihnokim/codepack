@@ -1,7 +1,8 @@
 from codepack import Default, CodePack, CodePackSnapshot, ArgPack
 from fastapi import APIRouter, HTTPException
-from ..models.codepack import CodePackID, CodePackJSON, SnapshotJSON, IDPair
-from ..models import SearchQuery
+from ..models.codepack import JsonCodePack, JsonCodePackAndJsonArgPack
+from ..models.argpack import JsonArgPack
+from ..models import SearchQuery, JsonSnapshot
 from ..dependencies import common
 
 
@@ -14,37 +15,37 @@ router = APIRouter(
 
 
 @router.post('/run')
-async def run(params: CodePackJSON):
+async def run(params: JsonCodePackAndJsonArgPack):
     codepack = CodePack.from_dict(params.codepack)
     argpack = ArgPack.from_dict(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
 
-@router.post('/run/id')
-async def run_by_id(params: CodePackID):
-    codepack = CodePack.load(params.id)
+@router.post('/run/{id}')
+async def run_by_id(id: str, params: JsonArgPack):
+    codepack = CodePack.load(id)
     if codepack is None:
-        raise HTTPException(status_code=404, detail='%s not found' % params.id)
+        raise HTTPException(status_code=404, detail='%s not found' % id)
     argpack = ArgPack.from_dict(params.argpack)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
 
-@router.post('/run/id-pair')
-async def run_by_id_pair(params: IDPair):
-    codepack = CodePack.load(params.codepack_id)
+@router.post('/run/{codepack_id}/{argpack_id}')
+async def run_by_id_pair(codepack_id: str, argpack_id: str):
+    codepack = CodePack.load(codepack_id)
     if codepack is None:
-        raise HTTPException(status_code=404, detail='%s not found' % params.codepack_id)
-    argpack = ArgPack.load(params.argpack_id)
+        raise HTTPException(status_code=404, detail='%s not found' % codepack_id)
+    argpack = ArgPack.load(argpack_id)
     if argpack is None:
-        raise HTTPException(status_code=404, detail='%s not found' % params.argpack_id)
+        raise HTTPException(status_code=404, detail='%s not found' % argpack_id)
     common.supervisor.run_codepack(codepack=codepack, argpack=argpack)
     return {'serial_number': codepack.serial_number}
 
 
 @router.post('/run/snapshot')
-async def run_by_snapshot(params: SnapshotJSON):
+async def run_by_snapshot(params: JsonSnapshot):
     snapshot = CodePackSnapshot.from_dict(params.snapshot)
     codepack = CodePack.from_snapshot(snapshot)
     argpack = ArgPack.from_dict(snapshot.argpack)
@@ -53,8 +54,8 @@ async def run_by_snapshot(params: SnapshotJSON):
 
 
 @router.post('/save')
-async def save(codepack: CodePackJSON):
-    tmp = CodePack.from_dict(codepack.codepack)
+async def save(params: JsonCodePack):
+    tmp = CodePack.from_dict(params.codepack)
     try:
         tmp.save()
     except ValueError as e:
@@ -63,8 +64,8 @@ async def save(codepack: CodePackJSON):
 
 
 @router.patch('/update')
-async def update(codepack: CodePackJSON):
-    tmp = CodePack.from_dict(codepack.codepack)
+async def update(params: JsonCodePack):
+    tmp = CodePack.from_dict(params.codepack)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -88,9 +89,9 @@ async def load(id: str):
 
 
 @router.get('/search')
-async def search(search_query: SearchQuery):
+async def search(params: SearchQuery):
     storage_service = Default.get_service('code', 'storage_service')
-    return storage_service.search(query=search_query.query, projection=search_query.projection)
+    return storage_service.search(query=params.query, projection=params.projection)
 
 
 @router.get('/state/{serial_number}')

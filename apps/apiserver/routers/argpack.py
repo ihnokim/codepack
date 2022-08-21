@@ -1,6 +1,6 @@
 from codepack import ArgPack, Default
 from fastapi import APIRouter, HTTPException
-from ..models.argpack import ArgPackJSON
+from ..models.argpack import JsonArgPack
 from ..models import SearchQuery
 
 
@@ -13,8 +13,8 @@ router = APIRouter(
 
 
 @router.post('/save')
-async def save(argpack: ArgPackJSON):
-    tmp = ArgPack.from_dict(argpack.argpack)
+async def save(params: JsonArgPack):
+    tmp = ArgPack.from_dict(params.argpack)
     try:
         tmp.save()
     except ValueError as e:
@@ -23,8 +23,8 @@ async def save(argpack: ArgPackJSON):
 
 
 @router.patch('/update')
-async def update(argpack: ArgPackJSON):
-    tmp = ArgPack.from_dict(argpack.argpack)
+async def update(params: JsonArgPack):
+    tmp = ArgPack.from_dict(params.argpack)
     tmp.save(update=True)
     return {'id': tmp.id}
 
@@ -48,6 +48,6 @@ async def load(id: str):
 
 
 @router.get('/search')
-async def search(search_query: SearchQuery):
+async def search(params: SearchQuery):
     storage_service = Default.get_service('code', 'storage_service')
-    return storage_service.search(query=search_query.query, projection=search_query.projection)
+    return storage_service.search(query=params.query, projection=params.projection)
