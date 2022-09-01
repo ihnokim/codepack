@@ -54,6 +54,10 @@ def hello(name):
     return ret
 
 
+def forward(x):
+    return x
+
+
 def dummy_callback1(x):
     pass
 
@@ -74,21 +78,41 @@ def dummy_function2(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: l
     return None
 
 
-def decorator_function(original_function):
+def decorator_function1(original_function):
     def wrapper_function(*args, **kwargs):
-        ret = 1
+        ret = 'func1('
         ret += original_function(*args, **kwargs)
-        ret += 2
+        ret += ')func1'
         return ret
     return wrapper_function
 
 
-class DecoratorClass:
+def decorator_function2(original_function):
+    def wrapper_function(*args, **kwargs):
+        ret = 'func2('
+        ret += original_function(*args, **kwargs)
+        ret += ')func2'
+        return ret
+    return wrapper_function
+
+
+class DecoratorClass1:
     def __init__(self, original_function):
         self.original_function = original_function
 
     def __call__(self, *args, **kwargs):
-        ret = 10
+        ret = 'class1('
         ret += self.original_function(*args, **kwargs)
-        ret += 20
+        ret += ')class1'
+        return ret
+
+
+class DecoratorClass2:
+    def __init__(self, original_function):
+        self.original_function = original_function
+
+    def __call__(self, *args, **kwargs):
+        ret = 'class2('
+        ret += self.original_function(*args, **kwargs)
+        ret += ')class2'
         return ret

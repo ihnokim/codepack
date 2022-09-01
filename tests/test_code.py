@@ -1,8 +1,8 @@
 from codepack import Code, Callback, StorageService
 from codepack.storages import MongoStorage
-from tests import add2, add3, mul2, print_x, combination, linear,\
+from tests import forward, add2, add3, mul2, print_x, combination, linear,\
     dummy_function1, dummy_function2, dummy_callback1, dummy_callback2, dummy_callback3,\
-    decorator_function, DecoratorClass
+    decorator_function1, decorator_function2, DecoratorClass1, DecoratorClass2
 import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
@@ -565,14 +565,26 @@ def test_partial_code_run(default_os_env):
 
 
 def test_decorator(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add2, decorator=decorator_function)
-    code3 = Code(add2, decorator=DecoratorClass)
-    result1 = code1.light(3, 5)
-    result2 = code2.light(3, 5)
-    result3 = code3.light(3, 5)
-    assert result1 == 8
-    assert result2 == 11
-    assert result3 == 38
-    code1.set_decorator(decorator_function)
-    assert code1.light(3, 5) == 11
+    code1 = Code(forward)
+    code2 = Code(forward, decorator=decorator_function1)
+    code3 = Code(forward, decorator=DecoratorClass1)
+    result1 = code1.light('X')
+    result2 = code2.light('X')
+    result3 = code3.light('X')
+    assert result1 == 'X'
+    assert result2 == 'func1(X)func1'
+    assert result3 == 'class1(X)class1'
+    code1.set_decorator(decorator_function1)
+    assert code1.light('X') == 'func1(X)func1'
+
+
+def test_multiple_decorators(default_os_env):
+    code1 = Code(forward)
+    code2 = Code(forward, decorator=[decorator_function1, decorator_function2])
+    code3 = Code(forward, decorator=[decorator_function1, DecoratorClass1, decorator_function2, DecoratorClass2])
+    result1 = code1.light('X')
+    result2 = code2.light('X')
+    result3 = code3.light('X')
+    assert result1 == 'X'
+    assert result2 == 'func2(func1(X)func1)func2'
+    assert result3 == 'class2(func2(class1(func1(X)func1)class1)func2)class2'
