@@ -7,7 +7,7 @@ from codepack.plugins.callback import Callback
 from codepack.plugins.state import State
 from collections.abc import Iterable, Callable
 from functools import partial
-from typing import Any, TypeVar, Union, Optional
+from typing import Any, TypeVar, Union, Optional, List
 from queue import Queue
 import codepack.utils.exceptions
 import codepack.utils.functions
@@ -46,7 +46,7 @@ class Code(CodeBase):
         self.env = None
         self.image = None
         self.owner = None
-        self.decorator = None
+        self.decorators = list()
         self.log = log
         self.logger = None
         self.init_logger()
@@ -150,8 +150,15 @@ class Code(CodeBase):
         else:
             raise TypeError(type(callback))  # pragma: no cover
 
-    def set_decorator(self, decorator: Optional[Callable] = None) -> None:
-        self.decorator = decorator
+    def set_decorator(self, decorator: Optional[Union[Callable, List[Callable]]] = None) -> None:
+        if isinstance(decorator, list):
+            self.decorators = decorator
+        elif isinstance(decorator, Callable):
+            self.decorators = [decorator]
+        elif decorator is None:
+            self.decorators = list()
+        else:
+            raise TypeError(type(decorator))
 
     def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
         for callback in self.callback.values():
@@ -329,8 +336,11 @@ class Code(CodeBase):
         return os.path.join(self.get_log_dir(), '%s.log' % self.serial_number)
 
     def light(self, *args: Any, **kwargs: Any) -> Any:
-        if self.decorator is not None:
-            return self.decorator(self.function)(*args, **kwargs)
+        if len(self.decorators) > 0:
+            f = self.function
+            for decorator in self.decorators:
+                f = decorator(f)
+            return f(*args, **kwargs)
         else:
             return self.function(*args, **kwargs)
 
