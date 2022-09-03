@@ -5,7 +5,7 @@ from typing import Type, Optional, Union, Any
 
 
 class MongoStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number',
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None,
                  mongodb: Optional[Union[MongoDB, dict]] = None,
                  db: Optional[str] = None, collection: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         super().__init__(item_type=item_type, key=key)
@@ -82,7 +82,7 @@ class MongoStorage(Storage):
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             if not update and self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:

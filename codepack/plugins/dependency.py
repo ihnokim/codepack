@@ -16,7 +16,7 @@ class Dependency(Storable):
 
     def __lshift__(self, sender: Union[Storable, dict]) -> None:
         if isinstance(sender, Storable):
-            self.depend_on(id=sender.id, serial_number=sender.serial_number, param=self.param)
+            self.depend_on(id=sender.get_id(), serial_number=sender.serial_number, param=self.param)
         elif isinstance(sender, dict):
             self.depend_on(id=sender['id'], serial_number=sender['serial_number'], param=self.param)
         else:
@@ -28,7 +28,7 @@ class Dependency(Storable):
 
     def depend_on(self, id: Optional[str] = None, serial_number: Optional[str] = None,
                   param: Optional[str] = None) -> None:
-        self.id = id
+        self.set_id(id=id)
         self.serial_number = serial_number
         self.param = param
 
@@ -36,26 +36,26 @@ class Dependency(Storable):
         if isinstance(other, type(self)):
             ret = True
             ret &= (self.serial_number == other.serial_number)
-            ret &= (self.id == other.id)
+            ret &= (self.get_id() == other.get_id())
             ret &= (self.param == other.param)
             return ret
         elif isinstance(other, dict):
             ret = True
             ret &= (self.serial_number == other['serial_number'])
-            ret &= (self.id == other['id'])
+            ret &= (self.get_id() == other['id'])
             ret &= (self.param == other['param'])
             return ret
         else:
             return False
 
     def __str__(self) -> str:
-        return '%s(param: %s, id: %s)' % (self.__class__.__name__, self.param, self.id)  # pragma: no cover
+        return '%s(param: %s, id: %s)' % (self.__class__.__name__, self.param, self.get_id())  # pragma: no cover
 
     def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover
 
     def to_dict(self) -> dict:
-        return {'id': self.id, 'serial_number': self.serial_number, 'param': self.param}
+        return {'id': self.get_id(), 'serial_number': self.serial_number, 'param': self.param}
 
     @classmethod
     def from_dict(cls, d: dict) -> 'Dependency':

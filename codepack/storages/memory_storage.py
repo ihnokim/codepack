@@ -6,7 +6,7 @@ Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # n
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number') -> None:
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
         super().__init__(item_type=item_type, key=key)
         self.memory = None
         self.init()
@@ -66,7 +66,7 @@ class MemoryStorage(Storage):
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             if not update and self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:

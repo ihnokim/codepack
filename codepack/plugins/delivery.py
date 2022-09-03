@@ -13,7 +13,7 @@ class Delivery(Storable):
 
     def __str__(self) -> str:
         return '%s(id: %s, serial_number: %s)' % \
-               (self.__class__.__name__, self.id, self.serial_number)  # pragma: no cover
+               (self.__class__.__name__, self.get_id(), self.serial_number)  # pragma: no cover
 
     def __repr__(self) -> str:
         return self.__str__()  # pragma: no cover
@@ -26,7 +26,7 @@ class Delivery(Storable):
         return self.item
 
     def to_dict(self) -> dict:
-        return {'_id': self.serial_number, 'id': self.id, 'serial_number': self.serial_number,
+        return {'_id': self.serial_number, 'id': self.get_id(), 'serial_number': self.serial_number,
                 'timestamp': self.timestamp, 'item': json.dumps(self.item)}
 
     @classmethod

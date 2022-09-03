@@ -21,7 +21,7 @@ async def register(params: CodePackJSONJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.id
+        _job_id = params.job_id if params.job_id else codepack.get_id()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
     return {'serial_number': codepack.serial_number}
 
@@ -36,7 +36,7 @@ async def register_by_id(params: CodePackIDJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.id
+        _job_id = params.job_id if params.job_id else codepack.get_id()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
     return {'serial_number': codepack.serial_number}
 
@@ -53,7 +53,7 @@ async def register_by_id_pair(params: IDPairJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.id
+        _job_id = params.job_id if params.job_id else codepack.get_id()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
     return {'serial_number': codepack.serial_number}
 
@@ -65,7 +65,7 @@ async def register_by_snapshot(params: SnapshotJSONJob):
         common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else snapshot.id
+        _job_id = params.job_id if params.job_id else snapshot.get_id()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
     return {'serial_number': snapshot.serial_number}
 
