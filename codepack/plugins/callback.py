@@ -13,11 +13,11 @@ class Callback(Function, Storable):
         Function.__init__(self, function=function, source=source, context=context)
         Storable.__init__(self, id=id)
         Callable.__init__(self)
-        if self.id is None:
-            self.id = self.function.__name__
+        if self.get_id() is None:
+            self.set_id(self.function.__name__)
 
     def to_dict(self) -> dict:
-        return {'id': self.id, 'source': self.source, 'context': self.context}
+        return {'id': self.get_id(), 'source': self.source, 'context': self.context}
 
     @classmethod
     def from_dict(cls, d: dict) -> 'Callback':

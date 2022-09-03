@@ -14,11 +14,38 @@ MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')  
 
 
 class Storable(metaclass=abc.ABCMeta):
-    def __init__(self, id: Optional[str] = None, serial_number: Optional[str] = None,
+    def __init__(self, id: Optional[str] = None, serial_number: Optional[str] = None, version: Optional[str] = None,
                  *args: Any, **kwargs: Any) -> None:
-        """initialize instance"""
-        self.id = id
+        self._id = id
+        _, self._version = self.parse_id_and_version(key=id)
         self.serial_number = serial_number if serial_number else self.generate_serial_number()
+        if version is not None:
+            self.set_version(version=version)
+
+    @classmethod
+    def parse_id_and_version(cls, key: Optional[str] = None) -> tuple:
+        if key is None:
+            return None, None
+        try:
+            idx = key.rindex('@')
+            return key[:idx], key[idx+1:]
+        except ValueError:
+            return key, None
+
+    def get_id(self) -> str:
+        return self._id
+
+    def set_id(self, id: Optional[str] = None) -> None:
+        self._id = id
+
+    def get_version(self) -> Optional[str]:
+        return self._version
+
+    def set_version(self, version: str) -> None:
+        _id, _version = self.parse_id_and_version(self._id)
+        self._version = version
+        if _id is not None:
+            self._id = '%s@%s' % (_id, self._version)
 
     def generate_serial_number(self) -> str:
         return (str(id(self)) + str(datetime.now().timestamp())).replace('.', '')

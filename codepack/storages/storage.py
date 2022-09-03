@@ -4,7 +4,7 @@ from typing import Any, Type, Optional, Union
 
 
 class Storage(metaclass=abc.ABCMeta):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number') -> None:
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
         if item_type and not issubclass(item_type, Storable):
             raise TypeError(type(item_type))
         self.item_type = item_type
@@ -63,3 +63,9 @@ class Storage(metaclass=abc.ABCMeta):
         else:
             raise ValueError('%s is unknown' % summary)
         return op, init
+
+    def get_item_key(self, item: Storable) -> str:
+        if self.key is not None and self.key != 'id':
+            return getattr(item, self.key)
+        else:
+            return item.get_id()

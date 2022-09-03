@@ -9,8 +9,6 @@ Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # n
 class StorageService(Service):
     def __init__(self, storage: Storage) -> None:
         super().__init__(storage=storage)
-        if self.storage.key != 'id':
-            self.storage.key = 'id'
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         self.storage.save(item=item, update=update)

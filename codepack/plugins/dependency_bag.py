@@ -38,7 +38,7 @@ class DependencyBag(MemoryStorage, Iterable):
         ret = dict()
         for dependency in self.memory.values():
             if dependency.param:
-                ret[dependency.param] = dependency.id
+                ret[dependency.param] = dependency.get_id()
         return ret
 
     def load_snapshot(self) -> Optional[Union[CodeSnapshot, dict, list]]:

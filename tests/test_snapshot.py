@@ -9,7 +9,7 @@ def test_snapshot_to_dict_and_from_dict():
     snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9)
     snapshot_dict1 = snapshot1.to_dict()
     snapshot2 = Snapshot.from_dict(snapshot_dict1)
-    assert snapshot1.id == snapshot2.id
+    assert snapshot1.get_id() == snapshot2.get_id()
     assert snapshot1.serial_number == snapshot2.serial_number
     assert snapshot1.timestamp == snapshot2.timestamp
     assert snapshot1.custom_value == snapshot2.custom_value
@@ -38,7 +38,12 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     code3.receive('c') << code2
     code3(1, b=2)
     snapshot1 = CodeSnapshot(code3, args=(1, ), kwargs={'b': 2})
+    assert snapshot1.get_id() == code3.get_id()
+    assert snapshot1.serial_number == code3.serial_number
     snapshot_dict1 = snapshot1.to_dict()
+    assert 'id' in snapshot_dict1 and snapshot_dict1['id'] == code3.get_id()
+    assert '_id' in snapshot_dict1 and snapshot_dict1['_id'] == code3.serial_number
+    assert 'serial_number' in snapshot_dict1 and snapshot_dict1['serial_number'] == code3.serial_number
     assert 'state' in snapshot_dict1
     assert snapshot_dict1['state'] == 'WAITING'
     assert 'source' in snapshot_dict1
@@ -47,7 +52,7 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     for dependency in snapshot_dict1['dependency']:
         code3_dependency = code3.dependency[dependency['serial_number']]
         assert set(dependency.keys()) == {'id', 'serial_number', 'param'}
-        assert dependency['id'] == code3_dependency.id
+        assert dependency['id'] == code3_dependency.get_id()
         assert dependency['serial_number'] == code3_dependency.serial_number
         assert dependency['param'] == code3_dependency.param
     assert 'image' in snapshot_dict1
@@ -57,7 +62,7 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     assert 'owner' in snapshot_dict1
     assert snapshot_dict1['owner'] is None
     snapshot2 = CodeSnapshot.from_dict(snapshot_dict1)
-    assert snapshot1.id == snapshot2.id
+    assert snapshot1.get_id() == snapshot2.get_id()
     assert snapshot1.serial_number == snapshot2.serial_number
     assert snapshot1.timestamp == snapshot2.timestamp
     assert snapshot1.args == snapshot2.args
@@ -136,7 +141,7 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     assert snapshot1.owner == 'codepack'
     cp2 = CodePack.from_snapshot(snapshot1)
     assert cp2.owner == 'codepack'
-    assert cp1.id == cp2.id
+    assert cp1.get_id() == cp2.get_id()
     assert cp1.serial_number == cp2.serial_number
     assert cp1.get_state() == cp2.get_state()
     cp1_source = cp1.get_source()
@@ -162,7 +167,7 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
         assert code1.get_state() == code2.get_state()
         assert code1.dependency.keys() == code2.dependency.keys()
         for serial_number in code1.dependency.keys():
-            assert code1.dependency[serial_number].id == code2.dependency[serial_number].id
+            assert code1.dependency[serial_number].get_id() == code2.dependency[serial_number].get_id()
             assert code1.dependency[serial_number].serial_number == code2.dependency[serial_number].serial_number
             assert code1.dependency[serial_number].param == code2.dependency[serial_number].param
 
@@ -194,3 +199,15 @@ def test_embedded_callback(default_os_env):
 
     code2 = Code.from_snapshot(snapshot2)
     assert set(code2.callback.keys()) == {'my_callback1', 'my_callback2'}
+
+
+def test_code_versioning(default_os_env):
+    code = Code(add2, version='1.2.3')
+    assert code.get_id() == 'add2@1.2.3'
+    snapshot = code.to_snapshot()
+    assert snapshot.id == code.get_id()
+    assert snapshot.serial_number == code.serial_number
+    snapshot_dict = snapshot.to_dict()
+    assert 'id' in snapshot_dict and snapshot_dict['id'] == 'add2@1.2.3'
+    assert 'serial_number' in snapshot_dict and snapshot_dict['serial_number'] == code.serial_number
+    assert '_id' in snapshot_dict and snapshot_dict['_id'] == code.serial_number

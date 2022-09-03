@@ -11,7 +11,7 @@ class CodePackSnapshot(Snapshot):
     def __init__(self, codepack: Optional[CodePack] = None, argpack: Optional[Union[ArgPack, dict]] = None,
                  timestamp: Optional[float] = None) -> None:
         if codepack:
-            _id = codepack.id
+            _id = codepack.get_id()
             _serial_number = codepack.serial_number
             _state = None
             _codes = {k: v.serial_number for k, v in codepack.codes.items()}

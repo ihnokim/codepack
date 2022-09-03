@@ -11,7 +11,7 @@ class CodeSnapshot(Snapshot):
     def __init__(self, code: Optional[Code] = None, args: Optional[tuple] = None, kwargs: Optional[dict] = None,
                  timestamp: Optional[float] = None, message: str = '') -> None:
         if code:
-            _id = code.id
+            _id = code.get_id()
             _serial_number = code.serial_number
             _state = code.get_state()
             _source = code.source
@@ -72,4 +72,6 @@ class CodeSnapshot(Snapshot):
         for k, v in d.items():
             if k != '_id':
                 ret[k] = v
+            if k == 'id':
+                ret.set_id(id=v)
         return ret

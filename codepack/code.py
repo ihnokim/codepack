@@ -27,7 +27,7 @@ StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_servi
 class Code(CodeBase):
     def __init__(self,
                  function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
-                 id: Optional[str] = None, serial_number: Optional[str] = None,
+                 id: Optional[str] = None, serial_number: Optional[str] = None, version: Optional[str] = None,
                  dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
                  delivery_service: Optional[DeliveryService] = None,
                  snapshot_service: Optional[SnapshotService] = None,
@@ -36,7 +36,8 @@ class Code(CodeBase):
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None,
                  decorator: Optional[Callable] = None,
                  log: bool = False) -> None:
-        super().__init__(id=id, serial_number=serial_number, function=function, source=source, context=context)
+        super().__init__(id=id, serial_number=serial_number, version=version,
+                         function=function, source=source, context=context)
         self.parents = None
         self.children = None
         self.dependency = None
@@ -54,8 +55,6 @@ class Code(CodeBase):
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
                           config_path=config_path)
-        if id is None:
-            self.id = self.function.__name__
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register_callback(callback=callback)
@@ -141,7 +140,7 @@ class Code(CodeBase):
             elif isinstance(name, str):
                 _name = name
             elif name is None:
-                _name = _callback.id
+                _name = _callback.get_id()
             else:
                 raise TypeError(type(name))  # pragma: no cover
             self.callback[_name] = _callback
@@ -173,24 +172,24 @@ class Code(CodeBase):
         q.put(self)
         while not q.empty():
             code = q.get()
-            ids.add(code.id)
+            ids.add(code.get_id())
             for c in {**code.children, **code.parents}.values():
-                if c.id not in ids:
+                if c.get_id() not in ids:
                     q.put(c)
         return ids
 
     def link(self, other: 'Code') -> None:
         linked_ids = self._collect_linked_ids()
-        if other.id in linked_ids:
-            raise ValueError("'%s' is already linked" % other.id)
-        self.children[other.id] = other
-        other.parents[self.id] = self
+        if other.get_id() in linked_ids:
+            raise ValueError("'%s' is already linked" % other.get_id())
+        self.children[other.get_id()] = other
+        other.parents[self.get_id()] = self
         if self.serial_number not in other.dependency:
-            other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
+            other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.get_id()))
 
     def unlink(self, other: 'Code') -> None:
-        other.parents.pop(self.id, None)
-        self.children.pop(other.id, None)
+        other.parents.pop(self.get_id(), None)
+        self.children.pop(other.get_id(), None)
         if self.serial_number in other.dependency:
             other.remove_dependency(self.serial_number)
 
@@ -232,7 +231,10 @@ class Code(CodeBase):
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, params: {params}'
+        ret = 'Code(id: {id}'
+        if 'version' in s:
+            ret += ', version: {version}'
+        ret += ', function: {function}, params: {params}'
         for additional_item in ['receive', 'context', 'env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
@@ -240,9 +242,8 @@ class Code(CodeBase):
         return ret
 
     def get_info(self, state: bool = True) -> str:
-        ret = '%s(id: %s, function: %s, params: %s' % (self.__class__.__name__,
-                                                       self.id, self.function.__name__,
-                                                       self.print_params())
+        ret = '%s(id: %s, function: %s, params: %s' % (self.__class__.__name__, self.get_id(),
+                                                       self.function.__name__, self.print_params())
         dependent_params = self.dependency.get_params()
         if dependent_params:
             ret += ', receive: %s' % dependent_params
@@ -284,7 +285,7 @@ class Code(CodeBase):
             return ''
 
     def send_result(self, item: Any, timestamp: Optional[float] = None) -> None:
-        self.service['delivery'].send(id=self.id, serial_number=self.serial_number, item=item, timestamp=timestamp)
+        self.service['delivery'].send(id=self.get_id(), serial_number=self.serial_number, item=item, timestamp=timestamp)
 
     def get_result(self, serial_number: Optional[str] = None) -> Any:
         serial_number = serial_number if serial_number else self.serial_number
@@ -298,7 +299,7 @@ class Code(CodeBase):
             -> Optional[Union['Code', list]]:
         if storage_service is None:
             storage_service = Default.get_service('code', 'storage_service')
-        return storage_service.load(id)
+        return storage_service.load(id=id)
 
     @classmethod
     def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
@@ -330,7 +331,7 @@ class Code(CodeBase):
         self.logger.info(msg)
 
     def get_log_dir(self) -> str:
-        return os.path.join(Config.get_log_dir(), self.id)
+        return os.path.join(Config.get_log_dir(), self.get_id())
 
     def get_log_path(self) -> str:
         return os.path.join(self.get_log_dir(), '%s.log' % self.serial_number)
@@ -402,7 +403,7 @@ class Code(CodeBase):
 
     def to_dict(self) -> dict:
         d = dict()
-        d['_id'] = self.id
+        d['_id'] = self.get_id()
         d['source'] = self.source
         d['description'] = self.description
         d['env'] = self.env

@@ -9,14 +9,16 @@ StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_servi
 
 
 class ArgPack(Storable):
-    def __init__(self, codepack: Optional[CodePack] = None, id: Optional[str] = None,
+    def __init__(self, codepack: Optional[CodePack] = None,
+                 id: Optional[str] = None,
+                 version: Optional[str] = None,
                  args: Optional[dict] = None) -> None:
         _id = None
         if codepack:
-            _id = codepack.id
+            _id = codepack.get_id()
         if id:
             _id = id
-        Storable.__init__(self, id=_id)
+        Storable.__init__(self, id=_id, version=version)
         if args:
             self.args = dict()
             for id, kwargs in args.items():
@@ -34,8 +36,8 @@ class ArgPack(Storable):
             stack.append(root)
             while len(stack):
                 n = stack.pop(-1)
-                if n.id not in ret:
-                    ret[n.id] = Arg(n)
+                if n.get_id() not in ret:
+                    ret[n.get_id()] = Arg(n)
                 for c in n.children.values():
                     stack.append(c)
         return ret
@@ -50,19 +52,19 @@ class ArgPack(Storable):
         ret = dict()
         for id, arg in self.args.items():
             ret[id] = arg.to_dict()
-        ret['_id'] = self.id
+        ret['_id'] = self.get_id()
         return ret
 
     @classmethod
     def from_dict(cls, d: dict) -> 'ArgPack':
         args = dict()
-        id = None
+        _id = None
         for k, v in d.items():
             if k == '_id':
-                id = v
+                _id = v
             else:
                 args[k] = v
-        return cls(id=id, args=args)
+        return cls(id=_id, args=args)
 
     def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
@@ -74,7 +76,7 @@ class ArgPack(Storable):
             -> Optional[Union['ArgPack', list]]:
         if storage_service is None:
             storage_service = Default.get_service('argpack', 'storage_service')
-        return storage_service.load(id)
+        return storage_service.load(id=id)
 
     @classmethod
     def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
@@ -89,7 +91,7 @@ class ArgPack(Storable):
         return self.args.__iter__()
 
     def __str__(self) -> str:
-        ret = '%s(id: %s, args: {' % (self.__class__.__name__, self.id)
+        ret = '%s(id: %s, args: {' % (self.__class__.__name__, self.get_id())
         for i, (id, arg) in enumerate(self.args.items()):
             if i:
                 ret += ', '

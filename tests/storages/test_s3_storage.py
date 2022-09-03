@@ -8,7 +8,7 @@ from functools import partial
 
 
 def fake_get_object(dummy_deliveries, Key, *args, **kwargs):
-    tmp = {x.get_path(key=x.id, path='test_path', posix=True): {'Body': x.to_json()} for x in dummy_deliveries}
+    tmp = {x.get_path(key=x.get_id(), path='test_path', posix=True): {'Body': x.to_json()} for x in dummy_deliveries}
     ret = tmp.get(Key, dict())
     if ret:
         body = ret['Body']
@@ -114,7 +114,7 @@ def test_s3_storage_search(mock_client, dummy_deliveries):
     ret = ss.search(key='item', value=json.dumps('y'))
     assert len(ret) == 2
     assert isinstance(ret[0], Delivery)
-    assert sorted([obj.id for obj in ret]) == ['obj2', 'obj3']
+    assert sorted([obj.get_id() for obj in ret]) == ['obj2', 'obj3']
     arg_list = mock_client.return_value.get_object.call_args_list
     assert len(arg_list) == 3
     args, kwargs = arg_list[0]
@@ -225,7 +225,7 @@ def test_s3_storage_load(mock_client, dummy_deliveries):
     assert set(ret.keys()) == {'serial_number'}
     ret = ss.load(key=['obj2', 'obj4', 'obj3'])
     assert len(ret) == 2
-    assert {x.id for x in ret} == {'obj2', 'obj3'}
+    assert {x.get_id() for x in ret} == {'obj2', 'obj3'}
 
 
 @patch('boto3.client')
@@ -236,9 +236,9 @@ def test_s3_storage_text_key_search(mock_client, dummy_deliveries_for_text_key_s
     mock_client.return_value.exceptions.NoSuchKey = Exception
     mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries_for_text_key_search)
     mock_client.return_value.get_paginator.return_value.paginate.return_value \
-        = [{'Contents': [{'Key': 'test_path/%s.json' % x.id} for x in dummy_deliveries_for_text_key_search]}]
+        = [{'Contents': [{'Key': 'test_path/%s.json' % x.get_id()} for x in dummy_deliveries_for_text_key_search]}]
     assert storage.key == 'id'
-    dummy_keys = sorted([d.id for d in dummy_deliveries_for_text_key_search])
+    dummy_keys = sorted([d.get_id() for d in dummy_deliveries_for_text_key_search])
     all_keys = sorted(storage.list_all())
     assert all_keys == dummy_keys
     banana_items = storage.text_key_search(key='banana')

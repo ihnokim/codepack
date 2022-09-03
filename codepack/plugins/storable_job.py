@@ -16,7 +16,7 @@ class StorableJob(Storable):
 
     def to_dict(self) -> dict:
         utc_timestamp = datetime_to_utc_timestamp(self.job.next_run_time)
-        return {'_id': self.id,
+        return {'_id': self.get_id(),
                 'trigger': self.job.trigger.__str__(),
                 'codepack': self.job.kwargs['snapshot']['id'],
                 'argpack': self.job.kwargs['snapshot']['argpack']['_id'],

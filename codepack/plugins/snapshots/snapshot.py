@@ -10,7 +10,7 @@ class Snapshot(Storable):
                  timestamp: Optional[float] = None, **kwargs: Any) -> None:
         super().__init__(id=id, serial_number=serial_number)
         self.attr = dict()
-        self.__setitem__('id', self.id)
+        self.__setitem__('id', self.get_id())
         self.__setitem__('serial_number', self.serial_number)
         self.__setitem__('state', State.get(state))
         self.__setitem__('timestamp', timestamp if timestamp else datetime.now(timezone.utc).timestamp())

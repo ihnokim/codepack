@@ -7,7 +7,7 @@ import os
 
 
 class S3Storage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number',
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None,
                  s3: Optional[Union[S3, dict]] = None,
                  bucket: Optional[str] = None, path: str = '', *args: Any, **kwargs: Any) -> None:
         super().__init__(item_type=item_type, key=key)
@@ -93,7 +93,7 @@ class S3Storage(Storage):
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             path = item.get_path(key=item_key, path=self.path, posix=True)
             if update:
                 if self.exist(key=item_key):
