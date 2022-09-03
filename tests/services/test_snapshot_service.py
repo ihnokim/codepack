@@ -67,9 +67,10 @@ def test_memory_snapshot_service_update():
     recent_instance = storage.memory[snapshot2.serial_number]
     assert id(snapshot1) != id(recent_instance)
     assert id(snapshot2) != id(recent_instance)
-    assert snapshot1.id == recent_instance.id
-    assert snapshot1.serial_number == recent_instance.serial_number
-    assert snapshot1.timestamp + 1 == recent_instance.timestamp
+    assert isinstance(recent_instance, dict)
+    assert snapshot1.id == recent_instance['id']
+    assert snapshot1.serial_number == recent_instance['serial_number']
+    assert snapshot1.timestamp + 1 == recent_instance['timestamp']
     snapshot3 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
     mss.save(snapshot=snapshot3)
     recent_instance2 = storage.memory[snapshot2.serial_number]

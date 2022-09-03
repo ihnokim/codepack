@@ -26,7 +26,9 @@ def test_memory_storage(dummy_deliveries):
     assert type(search_result) == list and len(search_result) == 0
     ref = sorted([dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id()])
     search_result = storage.search(key='item', value=json.dumps('z'))
-    assert len(search_result) == 1 and search_result[0] == dummy_deliveries[0]
+    assert len(search_result) == 1
+    assert search_result[0].get_id() == dummy_deliveries[0].get_id()
+    assert search_result[0].serial_number == dummy_deliveries[0].serial_number
     search_result = storage.search(key='item', value=json.dumps('y'))
     assert len(search_result) == 2
     assert sorted([s.get_id() for s in search_result]) == ref
@@ -46,7 +48,12 @@ def test_memory_storage(dummy_deliveries):
     load_result = storage.load(key=['!??', '?!?', '??!'])
     assert type(load_result) == list and len(load_result) == 0
     load_result = storage.load(key=[d.get_id() for d in dummy_deliveries])
-    assert type(load_result) == list and load_result == dummy_deliveries
+    assert type(load_result) == list
+    assert len(load_result) == len(dummy_deliveries)
+    for i in range(len(load_result)):
+        assert load_result[0].get_id() == dummy_deliveries[0].get_id()
+        assert load_result[0].serial_number == dummy_deliveries[0].serial_number
+        assert load_result[0].timestamp == dummy_deliveries[0].timestamp
     load_result = storage.load(key=dummy_deliveries[1].get_id())
     assert isinstance(load_result, Delivery)
     load_result = storage.load(key=[dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id(), '???'], to_dict=True)

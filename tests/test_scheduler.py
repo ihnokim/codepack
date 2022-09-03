@@ -18,7 +18,7 @@ def test_memory_storage_jobstore_codepack_snapshot():
     assert scheduler.is_running()
     assert codepack.get_id() not in storage.memory
     assert job_id in storage.memory
-    job = storage.memory[job_id].to_dict()
+    job = storage.memory[job_id]
     for k in ['_id', 'trigger', 'codepack', 'snapshot', 'last_run_time', 'next_run_time']:
         assert k in job
     assert job['_id'] == job_id

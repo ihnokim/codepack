@@ -92,7 +92,7 @@ def test_memory_storage_service(default_os_env):
     assert code2.get_id() not in storage.memory
     code3 = mss.load(code1.get_id())
     assert code1.get_id() == code3.get_id()
-    assert code1.source == code3.source
+    assert code1.source.strip() == code3.source.strip()
     assert code1("CodePack") == code3("CodePack")
     mss.remove(code3.get_id())
     assert len(storage.memory) == 0
