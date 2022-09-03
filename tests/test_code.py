@@ -114,7 +114,7 @@ def test_get_function_from_source(default_os_env):
 def test_from_dict(default_os_env):
     d = {'_id': 'test', 'source': "def plus1(x):\n  return x + 1"}
     code = Code.from_dict(d)
-    assert code.id == 'test'
+    assert code.get_id() == 'test'
     assert code.function.__name__ == 'plus1'
     ret = code(x=5)
     assert ret == 6
@@ -124,7 +124,7 @@ def test_from_dict(default_os_env):
 def test_to_dict(default_os_env):
     code = Code(add2)
     d = code.to_dict()
-    assert code.id == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
+    assert code.get_id() == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
 
 
 def test_to_db_and_from_db(default_os_env, fake_mongodb):
@@ -133,11 +133,11 @@ def test_to_db_and_from_db(default_os_env, fake_mongodb):
     test_id = 'add2'
     try:
         code1 = Code(add2)
-        assert test_id == code1.id
+        assert test_id == code1.get_id()
         code1.to_db(mongodb=fake_mongodb, db=db, collection=collection)
-        assert fake_mongodb[db][collection].find_one({'_id': code1.id})
-        code2 = Code.from_db(id=code1.id, mongodb=fake_mongodb, db=db, collection=collection)
-        assert code1.id == code2.id
+        assert fake_mongodb[db][collection].find_one({'_id': code1.get_id()})
+        code2 = Code.from_db(id=code1.get_id(), mongodb=fake_mongodb, db=db, collection=collection)
+        assert code1.get_id() == code2.get_id()
         assert code1.function.__name__ == code2.function.__name__
         assert code1.description == code2.description
         assert code1.serial_number != code2.serial_number
@@ -166,8 +166,8 @@ def test_check_dependency_linkage(default_os_env):
     code1 >> [code2, code3]
     code3 >> code4
     assert code3.serial_number in code4.dependency
-    assert code3.id in code4.parents
-    assert code4.id in code3.children
+    assert code3.get_id() in code4.parents
+    assert code4.get_id() in code3.children
     assert set(code2.dependency.keys()) == set(code3.dependency.keys())
     assert not code4.dependency[code3.serial_number].param
     code4.receive('c') << code3
@@ -177,8 +177,8 @@ def test_check_dependency_linkage(default_os_env):
     assert not code2.dependency[code1.serial_number].param
     code3 // code4
     assert len(set(code4.dependency)) == 0
-    assert code3.id not in code4.parents
-    assert code4.id not in code3.children
+    assert code3.get_id() not in code4.parents
+    assert code4.get_id() not in code3.children
     code1 // [code2, code3]
     assert len(code2.dependency.keys()) == len(code3.dependency.keys()) == 0
     assert len(code1.children) == 0
@@ -296,23 +296,23 @@ def test_update_serial_number(default_os_env):
     new_serial_number = '1234'
     code2.update_serial_number(new_serial_number)
     assert code2.serial_number == new_serial_number
-    assert code2.id in code1.children
-    assert code1.children[code2.id].serial_number == new_serial_number
-    assert code2.id in code3.parents
-    assert code3.parents[code2.id].serial_number == new_serial_number
+    assert code2.get_id() in code1.children
+    assert code1.children[code2.get_id()].serial_number == new_serial_number
+    assert code2.get_id() in code3.parents
+    assert code3.parents[code2.get_id()].serial_number == new_serial_number
     assert old_serial_number not in code3.dependency
     assert new_serial_number in code3.dependency
     assert code3.dependency[new_serial_number].param == 'b'
     assert code3.dependency[new_serial_number].code == code3
-    assert code3.dependency[new_serial_number].id == code2.id
+    assert code3.dependency[new_serial_number].get_id() == code2.get_id()
     assert code3.dependency[new_serial_number].serial_number == new_serial_number
-    assert code2.id in code4.parents
-    assert code4.parents[code2.id].serial_number == new_serial_number
+    assert code2.get_id() in code4.parents
+    assert code4.parents[code2.get_id()].serial_number == new_serial_number
     assert old_serial_number not in code4.dependency
     assert new_serial_number in code4.dependency
     assert code4.dependency[new_serial_number].param == 'c'
     assert code4.dependency[new_serial_number].code == code4
-    assert code4.dependency[new_serial_number].id == code2.id
+    assert code4.dependency[new_serial_number].get_id() == code2.get_id()
     assert code4.dependency[new_serial_number].serial_number == new_serial_number
 
 
@@ -364,12 +364,12 @@ def test_default_load(default_os_env):
     code2.save()
     search_result = Code.load(['add2', 'add3'])
     assert type(search_result) == list and len(search_result) == 1
-    assert isinstance(search_result[0], Code) and search_result[0].id == 'add3'
+    assert isinstance(search_result[0], Code) and search_result[0].get_id() == 'add3'
     search_result = Code.load('add2')
     assert search_result is None
     search_result = Code.load('add3')
     assert search_result is not None
-    assert isinstance(search_result, Code) and search_result.id == 'add3'
+    assert isinstance(search_result, Code) and search_result.get_id() == 'add3'
 
 
 def test_get_message(default_os_env):
@@ -403,7 +403,7 @@ def test_remove(default_os_env):
     ret = Code.load('add2')
     assert ret is not None
     assert isinstance(ret, Code)
-    assert ret.id == code.id
+    assert ret.get_id() == code.get_id()
     Code.remove('add2')
     ret = Code.load('add2')
     assert ret is None
@@ -551,7 +551,7 @@ def test_get_source_of_function_defined_in_string():
 def test_partial_code_run(default_os_env):
     plus1 = partial(add2, b=1)
     code = Code(plus1)
-    assert code.id == 'add2'
+    assert code.get_id() == 'add2'
     assert code.context == {'b': 1}
     assert code(3) == 4
     assert code(4, b=5) == 9
@@ -559,7 +559,7 @@ def test_partial_code_run(default_os_env):
         code(4, 5)
     snapshot = code.to_snapshot()
     code2 = Code.from_snapshot(snapshot)
-    assert code2.id == 'add2'
+    assert code2.get_id() == 'add2'
     assert code2.context == {'b': 1}
     assert code2(4) == 5
 
@@ -588,3 +588,16 @@ def test_multiple_decorators(default_os_env):
     assert result1 == 'X'
     assert result2 == 'func2(func1(X)func1)func2'
     assert result3 == 'class2(func2(class1(func1(X)func1)class1)func2)class2'
+
+
+def test_code_version(default_os_env):
+    code1 = Code(add2)
+    code2 = Code(add2, version='0.0.1')
+    code3 = Code(add2, id='hello')
+    code4 = Code(add2, id='hello', version='0.1.1')
+    code5 = Code(add2, id='hello@0.2.1')
+    assert code1.__str__() == 'Code(id: add2, function: add2, params: (a, b))'
+    assert code2.__str__() == 'Code(id: add2@0.0.1, function: add2, params: (a, b))'
+    assert code3.__str__() == 'Code(id: hello, function: add2, params: (a, b))'
+    assert code4.__str__() == 'Code(id: hello@0.1.1, function: add2, params: (a, b))'
+    assert code5.__str__() == 'Code(id: hello@0.2.1, function: add2, params: (a, b))'

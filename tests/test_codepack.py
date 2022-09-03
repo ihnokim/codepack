@@ -40,12 +40,12 @@ def test_default_load(default_os_env):
     codepack.save()
     search_result = CodePack.load(['test_codepack', 'dummy'])
     assert type(search_result) == list and len(search_result) == 1
-    assert isinstance(search_result[0], CodePack) and search_result[0].id == 'test_codepack'
+    assert isinstance(search_result[0], CodePack) and search_result[0].get_id() == 'test_codepack'
     search_result = CodePack.load('dummy')
     assert search_result is None
     search_result = CodePack.load('test_codepack')
     assert search_result is not None
-    assert isinstance(search_result, CodePack) and search_result.id == 'test_codepack'
+    assert isinstance(search_result, CodePack) and search_result.get_id() == 'test_codepack'
     assert search_result.root._collect_linked_ids() == codepack.root._collect_linked_ids()
     argpack = codepack.make_argpack()
     argpack['add2'](a=2, b=5)
@@ -63,7 +63,7 @@ def test_save_and_load_argpack(default_os_env):
     argpack['add2'](a=2, b=5)
     argpack['add3'](a=3, c=2)
     codepack.save_argpack(argpack)
-    argpack2 = codepack.load_argpack(id=codepack.id)
+    argpack2 = codepack.load_argpack(id=codepack.get_id())
     assert argpack['add2']['a'] == argpack2['add2']['a']
     assert argpack['add2']['b'] == argpack2['add2']['b']
     assert argpack['add3']['a'] == argpack2['add3']['a']
@@ -127,7 +127,7 @@ def test_remove(default_os_env):
     ret = CodePack.load('test_codepack')
     assert ret is not None
     assert isinstance(ret, CodePack)
-    assert ret.id == codepack.id
+    assert ret.get_id() == codepack.get_id()
     CodePack.remove('test_codepack')
     ret = CodePack.load('test_codepack')
     assert ret is None
@@ -189,3 +189,20 @@ def test_parse_codepack_from_str(default_os_env, fake_mongodb):
     result = codepack2(argpack2)
     assert result is None
     assert codepack2.get_state() == 'TERMINATED'
+
+
+def test_codepack_version(default_os_env):
+    code1 = Code(add2, version='0.1.1')
+    code2 = Code(mul2, id='haha@1.2.3')
+    code3 = Code(add2, id='hoho', version='1.1.1')
+    code4 = Code(linear, id='hehe')
+    code1 >> code2
+    code3 >> code4
+    codepack1 = CodePack(id='test_codepack1@1.2.3', code=code1, subscribe=code2)
+    codepack2 = CodePack(id='test_codepack2', version='4.5.6', code=code3, subscribe=code4)
+    assert codepack1.__str__() == 'CodePack(id: test_codepack1@1.2.3, subscribe: haha@1.2.3)\n' \
+                                  '| Code(id: add2@0.1.1, function: add2, params: (a, b))\n' \
+                                  '|- Code(id: haha@1.2.3, function: mul2, params: (a, b))'
+    assert codepack2.__str__() == 'CodePack(id: test_codepack2@4.5.6, subscribe: hehe)\n'\
+                                  '| Code(id: hoho@1.1.1, function: add2, params: (a, b))\n'\
+                                  '|- Code(id: hehe, function: linear, params: (a, b, c))'
