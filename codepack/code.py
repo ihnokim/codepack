@@ -28,6 +28,7 @@ class Code(CodeBase):
     def __init__(self,
                  function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
                  id: Optional[str] = None, serial_number: Optional[str] = None, version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
                  dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
                  delivery_service: Optional[DeliveryService] = None,
                  snapshot_service: Optional[SnapshotService] = None,
@@ -36,7 +37,7 @@ class Code(CodeBase):
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None,
                  decorator: Optional[Callable] = None,
                  log: bool = False) -> None:
-        super().__init__(id=id, serial_number=serial_number, version=version,
+        super().__init__(id=id, serial_number=serial_number, version=version, timestamp=timestamp,
                          function=function, source=source, context=context)
         self.parents = None
         self.children = None
@@ -402,8 +403,8 @@ class Code(CodeBase):
         return ret
 
     def to_dict(self) -> dict:
-        d = dict()
-        d['_id'] = self.get_id()
+        d = self.get_meta()
+        d.pop('serial_number', None)
         d['source'] = self.source
         d['description'] = self.description
         d['env'] = self.env
@@ -416,7 +417,7 @@ class Code(CodeBase):
     def from_dict(cls, d: dict) -> 'Code':
         return cls(id=d['_id'], source=d['source'],
                    env=d.get('env', None), image=d.get('image', None),
-                   owner=d.get('owner', None), context=d.get('context', dict()))
+                   owner=d.get('owner', None), context=d.get('context', dict()), timestamp=d.get('_timestamp', None))
 
     def to_snapshot(self, *args: Any, **kwargs: Any) -> CodeSnapshot:
         return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)

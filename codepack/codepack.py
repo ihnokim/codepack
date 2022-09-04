@@ -19,12 +19,13 @@ class CodePack(CodePackBase):
     def __init__(self, id: str, code: Code, subscribe: Optional[Union[Code, str]] = None,
                  serial_number: Optional[str] = None,
                  version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
                  config_path: Optional[str] = None,
                  snapshot_service: Optional[SnapshotService] = None,
                  storage_service: Optional[StorageService] = None,
                  argpack_service: Optional[StorageService] = None,
                  owner: Optional[str] = None) -> None:
-        super().__init__(id=id, serial_number=serial_number, version=version)
+        super().__init__(id=id, serial_number=serial_number, version=version, timestamp=timestamp)
         self.root = None
         self.roots = None
         self.subscribe = None
@@ -234,8 +235,8 @@ class CodePack(CodePackBase):
             return None
 
     def to_dict(self) -> dict:
-        d = dict()
-        d['_id'] = self.get_id()
+        d = self.get_meta()
+        d.pop('serial_number', None)
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
         d['source'] = self.get_source()
@@ -276,7 +277,8 @@ class CodePack(CodePackBase):
         for id, code in codes.items():
             for arg, sender in receive[id].items():
                 code.receive(arg) << codes[sender]
-        return cls(id=d['_id'], code=root, subscribe=d['subscribe'], owner=d.get('owner', None))
+        return cls(id=d['_id'], code=root, subscribe=d['subscribe'],
+                   owner=d.get('owner', None), timestamp=d.get('_timestamp', None))
 
     def get_source(self) -> dict:
         return {id: code.source for id, code in self.codes.items()}
