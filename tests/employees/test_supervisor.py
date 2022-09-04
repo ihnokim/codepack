@@ -13,7 +13,7 @@ def test_memory_supervisor_run_code():
     assert sn == code.serial_number
     assert not supervisor.messenger.mq['codepack'].empty() and supervisor.messenger.mq['codepack'].qsize() == 1
     item = supervisor.messenger.mq['codepack'].get(block=False)
-    assert item == code.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['timestamp']).to_dict()
+    assert item == code.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['_timestamp']).to_dict()
     supervisor.close()
 
 
@@ -40,9 +40,9 @@ def test_memory_supervisor_run_codepack():
     items = [supervisor.messenger.mq['codepack'].get(block=False) for _ in range(3)]
     snapshots = [c.to_snapshot(kwargs=argpack[i].to_dict()).to_dict() for i, c in codepack.codes.items()]
     for item in items:
-        item.pop('timestamp', None)
+        item.pop('_timestamp', None)
     for snapshot in snapshots:
-        snapshot.pop('timestamp', None)
+        snapshot.pop('_timestamp', None)
     assert sorted(items, key=lambda x: x['id']) == sorted(snapshots, key=lambda x: x['id'])
     supervisor.close()
 
@@ -72,7 +72,7 @@ def test_memory_supervisor_organize():
     assert not supervisor.messenger.mq['codepack'].empty() and supervisor.messenger.mq['codepack'].qsize() == 1
     item = supervisor.messenger.mq['codepack'].get(block=False)
     item.pop('source', None)
-    expected_item = code2.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['timestamp']).to_dict()
+    expected_item = code2.to_snapshot(args=(3,), kwargs={'b': 5}, timestamp=item['_timestamp']).to_dict()
     expected_item.pop('source', None)
     assert item == expected_item
     supervisor.close()

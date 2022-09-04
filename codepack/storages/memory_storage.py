@@ -46,8 +46,7 @@ class MemoryStorage(Storage):
 
     def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         ret = list()
-        for item in self.memory.values():
-            d = item.to_dict()
+        for d in self.memory.values():
             if d[key] != value:
                 continue
             if projection:
@@ -55,7 +54,7 @@ class MemoryStorage(Storage):
             elif to_dict:
                 ret.append(d)
             else:
-                ret.append(item)
+                ret.append(self.item_type.from_dict(d))
         return ret
 
     def text_key_search(self, key: str) -> list:
@@ -70,7 +69,7 @@ class MemoryStorage(Storage):
             if not update and self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:
-                self.memory[item_key] = item
+                self.memory[item_key] = item.to_dict()
         elif isinstance(item, list):
             for i in item:
                 self.save(item=i, update=update)
@@ -98,14 +97,13 @@ class MemoryStorage(Storage):
             -> Optional[Union[Storable, dict, list]]:
         if isinstance(key, str):
             if self.exist(key=key):
-                item = self.memory[key]
-                d = item.to_dict()
+                d = self.memory[key]
                 if projection:
                     return {k: d[k] for k in projection if k in d}
                 elif to_dict:
                     return d
                 else:
-                    return item
+                    return self.item_type.from_dict(d)
             else:
                 return None
         elif isinstance(key, list):

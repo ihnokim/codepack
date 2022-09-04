@@ -47,11 +47,3 @@ class CodePackSnapshot(Snapshot):
         else:
             tmp = dict()
         self.__setitem__('argpack', tmp)
-
-    @classmethod
-    def from_dict(cls, d: dict) -> 'CodePackSnapshot':
-        ret = cls()
-        for k, v in d.items():
-            if k != '_id':
-                ret[k] = v
-        return ret

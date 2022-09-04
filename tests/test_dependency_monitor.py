@@ -4,13 +4,15 @@ import time
 
 
 def load_and_run_code_from_snapshot(snapshot):
+    args, kwargs = snapshot['args'], snapshot['kwargs']
     code = Code.from_snapshot(snapshot)
-    code(*snapshot['args'], **snapshot['kwargs'])
+    code(*args, **kwargs)
 
 
 def load_and_run_code_from_snapshot_and_raise_exception(snapshot):
+    args, kwargs = snapshot['args'], snapshot['kwargs']
     code = Code.from_snapshot(snapshot)
-    code(*snapshot['args'], **snapshot['kwargs'])
+    code(*args, **kwargs)
     raise KeyboardInterrupt
 
 

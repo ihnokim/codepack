@@ -1,4 +1,4 @@
-from codepack import Code, CodePack, Snapshot, CodeSnapshot
+from codepack import Code, CodePack, Snapshot, CodeSnapshot, CodePackSnapshot
 from functools import partial
 from tests import add2, add3, mul2, print_x, combination, linear
 from datetime import datetime
@@ -11,7 +11,7 @@ def test_snapshot_to_dict_and_from_dict():
     snapshot2 = Snapshot.from_dict(snapshot_dict1)
     assert snapshot1.get_id() == snapshot2.get_id()
     assert snapshot1.serial_number == snapshot2.serial_number
-    assert snapshot1.timestamp == snapshot2.timestamp
+    assert snapshot1.get_timestamp() == snapshot2.get_timestamp()
     assert snapshot1.custom_value == snapshot2.custom_value
     assert snapshot2.custom_value == 9
     assert '_id' in snapshot_dict1
@@ -23,10 +23,10 @@ def test_snapshot_diff():
     snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9, timestamp=timestamp)
     snapshot2 = Snapshot(id='1234', serial_number='8765', custom_value=3, timestamp=timestamp + 1)
     diff = snapshot1.diff(snapshot2)
-    assert set(diff.keys()) == {'serial_number', 'custom_value', 'timestamp'}
+    assert set(diff.keys()) == {'serial_number', 'custom_value', '_timestamp', '_id'}
     assert diff['serial_number'] == '8765'
     assert diff['custom_value'] == 3
-    assert diff['timestamp'] == timestamp + 1
+    assert diff['_timestamp'] == timestamp + 1
 
 
 def test_code_snapshot_to_dict_and_from_dict(default_os_env):
@@ -64,7 +64,7 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     snapshot2 = CodeSnapshot.from_dict(snapshot_dict1)
     assert snapshot1.get_id() == snapshot2.get_id()
     assert snapshot1.serial_number == snapshot2.serial_number
-    assert snapshot1.timestamp == snapshot2.timestamp
+    assert snapshot1.get_timestamp() == snapshot2.get_timestamp()
     assert snapshot1.args == snapshot2.args
     assert snapshot1.kwargs == snapshot2.kwargs
     assert snapshot1.source == snapshot2.source
@@ -88,9 +88,9 @@ def test_code_snapshot_diff(default_os_env):
     assert snapshot1.diff(snapshot2) == dict()
     assert snapshot2.diff(snapshot1) == dict()
     diff = snapshot1.diff(snapshot3)
-    assert set(diff.keys()) == {'kwargs', 'timestamp'}
+    assert set(diff.keys()) == {'kwargs', '_timestamp'}
     assert diff['kwargs'] == {'b': 3}
-    assert diff['timestamp'] == timestamp + 1
+    assert diff['_timestamp'] == timestamp + 1
 
 
 def test_code_to_snapshot_and_from_snapshot(default_os_env):
@@ -211,3 +211,24 @@ def test_code_versioning(default_os_env):
     assert 'id' in snapshot_dict and snapshot_dict['id'] == 'add2@1.2.3'
     assert 'serial_number' in snapshot_dict and snapshot_dict['serial_number'] == code.serial_number
     assert '_id' in snapshot_dict and snapshot_dict['_id'] == code.serial_number
+
+
+def test_code_snapshot_timestamp(default_os_env):
+    code = Code(add2, version='0.1.1')
+    snapshot1 = code.to_snapshot()
+    d = snapshot1.to_dict()
+    assert '_timestamp' in d
+    snapshot2 = CodeSnapshot.from_dict(d)
+    assert snapshot2.get_timestamp() == d['_timestamp']
+
+
+def test_codepack_snapshot_timestamp(default_os_env):
+    code1 = Code(add2, version='0.1.1')
+    code2 = Code(mul2, id='haha@1.2.3')
+    code1 >> code2
+    codepack = CodePack(id='test_codepack1@1.2.3', code=code1, subscribe=code2)
+    snapshot = codepack.to_snapshot()
+    d = snapshot.to_dict()
+    assert '_timestamp' in d
+    snapshot2 = CodePackSnapshot.from_dict(d)
+    assert snapshot2.get_timestamp() == d['_timestamp']

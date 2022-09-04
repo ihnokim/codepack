@@ -65,13 +65,3 @@ class CodeSnapshot(Snapshot):
                     self.__getitem__('callback').append(c)
                 else:
                     raise TypeError(type(c))  # pragma: no cover
-
-    @classmethod
-    def from_dict(cls, d: dict) -> 'CodeSnapshot':
-        ret = cls()
-        for k, v in d.items():
-            if k != '_id':
-                ret[k] = v
-            if k == 'id':
-                ret.set_id(id=v)
-        return ret

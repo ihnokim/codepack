@@ -12,13 +12,14 @@ class ArgPack(Storable):
     def __init__(self, codepack: Optional[CodePack] = None,
                  id: Optional[str] = None,
                  version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
                  args: Optional[dict] = None) -> None:
         _id = None
         if codepack:
             _id = codepack.get_id()
         if id:
             _id = id
-        Storable.__init__(self, id=_id, version=version)
+        Storable.__init__(self, id=_id, version=version, timestamp=timestamp)
         if args:
             self.args = dict()
             for id, kwargs in args.items():
@@ -49,22 +50,16 @@ class ArgPack(Storable):
         self.args[key] = value
 
     def to_dict(self) -> dict:
-        ret = dict()
+        d = self.get_meta()
+        d.pop('serial_number', None)
+        d['args'] = dict()
         for id, arg in self.args.items():
-            ret[id] = arg.to_dict()
-        ret['_id'] = self.get_id()
-        return ret
+            d['args'][id] = arg.to_dict()
+        return d
 
     @classmethod
     def from_dict(cls, d: dict) -> 'ArgPack':
-        args = dict()
-        _id = None
-        for k, v in d.items():
-            if k == '_id':
-                _id = v
-            else:
-                args[k] = v
-        return cls(id=_id, args=args)
+        return cls(id=d.get('_id', None), timestamp=d.get('_timestamp', None), args=d.get('args', None))
 
     def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:

@@ -7,9 +7,8 @@ from typing import Any, Optional
 class Delivery(Storable):
     def __init__(self, id: str, serial_number: str,
                  item: Optional[Any] = None, timestamp: Optional[float] = None) -> None:
-        Storable.__init__(self, id=id, serial_number=serial_number)
+        Storable.__init__(self, id=id, serial_number=serial_number, timestamp=timestamp)
         self.item = item
-        self.timestamp = timestamp if timestamp else datetime.now().timestamp()
 
     def __str__(self) -> str:
         return '%s(id: %s, serial_number: %s)' % \
@@ -27,9 +26,9 @@ class Delivery(Storable):
 
     def to_dict(self) -> dict:
         return {'_id': self.serial_number, 'id': self.get_id(), 'serial_number': self.serial_number,
-                'timestamp': self.timestamp, 'item': json.dumps(self.item)}
+                '_timestamp': self.get_timestamp(), 'item': json.dumps(self.item)}
 
     @classmethod
     def from_dict(cls, d: dict) -> 'Delivery':
         return cls(id=d['id'], serial_number=d['serial_number'],
-                   item=json.loads(d['item']), timestamp=d.get('timestamp', None))
+                   item=json.loads(d['item']), timestamp=d.get('_timestamp', None))

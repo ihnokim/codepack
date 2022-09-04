@@ -26,7 +26,9 @@ def test_memory_storage(dummy_deliveries):
     assert type(search_result) == list and len(search_result) == 0
     ref = sorted([dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id()])
     search_result = storage.search(key='item', value=json.dumps('z'))
-    assert len(search_result) == 1 and search_result[0] == dummy_deliveries[0]
+    assert len(search_result) == 1
+    assert search_result[0].get_id() == dummy_deliveries[0].get_id()
+    assert search_result[0].serial_number == dummy_deliveries[0].serial_number
     search_result = storage.search(key='item', value=json.dumps('y'))
     assert len(search_result) == 2
     assert sorted([s.get_id() for s in search_result]) == ref
@@ -34,8 +36,8 @@ def test_memory_storage(dummy_deliveries):
     assert len(search_result) == 2
     assert sorted([s['id'] for s in search_result]) == ref
     assert type(search_result[0]) == dict and type(search_result[1]) == dict
-    assert set(search_result[0].keys()) == {'item', 'id', '_id', 'timestamp', 'serial_number'}
-    assert set(search_result[1].keys()) == {'item', 'id', '_id', 'timestamp', 'serial_number'}
+    assert set(search_result[0].keys()) == {'item', 'id', '_id', '_timestamp', 'serial_number'}
+    assert set(search_result[1].keys()) == {'item', 'id', '_id', '_timestamp', 'serial_number'}
     search_result = storage.search(key='item', value=json.dumps('y'), projection=['item'])
     assert len(search_result) == 2
     assert type(search_result[0]) == dict and type(search_result[1]) == dict
@@ -46,19 +48,25 @@ def test_memory_storage(dummy_deliveries):
     load_result = storage.load(key=['!??', '?!?', '??!'])
     assert type(load_result) == list and len(load_result) == 0
     load_result = storage.load(key=[d.get_id() for d in dummy_deliveries])
-    assert type(load_result) == list and load_result == dummy_deliveries
+    assert type(load_result) == list
+    assert len(load_result) == len(dummy_deliveries)
+    for i in range(len(load_result)):
+        assert load_result[0].get_id() == dummy_deliveries[0].get_id()
+        assert load_result[0].serial_number == dummy_deliveries[0].serial_number
+        assert load_result[0].get_timestamp() == dummy_deliveries[0].get_timestamp()
     load_result = storage.load(key=dummy_deliveries[1].get_id())
     assert isinstance(load_result, Delivery)
     load_result = storage.load(key=[dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id(), '???'], to_dict=True)
     assert type(load_result) == list and len(load_result) == 2
     assert type(load_result[0]) == dict and type(load_result[1]) == dict
-    assert set(load_result[0].keys()) == {'item', 'id', '_id', 'timestamp', 'serial_number'}
-    assert set(load_result[1].keys()) == {'item', 'id', '_id', 'timestamp', 'serial_number'}
-    load_result = storage.load(key=[dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id()], projection=['timestamp', '_id'])
+    assert set(load_result[0].keys()) == {'item', 'id', '_id', '_timestamp', 'serial_number'}
+    assert set(load_result[1].keys()) == {'item', 'id', '_id', '_timestamp', 'serial_number'}
+    load_result = storage.load(key=[dummy_deliveries[1].get_id(), dummy_deliveries[2].get_id()],
+                               projection=['_timestamp', '_id'])
     assert type(load_result) == list
     assert type(load_result[0]) == dict and type(load_result[1]) == dict
-    assert set(load_result[0].keys()) == {'_id', 'timestamp'}
-    assert set(load_result[1].keys()) == {'_id', 'timestamp'}
+    assert set(load_result[0].keys()) == {'_id', '_timestamp'}
+    assert set(load_result[1].keys()) == {'_id', '_timestamp'}
     storage.close()
     assert not storage.memory
 

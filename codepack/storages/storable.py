@@ -14,11 +14,16 @@ MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')  
 
 
 class Storable(metaclass=abc.ABCMeta):
-    def __init__(self, id: Optional[str] = None, serial_number: Optional[str] = None, version: Optional[str] = None,
+    def __init__(self, id: Optional[str] = None,
+                 serial_number: Optional[str] = None,
+                 version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
                  *args: Any, **kwargs: Any) -> None:
         self._id = id
         _, self._version = self.parse_id_and_version(key=id)
         self.serial_number = serial_number if serial_number else self.generate_serial_number()
+        self._timestamp = None
+        self.set_timestamp(timestamp=timestamp)
         if version is not None:
             self.set_version(version=version)
 
@@ -46,6 +51,12 @@ class Storable(metaclass=abc.ABCMeta):
         self._version = version
         if _id is not None:
             self._id = '%s@%s' % (_id, self._version)
+
+    def get_timestamp(self) -> float:
+        return self._timestamp
+
+    def set_timestamp(self, timestamp: float):
+        self._timestamp = timestamp if timestamp else datetime.now().timestamp()
 
     def generate_serial_number(self) -> str:
         return (str(id(self)) + str(datetime.now().timestamp())).replace('.', '')
@@ -103,3 +114,21 @@ class Storable(metaclass=abc.ABCMeta):
             return posixpath_join(path, '%s.json' % key)
         else:
             return os.path.join(path, '%s.json' % key)
+
+    def get_meta(self) -> dict:
+        return {'_id': self.get_id(), 'serial_number': self.serial_number, '_timestamp': self.get_timestamp()}
+
+    def diff(self, other: Union['Storable', dict]) -> dict:
+        ret = dict()
+        if isinstance(other, self.__class__):
+            return self.diff(other.to_dict())
+        elif isinstance(other, dict):
+            tmp = self.to_dict()
+            for k, v in other.items():
+                if k not in tmp.keys():
+                    ret[k] = v
+                elif v != tmp[k]:
+                    ret[k] = v
+        else:
+            raise TypeError(type(other))  # pragma: no cover
+        return ret
