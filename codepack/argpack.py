@@ -52,18 +52,14 @@ class ArgPack(Storable):
     def to_dict(self) -> dict:
         d = self.get_meta()
         d.pop('serial_number', None)
+        d['args'] = dict()
         for id, arg in self.args.items():
-            d[id] = arg.to_dict()
+            d['args'][id] = arg.to_dict()
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> 'ArgPack':
-        args = dict()
-        _id = None
-        for k, v in d.items():
-            if k not in {'_id', '_timestamp'}:
-                args[k] = v
-        return cls(id=d.get('_id', None), timestamp=d.get('_timestamp', None), args=args)
+        return cls(id=d.get('_id', None), timestamp=d.get('_timestamp', None), args=d.get('args', None))
 
     def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:

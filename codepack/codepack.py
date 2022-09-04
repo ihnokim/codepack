@@ -198,6 +198,8 @@ class CodePack(CodePackBase):
                 code.update_state(State.WAITING)
                 self._recursive_run(p, argpack)
         code.update_state(State.READY)
+        if isinstance(argpack, dict):
+            argpack = ArgPack.from_dict(argpack)
         code(**argpack[code.get_id()])
 
     def sync_run(self, argpack: Union[ArgPack, dict]) -> None:
