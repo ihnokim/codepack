@@ -10,3 +10,9 @@ def test_eq():
     dependency2.param = 'b'
     assert dependency1 != dependency2
     assert dependency2 != dependency_dict2
+
+
+def test_dependency_to_dict():
+    dependency = Dependency(param='a', id='add2', serial_number='1234')
+    d = dependency.to_dict()
+    assert set(d.keys()) == {'id', 'serial_number', 'param'}

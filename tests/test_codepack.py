@@ -183,7 +183,12 @@ def test_parse_codepack_from_str(default_os_env, fake_mongodb):
     assert codepack2.codes['dummy_function1'].print_params() == code1.print_params()
     assert codepack2.codes['dummy_function2'].print_params() == code2.print_params()
     argpack2 = codepack2.make_argpack()
-    assert argpack1.to_dict() == argpack2.to_dict()
+    d1 = argpack1.to_dict()
+    d2 = argpack2.to_dict()
+    assert set(d1.keys()) == set(d2.keys())
+    for k in d1.keys():
+        if k != '_timestamp':
+            assert d1[k] == d2[k]
     argpack2['dummy_function1'](a={}, c=2)
     argpack2['dummy_function2'](c=7, e=63)
     result = codepack2(argpack2)
@@ -206,3 +211,14 @@ def test_codepack_version(default_os_env):
     assert codepack2.__str__() == 'CodePack(id: test_codepack2@4.5.6, subscribe: hehe)\n'\
                                   '| Code(id: hoho@1.1.1, function: add2, params: (a, b))\n'\
                                   '|- Code(id: hehe, function: linear, params: (a, b, c))'
+
+
+def test_codepack_timestamp(default_os_env):
+    code1 = Code(add2, version='0.1.1')
+    code2 = Code(mul2, id='haha@1.2.3')
+    code1 >> code2
+    codepack1 = CodePack(id='test_codepack1@1.2.3', code=code1, subscribe=code2)
+    d = codepack1.to_dict()
+    assert '_timestamp' in d
+    codepack2 = CodePack.from_dict(d)
+    assert codepack2.get_timestamp() == d['_timestamp']

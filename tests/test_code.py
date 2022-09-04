@@ -601,3 +601,11 @@ def test_code_version(default_os_env):
     assert code3.__str__() == 'Code(id: hello, function: add2, params: (a, b))'
     assert code4.__str__() == 'Code(id: hello@0.1.1, function: add2, params: (a, b))'
     assert code5.__str__() == 'Code(id: hello@0.2.1, function: add2, params: (a, b))'
+
+
+def test_code_timestamp(default_os_env):
+    code = Code(add2, version='0.0.1')
+    d = code.to_dict()
+    assert '_timestamp' in d
+    code2 = Code.from_dict(d)
+    assert code2.get_timestamp() == d['_timestamp']

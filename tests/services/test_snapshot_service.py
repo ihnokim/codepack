@@ -70,7 +70,7 @@ def test_memory_snapshot_service_update():
     assert isinstance(recent_instance, dict)
     assert snapshot1.id == recent_instance['id']
     assert snapshot1.serial_number == recent_instance['serial_number']
-    assert snapshot1.timestamp + 1 == recent_instance['timestamp']
+    assert snapshot1.get_timestamp() + 1 == recent_instance['_timestamp']
     snapshot3 = Snapshot(id='1234', serial_number='5678', timestamp=timestamp + 1)
     mss.save(snapshot=snapshot3)
     recent_instance2 = storage.memory[snapshot2.serial_number]
@@ -133,9 +133,9 @@ def test_file_snapshot_service_update(testdir_snapshot_service):
     fss.save(snapshot=snapshot1)
     fss.save(snapshot=snapshot2)
     assert len(os.listdir(testdir_snapshot_service)) == 1
-    search_result = fss.search(key='id', value='1234', projection=['timestamp'])
+    search_result = fss.search(key='id', value='1234', projection=['_timestamp'])
     assert len(search_result) == 1
-    assert search_result[0]['timestamp'] == timestamp + 1
+    assert search_result[0]['_timestamp'] == timestamp + 1
 
 
 def test_mongo_code_snapshot_service_save_and_load(default_os_env, fake_mongodb):
@@ -199,6 +199,6 @@ def test_mongo_snapshot_service_update(fake_mongodb):
     mss.save(snapshot=snapshot1)
     mss.save(snapshot=snapshot2)
     assert fake_mongodb[db][collection].count_documents({}) == 1
-    search_result = mss.search(key='id', value='1234', projection=['timestamp'])
+    search_result = mss.search(key='id', value='1234', projection=['_timestamp'])
     assert len(search_result) == 1
-    assert search_result[0]['timestamp'] == timestamp + 1
+    assert search_result[0]['_timestamp'] == timestamp + 1
