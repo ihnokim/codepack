@@ -7,7 +7,7 @@ from typing import Optional, Callable
 
 class CodeBase(Storable, Function, Snapshotable, metaclass=abc.ABCMeta):
     def __init__(self,
-                 id: Optional[str] = None,
+                 name: Optional[str] = None,
                  serial_number: Optional[str] = None,
                  version: Optional[str] = None,
                  timestamp: Optional[float] = None,
@@ -15,8 +15,9 @@ class CodeBase(Storable, Function, Snapshotable, metaclass=abc.ABCMeta):
                  source: Optional[str] = None,
                  context: Optional[dict] = None) -> None:
         Function.__init__(self, function=function, source=source, context=context)
-        Storable.__init__(self, id=id if id is not None else self.function.__name__,
+        Storable.__init__(self, name=name if name is not None else self.function.__name__,
                           serial_number=serial_number,
                           version=version,
-                          timestamp=timestamp)
+                          timestamp=timestamp,
+                          id_key='_name')
         Snapshotable.__init__(self)

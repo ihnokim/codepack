@@ -10,20 +10,20 @@ StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_servi
 
 class ArgPack(Storable):
     def __init__(self, codepack: Optional[CodePack] = None,
-                 id: Optional[str] = None,
+                 name: Optional[str] = None,
                  version: Optional[str] = None,
                  timestamp: Optional[float] = None,
                  args: Optional[dict] = None) -> None:
-        _id = None
+        _name = None
         if codepack:
-            _id = codepack.get_id()
-        if id:
-            _id = id
-        Storable.__init__(self, id=_id, version=version, timestamp=timestamp)
+            _name = codepack.get_name()
+        if name:
+            _name = name
+        Storable.__init__(self, name=_name, version=version, timestamp=timestamp, id_key='_name')
         if args:
             self.args = dict()
-            for id, kwargs in args.items():
-                self.args[id] = Arg.from_dict(kwargs)
+            for n, kwargs in args.items():
+                self.args[n] = Arg.from_dict(kwargs)
         elif codepack:
             self.args = self.extract(codepack)
         else:
@@ -37,8 +37,8 @@ class ArgPack(Storable):
             stack.append(root)
             while len(stack):
                 n = stack.pop(-1)
-                if n.get_id() not in ret:
-                    ret[n.get_id()] = Arg(n)
+                if n.get_name() not in ret:
+                    ret[n.get_name()] = Arg(n)
                 for c in n.children.values():
                     stack.append(c)
         return ret
@@ -50,16 +50,16 @@ class ArgPack(Storable):
         self.args[key] = value
 
     def to_dict(self) -> dict:
-        d = self.get_meta()
-        d.pop('serial_number', None)
+        d = self.get_metadata()
+        d.pop('_serial_number', None)
         d['args'] = dict()
-        for id, arg in self.args.items():
-            d['args'][id] = arg.to_dict()
+        for name, arg in self.args.items():
+            d['args'][name] = arg.to_dict()
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> 'ArgPack':
-        return cls(id=d.get('_id', None), timestamp=d.get('_timestamp', None), args=d.get('args', None))
+        return cls(name=d.get('_name', None), timestamp=d.get('_timestamp', None), args=d.get('args', None))
 
     def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
@@ -67,17 +67,17 @@ class ArgPack(Storable):
         storage_service.save(item=self, update=update)
 
     @classmethod
-    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+    def load(cls, name: Union[str, list], storage_service: Optional[StorageService] = None)\
             -> Optional[Union['ArgPack', list]]:
         if storage_service is None:
             storage_service = Default.get_service('argpack', 'storage_service')
-        return storage_service.load(id=id)
+        return storage_service.load(name=name)
 
     @classmethod
-    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+    def remove(cls, name: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
             storage_service = Default.get_service('argpack', 'storage_service')
-        storage_service.remove(id=id)
+        storage_service.remove(name=name)
 
     def __getattr__(self, item: str) -> Arg:
         return getattr(self.args, item)
@@ -86,11 +86,11 @@ class ArgPack(Storable):
         return self.args.__iter__()
 
     def __str__(self) -> str:
-        ret = '%s(id: %s, args: {' % (self.__class__.__name__, self.get_id())
-        for i, (id, arg) in enumerate(self.args.items()):
+        ret = '%s(name: %s, args: {' % (self.__class__.__name__, self.get_name())
+        for i, (name, arg) in enumerate(self.args.items()):
             if i:
                 ret += ', '
-            ret += '%s%s' % (id, arg.__str__().replace('Arg(', '('))
+            ret += '%s%s' % (name, arg.__str__().replace('Arg(', '('))
         ret += '})'
         return ret
 

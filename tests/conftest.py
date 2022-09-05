@@ -115,15 +115,15 @@ def init_default():
 
 @pytest.fixture(scope='function', autouse=False)
 def dummy_deliveries():
-    obj1 = Delivery(id='obj1', serial_number='123', item='x')
-    obj2 = Delivery(id='obj2', serial_number='456', item='y')
-    obj3 = Delivery(id='obj3', serial_number='789', item='y')
+    obj1 = Delivery(name='obj1', serial_number='123', item='x')
+    obj2 = Delivery(name='obj2', serial_number='456', item='y')
+    obj3 = Delivery(name='obj3', serial_number='789', item='y')
     yield [obj1, obj2, obj3]
 
 
 @pytest.fixture(scope='function', autouse=False)
 def dummy_deliveries_for_text_key_search():
-    obj1 = Delivery(id='apple_orange', serial_number='123', item='x')
-    obj2 = Delivery(id='orange_banana', serial_number='456', item='y')
-    obj3 = Delivery(id='banana_apple', serial_number='789', item='z')
+    obj1 = Delivery(name='apple_orange', serial_number='123', item='x')
+    obj2 = Delivery(name='orange_banana', serial_number='456', item='y')
+    obj3 = Delivery(name='banana_apple', serial_number='789', item='z')
     yield [obj1, obj2, obj3]

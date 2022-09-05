@@ -28,28 +28,28 @@ class Supervisor(Employee):
             self.messenger.send(item=code.to_snapshot(args=args, kwargs=_kwargs).to_dict())
         else:
             raise TypeError(type(code))  # pragma: no cover
-        return code.serial_number
+        return code.get_serial_number()
 
     def run_codepack(self, codepack: CodePack, argpack: Optional[Union[ArgPack, dict]] = None) -> str:
         if isinstance(codepack, CodePack):
             codepack.save_snapshot(argpack=argpack)
             codepack.init_code_state(state='READY', argpack=argpack)
-            for id, code in codepack.codes.items():
-                _kwargs = argpack[id] if id in argpack else None
+            for name, code in codepack.codes.items():
+                _kwargs = argpack[name] if name in argpack else None
                 self.run_code(code=code, kwargs=_kwargs)
         else:
             raise TypeError(type(codepack))  # pragma: no cover
-        return codepack.serial_number
+        return codepack.get_serial_number()
 
     def organize(self, serial_number: Optional[str] = None) -> None:
         for snapshot in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
-            dependent_serial_numbers = [snapshot['serial_number'] for snapshot in snapshot['dependency']]
-            dependencies = self.snapshot_service.load(dependent_serial_numbers, projection=['state', 'serial_number'])
-            known_dependent_serial_numbers_set = {dependency['serial_number'] for dependency in dependencies}
+            dependent_serial_numbers = [snapshot['_serial_number'] for snapshot in snapshot['dependency']]
+            dependencies = self.snapshot_service.load(dependent_serial_numbers, projection=['state', '_serial_number'])
+            known_dependent_serial_numbers_set = {dependency['_serial_number'] for dependency in dependencies}
             for dependent_serial_number in dependent_serial_numbers:
                 if dependent_serial_number not in known_dependent_serial_numbers_set:
-                    dependencies.append({'serial_number': dependent_serial_number, 'state': 'UNKNOWN'})
+                    dependencies.append({'_serial_number': dependent_serial_number, 'state': 'UNKNOWN'})
             if serial_number and serial_number not in known_dependent_serial_numbers_set:
                 continue
             for dependency in dependencies:

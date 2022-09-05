@@ -10,21 +10,21 @@ def test_memory_storage_jobstore_codepack_snapshot():
     argpack = codepack.make_argpack()
     argpack['hello']['name'] = 'CodePack'
     job_id = 'job_test'
-    storage = MemoryStorage(item_type=StorableJob, key='id')
+    storage = MemoryStorage(item_type=StorableJob, key='_name')
     jobstore = JobStore(storage=storage)
     scheduler = Scheduler(jobstore=jobstore, blocking=False)
     scheduler.add_codepack(job_id=job_id, codepack=codepack, argpack=argpack, trigger='interval', seconds=30)
     scheduler.start()
     assert scheduler.is_running()
-    assert codepack.get_id() not in storage.memory
+    assert codepack.get_name() not in storage.memory
     assert job_id in storage.memory
     job = storage.memory[job_id]
     for k in ['_id', 'trigger', 'codepack', 'snapshot', 'last_run_time', 'next_run_time']:
         assert k in job
     assert job['_id'] == job_id
     assert job['trigger'] == 'interval[0:00:30]'
-    assert job['codepack'] == codepack.get_id()
-    assert job['snapshot'] == codepack.serial_number
+    assert job['codepack'] == codepack.get_name()
+    assert job['snapshot'] == codepack.get_serial_number()
     scheduler.remove_job(job_id)
     assert len(storage.memory) == 0
     scheduler.stop()
@@ -36,21 +36,21 @@ def test_file_storage_jobstore_codepack_snapshot(testdir):
     argpack = codepack.make_argpack()
     argpack['hello']['name'] = 'CodePack'
     job_id = 'job_test'
-    storage = FileStorage(item_type=StorableJob, key='id', path='testdir/scheduler/')
+    storage = FileStorage(item_type=StorableJob, key='_name', path='testdir/scheduler/')
     jobstore = JobStore(storage=storage)
     scheduler = Scheduler(jobstore=jobstore, blocking=False)
     scheduler.add_codepack(job_id=job_id, codepack=codepack, argpack=argpack, trigger='interval', seconds=30)
     scheduler.start()
     assert scheduler.is_running()
-    assert not storage.exist(key=codepack.get_id())
+    assert not storage.exist(key=codepack.get_name())
     assert storage.exist(key=job_id)
     job = storage.load(key=job_id, to_dict=True)
     for k in ['_id', 'trigger', 'codepack', 'snapshot', 'last_run_time', 'next_run_time']:
         assert k in job
     assert job['_id'] == job_id
     assert job['trigger'] == 'interval[0:00:30]'
-    assert job['codepack'] == codepack.get_id()
-    assert job['snapshot'] == codepack.serial_number
+    assert job['codepack'] == codepack.get_name()
+    assert job['snapshot'] == codepack.get_serial_number()
     scheduler.remove_job(job_id)
     assert len(storage.list_all()) == 0
     scheduler.stop()
@@ -64,21 +64,21 @@ def test_mongo_storage_jobstore_codepack_snapshot(fake_mongodb):
     job_id = 'job_test'
     db = 'test'
     collection = 'scheduler'
-    storage = MongoStorage(item_type=StorableJob, key='id', mongodb=fake_mongodb, db=db, collection=collection)
+    storage = MongoStorage(item_type=StorableJob, key='_name', mongodb=fake_mongodb, db=db, collection=collection)
     jobstore = JobStore(storage=storage)
     scheduler = Scheduler(jobstore=jobstore, blocking=False)
     scheduler.add_codepack(job_id=job_id, codepack=codepack, argpack=argpack, trigger='interval', seconds=30)
     scheduler.start()
     assert scheduler.is_running()
-    assert fake_mongodb[db][collection].count_documents({'_id': codepack.get_id()}) == 0
+    assert fake_mongodb[db][collection].count_documents({'_id': codepack.get_name()}) == 0
     assert fake_mongodb[db][collection].count_documents({'_id': job_id}) == 1
     document = fake_mongodb[db][collection].find_one({'_id': job_id})
     for k in ['_id', 'trigger', 'codepack', 'snapshot', 'last_run_time', 'next_run_time']:
         assert k in document
     assert document['_id'] == job_id
     assert document['trigger'] == 'interval[0:00:30]'
-    assert document['codepack'] == codepack.get_id()
-    assert document['snapshot'] == codepack.serial_number
+    assert document['codepack'] == codepack.get_name()
+    assert document['snapshot'] == codepack.get_serial_number()
     scheduler.remove_job(job_id)
     assert fake_mongodb[db][collection].count_documents({'_id': job_id}) == 0
     scheduler.stop()
@@ -114,8 +114,8 @@ def test_scheduler_get_instances(default_os_env):
     assert isinstance(_snapshot_from_snapshot, CodePackSnapshot)
     assert isinstance(_snapshot_from_dict, CodePackSnapshot)
     assert isinstance(_snapshot_from_json, CodePackSnapshot)
-    assert codepack.get_id() == _codepack.get_id()
-    assert argpack.get_id() == _argpack.get_id()
+    assert codepack.get_name() == _codepack.get_name()
+    assert argpack.get_name() == _argpack.get_name()
     assert snapshot.diff(_snapshot_from_snapshot) == {}
     assert snapshot.diff(_snapshot_from_dict) == {}
     assert snapshot.diff(_snapshot_from_json) == {}

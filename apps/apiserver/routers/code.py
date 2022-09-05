@@ -17,16 +17,16 @@ router = APIRouter(
 async def run(params: JsonCodeAndArgs):
     code = Code.from_dict(params.code)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
-    return {'serial_number': code.serial_number}
+    return {'serial_number': code.get_serial_number()}
 
 
-@router.post('/run/{id}')
-async def run_by_id(id: str, params: Args):
-    code = Code.load(id)
+@router.post('/run/{name}')
+async def run_by_name(name: str, params: Args):
+    code = Code.load(name=name)
     if code is None:
-        raise HTTPException(status_code=404, detail='%s not found' % id)
+        raise HTTPException(status_code=404, detail='%s not found' % name)
     common.supervisor.run_code(code=code, args=params.args, kwargs=params.kwargs)
-    return {'serial_number': code.serial_number}
+    return {'serial_number': code.get_serial_number()}
 
 
 @router.post('/run/snapshot')
@@ -34,7 +34,7 @@ async def run_by_snapshot(params: JsonSnapshot):
     snapshot = CodeSnapshot.from_dict(params.snapshot)
     code = Code.from_snapshot(snapshot)
     common.supervisor.run_code(code=code, args=snapshot.args, kwargs=snapshot.kwargs)
-    return {'serial_number': code.serial_number}
+    return {'serial_number': code.get_serial_number()}
 
 
 @router.post('/save')
@@ -44,31 +44,31 @@ async def save(params: JsonCode):
         tmp.save()
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return {'id': tmp.get_id()}
+    return {'name': tmp.get_name()}
 
 
 @router.patch('/update')
 async def update(params: JsonCode):
     tmp = Code.from_dict(params.code)
     tmp.save(update=True)
-    return {'id': tmp.get_id()}
+    return {'name': tmp.get_name()}
 
 
-@router.delete('/remove/{id}')
-async def remove(id: str):
+@router.delete('/remove/{name}')
+async def remove(name: str):
     storage_service = Default.get_service('code', 'storage_service')
-    if storage_service.check(id=id):
-        Code.remove(id=id)
+    if storage_service.check(name=name):
+        Code.remove(name=name)
     else:
-        raise HTTPException(status_code=404, detail='%s not found' % id)
-    return {'id': id}
+        raise HTTPException(status_code=404, detail='%s not found' % name)
+    return {'name': name}
 
 
-@router.get('/load/{id}')
-async def load(id: str):
-    code = Code.load(id=id)
+@router.get('/load/{name}')
+async def load(name: str):
+    code = Code.load(name=name)
     if code is None:
-        raise HTTPException(status_code=404, detail='%s not found' % id)
+        raise HTTPException(status_code=404, detail='%s not found' % name)
     return code.to_dict()
 
 

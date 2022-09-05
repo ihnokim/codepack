@@ -4,7 +4,6 @@ from codepack.plugins.snapshots.codepack_snapshot import CodePackSnapshot
 from codepack.plugins.supervisor import Supervisor
 from apscheduler.schedulers.background import BackgroundScheduler, BlockingScheduler
 import requests
-import json
 from typing import Optional, Union, Callable, TypeVar, Any
 
 
@@ -66,7 +65,7 @@ class Scheduler:
                      job_id: Optional[str] = None, argpack: Optional[Union[ArgPack, dict]] = None,
                      callback: Optional[Callable] = None, **kwargs: Any) -> Job:
         if job_id is None:
-            job_id = codepack.id
+            job_id = codepack.get_name()
         snapshot = codepack.to_snapshot(argpack=argpack)
         return self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger,
                             kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
@@ -74,7 +73,7 @@ class Scheduler:
     def add_snapshot(self, snapshot: CodePackSnapshot, trigger: Union[BaseTrigger, str], job_id: Optional[str] = None,
                      callback: Optional[Callable] = None, **kwargs: Any) -> Job:
         if job_id is None:
-            job_id = snapshot.id
+            job_id = snapshot.get_name()
         return self.add_job(self._get_callback(callback), job_id=job_id, trigger=trigger,
                             kwargs={'snapshot': snapshot.to_dict()}, **kwargs)
 

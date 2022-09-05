@@ -49,7 +49,7 @@ def test_print_params(default_os_env):
 
 def test_load_code_with_annotations(default_os_env, fake_mongodb):
     mongo_storage = MongoStorage(mongodb=fake_mongodb, db='test_db', collection='test_collection',
-                                 item_type=Code, key='id')
+                                 item_type=Code, key='_name')
     storage_service = StorageService(storage=mongo_storage)
     Code(add3, storage_service=storage_service).save()
     code1 = Code.load('add3', storage_service=storage_service)
@@ -71,35 +71,35 @@ def test_print_info(default_os_env):
     code2 = Code(add3, image='test-image', owner='admin')
     code1 >> code2
     code2.receive('b') << code1
-    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
+    assert code1.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
                                " env: test-env, state: UNKNOWN)"
-    assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
+    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " image: test-image, owner: admin, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b), env: test-env)"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2)," \
+    assert code1.get_info(state=False) == "Code(name: add2, function: add2, params: (a, b), env: test-env)"
+    assert code2.get_info(state=False) == "Code(name: add3, function: add3, params: (a, b, c=2)," \
                                           " receive: {'b': 'add2'}, image: test-image, owner: admin)"
     code1.image = 'test-image2'
     code1.owner = 'admin2'
-    assert code1.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
+    assert code1.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
                                " env: test-env, image: test-image2, owner: admin2, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(id: add2, function: add2, params: (a, b)," \
+    assert code1.get_info(state=False) == "Code(name: add2, function: add2, params: (a, b)," \
                                           " env: test-env, image: test-image2, owner: admin2)"
     code2.owner = None
-    assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
+    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " image: test-image, state: UNKNOWN)"
-    assert code2.get_info(state=False) == "Code(id: add3, function: add3, params: (a, b, c=2)," \
+    assert code2.get_info(state=False) == "Code(name: add3, function: add3, params: (a, b, c=2)," \
                                           " receive: {'b': 'add2'}, image: test-image)"
     code2.image = None
-    assert code2.get_info() == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
+    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
                                " state: UNKNOWN)"
     assert code2.get_info(
-        state=False) == "Code(id: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'})"
+        state=False) == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'})"
 
 
 def test_partial_print_info(default_os_env):
     plus2 = partial(add2, b=3)
     code = Code(plus2, owner='admin')
-    assert code.get_info() == "Code(id: add2, function: add2, params: (a, b)," \
+    assert code.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
                               " context: {'b': 3}, owner: admin, state: UNKNOWN)"
 
 
@@ -112,9 +112,9 @@ def test_get_function_from_source(default_os_env):
 
 
 def test_from_dict(default_os_env):
-    d = {'_id': 'test', 'source': "def plus1(x):\n  return x + 1"}
+    d = {'_name': 'test', 'source': "def plus1(x):\n  return x + 1"}
     code = Code.from_dict(d)
-    assert code.get_id() == 'test'
+    assert code.get_name() == 'test'
     assert code.function.__name__ == 'plus1'
     ret = code(x=5)
     assert ret == 6
@@ -124,32 +124,12 @@ def test_from_dict(default_os_env):
 def test_to_dict(default_os_env):
     code = Code(add2)
     d = code.to_dict()
-    assert code.get_id() == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
-
-
-def test_to_db_and_from_db(default_os_env, fake_mongodb):
-    db = 'test'
-    collection = 'codes'
-    test_id = 'add2'
-    try:
-        code1 = Code(add2)
-        assert test_id == code1.get_id()
-        code1.to_db(mongodb=fake_mongodb, db=db, collection=collection)
-        assert fake_mongodb[db][collection].find_one({'_id': code1.get_id()})
-        code2 = Code.from_db(id=code1.get_id(), mongodb=fake_mongodb, db=db, collection=collection)
-        assert code1.get_id() == code2.get_id()
-        assert code1.function.__name__ == code2.function.__name__
-        assert code1.description == code2.description
-        assert code1.serial_number != code2.serial_number
-        assert code1(1, 3) == code2(1, 3)
-    finally:
-        if fake_mongodb[db][collection].count_documents({'_id': test_id}) > 0:
-            fake_mongodb[db][collection].delete_one({'_id': test_id})
+    assert code.get_name() == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
 
 
 def test_add_dependency(default_os_env):
-    dependency = [{'id': 'test1', 'serial_number': '1234', 'param': None},
-                  {'id': 'test2', 'serial_number': '5678', 'param': 'a'}]
+    dependency = [{'_name': 'test1', '_serial_number': '1234', 'param': None},
+                  {'_name': 'test2', '_serial_number': '5678', 'param': 'a'}]
     code = Code(add2, dependency=dependency)
     assert '1234' in code.dependency and '5678' in code.dependency
     assert code.dependency['5678'].param == 'a'
@@ -165,20 +145,20 @@ def test_check_dependency_linkage(default_os_env):
     code4 = Code(linear)
     code1 >> [code2, code3]
     code3 >> code4
-    assert code3.serial_number in code4.dependency
-    assert code3.get_id() in code4.parents
-    assert code4.get_id() in code3.children
+    assert code3.get_serial_number() in code4.dependency
+    assert code3.get_name() in code4.parents
+    assert code4.get_name() in code3.children
     assert set(code2.dependency.keys()) == set(code3.dependency.keys())
-    assert not code4.dependency[code3.serial_number].param
+    assert not code4.dependency[code3.get_serial_number()].param
     code4.receive('c') << code3
-    assert code4.dependency[code3.serial_number].param == 'c'
+    assert code4.dependency[code3.get_serial_number()].param == 'c'
     code3.receive('b') << code1
-    assert code3.dependency[code1.serial_number].param == 'b'
-    assert not code2.dependency[code1.serial_number].param
+    assert code3.dependency[code1.get_serial_number()].param == 'b'
+    assert not code2.dependency[code1.get_serial_number()].param
     code3 // code4
     assert len(set(code4.dependency)) == 0
-    assert code3.get_id() not in code4.parents
-    assert code4.get_id() not in code3.children
+    assert code3.get_name() not in code4.parents
+    assert code4.get_name() not in code3.children
     code1 // [code2, code3]
     assert len(code2.dependency.keys()) == len(code3.dependency.keys()) == 0
     assert len(code1.children) == 0
@@ -240,7 +220,7 @@ def test_validate_dependency_result(default_os_env):
     code3.receive('c') << code2
     code1(1, 2)
     code2(3, 4)
-    code2.service['delivery'].cancel(code2.serial_number)
+    code2.service['delivery'].cancel(code2.get_serial_number())
     ret = code3(a=3)
     assert ret is None
     assert code3.get_state() == 'ERROR'
@@ -254,13 +234,13 @@ def test_validate_dependency_result(default_os_env):
     assert len(snapshots) == 2
     assert code3.dependency.check_delivery() is True
     snapshot_dict = {x['_id']: x for x in snapshots}
-    code2_state_info = snapshot_dict.pop(code2.serial_number)
+    code2_state_info = snapshot_dict.pop(code2.get_serial_number())
     assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'WAITING'
-    snapshot_dict[code2.serial_number] = code2_state_info
+    snapshot_dict[code2.get_serial_number()] = code2_state_info
     assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
-    code2.service['delivery'].cancel(code2.serial_number)
+    code2.service['delivery'].cancel(code2.get_serial_number())
     assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'ERROR'
-    code2.service['delivery'].send(id='dummy', serial_number=code2.serial_number, item=123)
+    code2.service['delivery'].send(name='dummy', serial_number=code2.get_serial_number(), item=123)
     assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
 
 
@@ -292,28 +272,28 @@ def test_update_serial_number(default_os_env):
     code2.receive('a') << code1
     code3.receive('b') << code2
     code4.receive('c') << code2
-    old_serial_number = code2.serial_number
+    old_serial_number = code2.get_serial_number()
     new_serial_number = '1234'
     code2.update_serial_number(new_serial_number)
-    assert code2.serial_number == new_serial_number
-    assert code2.get_id() in code1.children
-    assert code1.children[code2.get_id()].serial_number == new_serial_number
-    assert code2.get_id() in code3.parents
-    assert code3.parents[code2.get_id()].serial_number == new_serial_number
+    assert code2.get_serial_number() == new_serial_number
+    assert code2.get_name() in code1.children
+    assert code1.children[code2.get_name()].get_serial_number() == new_serial_number
+    assert code2.get_name() in code3.parents
+    assert code3.parents[code2.get_name()].get_serial_number() == new_serial_number
     assert old_serial_number not in code3.dependency
     assert new_serial_number in code3.dependency
     assert code3.dependency[new_serial_number].param == 'b'
     assert code3.dependency[new_serial_number].code == code3
-    assert code3.dependency[new_serial_number].get_id() == code2.get_id()
-    assert code3.dependency[new_serial_number].serial_number == new_serial_number
-    assert code2.get_id() in code4.parents
-    assert code4.parents[code2.get_id()].serial_number == new_serial_number
+    assert code3.dependency[new_serial_number].get_name() == code2.get_name()
+    assert code3.dependency[new_serial_number].get_serial_number() == new_serial_number
+    assert code2.get_name() in code4.parents
+    assert code4.parents[code2.get_name()].get_serial_number() == new_serial_number
     assert old_serial_number not in code4.dependency
     assert new_serial_number in code4.dependency
     assert code4.dependency[new_serial_number].param == 'c'
     assert code4.dependency[new_serial_number].code == code4
-    assert code4.dependency[new_serial_number].get_id() == code2.get_id()
-    assert code4.dependency[new_serial_number].serial_number == new_serial_number
+    assert code4.dependency[new_serial_number].get_name() == code2.get_name()
+    assert code4.dependency[new_serial_number].get_serial_number() == new_serial_number
 
 
 def test_collect_linked_ids(default_os_env):
@@ -325,11 +305,11 @@ def test_collect_linked_ids(default_os_env):
     code1 >> code2 >> code3
     code2 >> code4
     code5 >> code4
-    all_ids = {'add2', 'add3', 'mul2', 'print_x', 'linear'}
-    assert code1._collect_linked_ids() == all_ids
-    assert code2._collect_linked_ids() == all_ids
-    assert code3._collect_linked_ids() == all_ids
-    assert code4._collect_linked_ids() == all_ids
+    all_names = {'add2', 'add3', 'mul2', 'print_x', 'linear'}
+    assert code1._collect_linked_names() == all_names
+    assert code2._collect_linked_names() == all_names
+    assert code3._collect_linked_names() == all_names
+    assert code4._collect_linked_names() == all_names
 
 
 def test_recursion_detection(default_os_env):
@@ -338,22 +318,22 @@ def test_recursion_detection(default_os_env):
     code3 = Code(mul2)
     code4 = Code(print_x)
     code1 >> code2
-    all_ids = {'add2', 'add3'}
-    assert code1._collect_linked_ids() == all_ids
-    assert code2._collect_linked_ids() == all_ids
+    all_names = {'add2', 'add3'}
+    assert code1._collect_linked_names() == all_names
+    assert code2._collect_linked_names() == all_names
     code2 >> code3
-    all_ids.add('mul2')
-    assert code1._collect_linked_ids() == all_ids
-    assert code2._collect_linked_ids() == all_ids
-    assert code3._collect_linked_ids() == all_ids
+    all_names.add('mul2')
+    assert code1._collect_linked_names() == all_names
+    assert code2._collect_linked_names() == all_names
+    assert code3._collect_linked_names() == all_names
     with pytest.raises(ValueError):
         code3 >> code2
     code3 >> code4
-    all_ids.add('print_x')
-    assert code1._collect_linked_ids() == all_ids
-    assert code2._collect_linked_ids() == all_ids
-    assert code3._collect_linked_ids() == all_ids
-    assert code4._collect_linked_ids() == all_ids
+    all_names.add('print_x')
+    assert code1._collect_linked_names() == all_names
+    assert code2._collect_linked_names() == all_names
+    assert code3._collect_linked_names() == all_names
+    assert code4._collect_linked_names() == all_names
 
 
 def test_default_load(default_os_env):
@@ -364,12 +344,12 @@ def test_default_load(default_os_env):
     code2.save()
     search_result = Code.load(['add2', 'add3'])
     assert type(search_result) == list and len(search_result) == 1
-    assert isinstance(search_result[0], Code) and search_result[0].get_id() == 'add3'
+    assert isinstance(search_result[0], Code) and search_result[0].get_name() == 'add3'
     search_result = Code.load('add2')
     assert search_result is None
     search_result = Code.load('add3')
     assert search_result is not None
-    assert isinstance(search_result, Code) and search_result.get_id() == 'add3'
+    assert isinstance(search_result, Code) and search_result.get_name() == 'add3'
 
 
 def test_get_message(default_os_env):
@@ -403,7 +383,7 @@ def test_remove(default_os_env):
     ret = Code.load('add2')
     assert ret is not None
     assert isinstance(ret, Code)
-    assert ret.get_id() == code.get_id()
+    assert ret.get_name() == code.get_name()
     Code.remove('add2')
     ret = Code.load('add2')
     assert ret is None
@@ -470,7 +450,7 @@ def test_run_callback_with_normal_case(default_os_env):
     seq = ['READY', 'RUNNING', 'TERMINATED']
     for i, (args, kwargs) in enumerate(arg_list):
         assert len(args) == 1 and len(kwargs) == 0
-        assert args[0] == {'serial_number': code.serial_number, 'state': seq[i]}
+        assert args[0] == {'_serial_number': code.get_serial_number(), 'state': seq[i]}
 
 
 def test_run_callback_with_error_case(default_os_env):
@@ -487,7 +467,7 @@ def test_run_callback_with_error_case(default_os_env):
     seq = ['READY', 'RUNNING', 'ERROR']
     for i, (args, kwargs) in enumerate(arg_list):
         assert len(args) == 1 and len(kwargs) == 0
-        x = {'serial_number': code.serial_number, 'state': seq[i]}
+        x = {'_serial_number': code.get_serial_number(), 'state': seq[i]}
         if seq[i] == 'ERROR':
             x['message'] = "add2() missing 1 required positional argument: 'b'"
         assert args[0] == x
@@ -511,7 +491,7 @@ def test_run_multiple_callbacks_with_normal_case(default_os_env):
         seq = ['READY', 'RUNNING', 'TERMINATED']
         for i, (args, kwargs) in enumerate(arg_list):
             assert len(args) == 1 and len(kwargs) == 0
-            assert args[0] == {'serial_number': code.serial_number, 'state': seq[i]}
+            assert args[0] == {'_serial_number': code.get_serial_number(), 'state': seq[i]}
 
 
 def test_run_multiple_callbacks_with_error_case(default_os_env):
@@ -533,7 +513,7 @@ def test_run_multiple_callbacks_with_error_case(default_os_env):
         seq = ['READY', 'RUNNING', 'ERROR']
         for i, (args, kwargs) in enumerate(arg_list):
             assert len(args) == 1 and len(kwargs) == 0
-            x = {'serial_number': code.serial_number, 'state': seq[i]}
+            x = {'_serial_number': code.get_serial_number(), 'state': seq[i]}
             if seq[i] == 'ERROR':
                 x['message'] = "add2() missing 1 required positional argument: 'b'"
             assert args[0] == x
@@ -551,7 +531,7 @@ def test_get_source_of_function_defined_in_string():
 def test_partial_code_run(default_os_env):
     plus1 = partial(add2, b=1)
     code = Code(plus1)
-    assert code.get_id() == 'add2'
+    assert code.get_name() == 'add2'
     assert code.context == {'b': 1}
     assert code(3) == 4
     assert code(4, b=5) == 9
@@ -559,7 +539,7 @@ def test_partial_code_run(default_os_env):
         code(4, 5)
     snapshot = code.to_snapshot()
     code2 = Code.from_snapshot(snapshot)
-    assert code2.get_id() == 'add2'
+    assert code2.get_name() == 'add2'
     assert code2.context == {'b': 1}
     assert code2(4) == 5
 
@@ -593,14 +573,14 @@ def test_multiple_decorators(default_os_env):
 def test_code_version(default_os_env):
     code1 = Code(add2)
     code2 = Code(add2, version='0.0.1')
-    code3 = Code(add2, id='hello')
-    code4 = Code(add2, id='hello', version='0.1.1')
-    code5 = Code(add2, id='hello@0.2.1')
-    assert code1.__str__() == 'Code(id: add2, function: add2, params: (a, b))'
-    assert code2.__str__() == 'Code(id: add2@0.0.1, function: add2, params: (a, b))'
-    assert code3.__str__() == 'Code(id: hello, function: add2, params: (a, b))'
-    assert code4.__str__() == 'Code(id: hello@0.1.1, function: add2, params: (a, b))'
-    assert code5.__str__() == 'Code(id: hello@0.2.1, function: add2, params: (a, b))'
+    code3 = Code(add2, name='hello')
+    code4 = Code(add2, name='hello', version='0.1.1')
+    code5 = Code(add2, name='hello@0.2.1')
+    assert code1.__str__() == 'Code(name: add2, function: add2, params: (a, b))'
+    assert code2.__str__() == 'Code(name: add2@0.0.1, function: add2, params: (a, b))'
+    assert code3.__str__() == 'Code(name: hello, function: add2, params: (a, b))'
+    assert code4.__str__() == 'Code(name: hello@0.1.1, function: add2, params: (a, b))'
+    assert code5.__str__() == 'Code(name: hello@0.2.1, function: add2, params: (a, b))'
 
 
 def test_code_timestamp(default_os_env):

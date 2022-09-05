@@ -26,51 +26,51 @@ async def register(params: JobWithJsonCodePackAndJsonArgPack):
             common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
         except ConflictingIdError:
-            _job_id = params.job_id if params.job_id else codepack.get_id()
+            _job_id = params.job_id if params.job_id else codepack.get_name()
             raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-        return {'serial_number': codepack.serial_number}
+        return {'serial_number': codepack.get_serial_number()}
     else:
         raise TypeError(common.scheduler)
 
 
-@router.post('/register/{id}')
-async def register_by_id(id: str, params: JobWithJsonArgPack):
+@router.post('/register/{name}')
+async def register_by_name(name: str, params: JobWithJsonArgPack):
     if isinstance(common.scheduler, str):
         return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
-        codepack = CodePack.load(id)
+        codepack = CodePack.load(name)
         if codepack is None:
-            raise HTTPException(status_code=404, detail='%s not found' % id)
+            raise HTTPException(status_code=404, detail='%s not found' % name)
         argpack = ArgPack.from_dict(params.argpack)
         try:
             common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
         except ConflictingIdError:
-            _job_id = params.job_id if params.job_id else codepack.get_id()
+            _job_id = params.job_id if params.job_id else codepack.get_name()
             raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-        return {'serial_number': codepack.serial_number}
+        return {'serial_number': codepack.get_serial_number()}
     else:
         raise TypeError(common.scheduler)
 
 
-@router.post('/register/{codepack_id}/{argpack_id}')
-async def register_by_id_pair(codepack_id: str, argpack_id: str, params: Job):
+@router.post('/register/{codepack_name}/{argpack_name}')
+async def register_by_id_pair(codepack_name: str, argpack_name: str, params: Job):
     if isinstance(common.scheduler, str):
         return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id-pair', json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
-        codepack = CodePack.load(codepack_id)
+        codepack = CodePack.load(codepack_name)
         if codepack is None:
-            raise HTTPException(status_code=404, detail='%s not found' % codepack_id)
-        argpack = ArgPack.load(argpack_id)
+            raise HTTPException(status_code=404, detail='%s not found' % codepack_name)
+        argpack = ArgPack.load(argpack_name)
         if argpack is None:
-            raise HTTPException(status_code=404, detail='%s not found' % argpack_id)
+            raise HTTPException(status_code=404, detail='%s not found' % argpack_name)
         try:
             common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
         except ConflictingIdError:
-            _job_id = params.job_id if params.job_id else codepack.get_id()
+            _job_id = params.job_id if params.job_id else codepack.get_name()
             raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-        return {'serial_number': codepack.serial_number}
+        return {'serial_number': codepack.get_serial_number()}
     else:
         raise TypeError(common.scheduler)
 
@@ -85,23 +85,23 @@ async def register_by_snapshot(params: JobWithJsonSnapshot):
             common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
                                           trigger=params.trigger, **params.trigger_config)
         except ConflictingIdError:
-            _job_id = params.job_id if params.job_id else snapshot.get_id()
+            _job_id = params.job_id if params.job_id else snapshot.get_name()
             raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-        return {'serial_number': snapshot.serial_number}
+        return {'serial_number': snapshot.get_serial_number()}
     else:
         raise TypeError(common.scheduler)
 
 
-@router.delete('/unregister/{id}')
-async def unregister(id: str):
+@router.delete('/unregister/{name}')
+async def unregister(name: str):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.delete, 'scheduler/unregister/%s' % id)
+        return redirect_to_remote_scheduler(requests.delete, 'scheduler/unregister/%s' % name)
     elif isinstance(common.scheduler, Scheduler):
         try:
-            common.scheduler.remove_job(job_id=id)
+            common.scheduler.remove_job(job_id=name)
         except JobLookupError:
-            raise HTTPException(status_code=404, detail='%s not found' % id)
-        return {'id': id}
+            raise HTTPException(status_code=404, detail='%s not found' % name)
+        return {'name': name}
     else:
         raise TypeError(common.scheduler)
 

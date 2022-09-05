@@ -8,12 +8,12 @@ Storage = TypeVar('Storage', bound='codepack.storages.storage.Storage')  # noqa:
 class DeliveryService(Service):
     def __init__(self, storage: Storage) -> None:
         super().__init__(storage=storage)
-        if self.storage.key != 'serial_number':
-            self.storage.key = 'serial_number'
+        if self.storage.key != '_serial_number':
+            self.storage.key = '_serial_number'
 
-    def send(self, id: str, serial_number: str, item: Optional[Any] = None,
+    def send(self, name: str, serial_number: str, item: Optional[Any] = None,
              timestamp: Optional[float] = None) -> None:
-        item = self.storage.item_type(id=id, serial_number=serial_number, item=item, timestamp=timestamp)
+        item = self.storage.item_type(name=name, serial_number=serial_number, item=item, timestamp=timestamp)
         self.storage.save(item=item, update=True)
 
     def receive(self, serial_number: str) -> Any:

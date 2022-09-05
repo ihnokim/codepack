@@ -27,7 +27,7 @@ class DependencyMonitor:
     def monitor(self) -> None:
         for x in self.snapshot_service.search(key='state', value='WAITING'):
             resolved = True
-            for s in self.snapshot_service.load([x['serial_number'] for x in x['dependency']], projection={'state'}):
+            for s in self.snapshot_service.load([x['_serial_number'] for x in x['dependency']], projection={'state'}):
                 if s['state'] != 'TERMINATED':
                     resolved = False
                     break
