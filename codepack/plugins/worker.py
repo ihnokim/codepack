@@ -107,7 +107,7 @@ class Worker(Employee):
             if code.image or code.env:
                 state = code.check_dependency()
                 if state == 'READY':
-                    filepath = '%s.json' % code.serial_number
+                    filepath = '%s.json' % code.get_serial_number()
                     snapshot_path = os.path.join(self.script_dir, filepath)
                     script_path = os.path.join(self.script_dir, self.script)
                     snapshot.to_file(snapshot_path)
@@ -138,4 +138,4 @@ class Worker(Employee):
         finally:
             if snapshot_path:
                 DockerManager.remove_file_if_exists(path=snapshot_path)
-            return snapshot['serial_number']
+            return snapshot['_serial_number']

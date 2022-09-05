@@ -14,14 +14,15 @@ MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')  
 
 
 class Storable(metaclass=abc.ABCMeta):
-    def __init__(self, id: Optional[str] = None,
+    def __init__(self, name: Optional[str] = None,
                  serial_number: Optional[str] = None,
                  version: Optional[str] = None,
                  timestamp: Optional[float] = None,
                  *args: Any, **kwargs: Any) -> None:
-        self._id = id
-        _, self._version = self.parse_id_and_version(key=id)
-        self.serial_number = serial_number if serial_number else self.generate_serial_number()
+        self._name = name
+        _, self._version = self.parse_id_and_version(key=name)
+        self._serial_number = None
+        self.set_serial_number(serial_number=serial_number if serial_number else self.generate_serial_number())
         self._timestamp = None
         self.set_timestamp(timestamp=timestamp)
         if version is not None:
@@ -37,20 +38,26 @@ class Storable(metaclass=abc.ABCMeta):
         except ValueError:
             return key, None
 
-    def get_id(self) -> str:
-        return self._id
+    def get_name(self) -> str:
+        return self._name
 
-    def set_id(self, id: Optional[str] = None) -> None:
-        self._id = id
+    def set_name(self, name: Optional[str] = None) -> None:
+        self._name = name
 
     def get_version(self) -> Optional[str]:
         return self._version
 
     def set_version(self, version: str) -> None:
-        _id, _version = self.parse_id_and_version(self._id)
+        _name, _version = self.parse_id_and_version(self._name)
         self._version = version
-        if _id is not None:
-            self._id = '%s@%s' % (_id, self._version)
+        if _name is not None:
+            self._name = '%s@%s' % (_name, self._version)
+
+    def get_serial_number(self) -> str:
+        return self._serial_number
+
+    def set_serial_number(self, serial_number: str) -> None:
+        self._serial_number = serial_number
 
     def get_timestamp(self) -> float:
         return self._timestamp
@@ -86,19 +93,6 @@ class Storable(metaclass=abc.ABCMeta):
             ret = cls.from_json(f.read())
         return ret
 
-    def to_db(self, mongodb: Union[MongoDB, MongoClient], db: str, collection: str,
-              *args: Any, **kwargs: Any) -> None:
-        mongodb[db][collection].insert_one(self.to_dict(), *args, **kwargs)
-
-    @classmethod
-    def from_db(cls, id: id, mongodb: Union[MongoDB, MongoClient], db: str, collection: str,
-                *args: Any, **kwargs: Any) -> Optional['Storable']:
-        d = mongodb[db][collection].find_one({'_id': id}, *args, **kwargs)
-        if d is None:
-            return d
-        else:
-            return cls.from_dict(d)
-
     @abc.abstractmethod
     def to_dict(self) -> dict:
         """convert to dict"""
@@ -116,7 +110,8 @@ class Storable(metaclass=abc.ABCMeta):
             return os.path.join(path, '%s.json' % key)
 
     def get_meta(self) -> dict:
-        return {'_id': self.get_id(), 'serial_number': self.serial_number, '_timestamp': self.get_timestamp()}
+        return {'_name': self.get_name(), '_serial_number': self.get_serial_number(),
+                '_timestamp': self.get_timestamp()}
 
     def diff(self, other: Union['Storable', dict]) -> dict:
         ret = dict()

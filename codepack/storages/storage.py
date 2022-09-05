@@ -64,8 +64,15 @@ class Storage(metaclass=abc.ABCMeta):
             raise ValueError('%s is unknown' % summary)
         return op, init
 
-    def get_item_key(self, item: Storable) -> str:
-        if self.key is not None and self.key != 'id':
-            return getattr(item, self.key)
+    def get_item_key(self, item: Storable) -> Any:
+        if self.key is not None:
+            if self.key == '_serial_number':
+                return item.get_serial_number()
+            elif self.key == '_name':
+                return item.get_name()
+            elif self.key == '_timestamp':
+                return item.get_timestamp()
+            else:
+                return getattr(item, self.key)
         else:
-            return item.get_id()
+            return item.get_name()

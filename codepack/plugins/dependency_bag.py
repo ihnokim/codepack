@@ -16,12 +16,12 @@ class DependencyBag(MemoryStorage, Iterable):
     def add(self, dependency: Union[Dependency, dict, Iterable]) -> None:
         if isinstance(dependency, Dependency):
             self.code.assert_param(dependency.param)
-            self.memory[dependency.serial_number] = dependency
+            self.memory[dependency.get_serial_number()] = dependency
         elif isinstance(dependency, dict):
             self.code.assert_param(dependency['param'])
             d = Dependency.from_dict(d=dependency)
             d.bind(self.code)
-            self.memory[dependency['serial_number']] = d
+            self.memory[dependency['_serial_number']] = d
         elif isinstance(dependency, Iterable):
             for d in dependency:
                 self.add(d)
@@ -38,7 +38,7 @@ class DependencyBag(MemoryStorage, Iterable):
         ret = dict()
         for dependency in self.memory.values():
             if dependency.param:
-                ret[dependency.param] = dependency.get_id()
+                ret[dependency.param] = dependency.get_name()
         return ret
 
     def load_snapshot(self) -> Optional[Union[CodeSnapshot, dict, list]]:

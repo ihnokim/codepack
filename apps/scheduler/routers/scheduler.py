@@ -21,9 +21,9 @@ async def register(params: CodePackJSONJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.get_id()
+        _job_id = params.job_id if params.job_id else codepack.get_name()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-    return {'serial_number': codepack.serial_number}
+    return {'serial_number': codepack.get_serial_number()}
 
 
 @router.post('/register/id')
@@ -36,9 +36,9 @@ async def register_by_id(params: CodePackIDJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.get_id()
+        _job_id = params.job_id if params.job_id else codepack.get_name()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-    return {'serial_number': codepack.serial_number}
+    return {'serial_number': codepack.get_serial_number()}
 
 
 @router.post('/register/id-pair')
@@ -53,9 +53,9 @@ async def register_by_id_pair(params: IDPairJob):
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else codepack.get_id()
+        _job_id = params.job_id if params.job_id else codepack.get_name()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-    return {'serial_number': codepack.serial_number}
+    return {'serial_number': codepack.get_serial_number()}
 
 
 @router.post('/register/snapshot')
@@ -65,9 +65,9 @@ async def register_by_snapshot(params: SnapshotJSONJob):
         common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
     except ConflictingIdError:
-        _job_id = params.job_id if params.job_id else snapshot.get_id()
+        _job_id = params.job_id if params.job_id else snapshot.get_name()
         raise HTTPException(status_code=409, detail='%s already exists' % _job_id)
-    return {'serial_number': snapshot.serial_number}
+    return {'serial_number': snapshot.get_serial_number()}
 
 
 @router.delete('/unregister/{id}')

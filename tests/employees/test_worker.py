@@ -15,7 +15,7 @@ def test_memory_worker_run_snapshot_with_nothing():
     code = Code(add2)
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
-    assert sn == code.serial_number
+    assert sn == code.get_serial_number()
     assert code.get_state() == 'TERMINATED'
     assert code.get_result() == 8
     worker.stop()
@@ -28,7 +28,7 @@ def test_memory_worker_run_snapshot_with_env(mock_subprocess_run):
     code = Code(add2, env='test_env', image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
-    assert sn == code.serial_number
+    assert sn == code.get_serial_number()
     default_config_dir = Config.get_default_config_dir()
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_subprocess_run.assert_called_once_with(
@@ -47,7 +47,7 @@ def test_memory_worker_run_snapshot_with_env_and_callback(mock_subprocess_run):
     code = Code(add2, env='test_env', image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
-    assert sn == code.serial_number
+    assert sn == code.get_serial_number()
     default_config_dir = Config.get_default_config_dir()
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_subprocess_run.assert_called_once_with(
@@ -65,7 +65,7 @@ def test_memory_worker_run_snapshot_with_image(mock_docker_client):
     code = Code(add2, image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
-    assert sn == code.serial_number
+    assert sn == code.get_serial_number()
     default_config_dir = Config.get_default_config_dir()
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_docker_client.return_value.containers.run.assert_called_once_with(
@@ -86,7 +86,7 @@ def test_memory_worker_run_snapshot_with_image_and_callback(mock_docker_client):
     code = Code(add2, image='dummy')
     assert code.get_state() == 'UNKNOWN'
     sn = worker.run_snapshot(code.to_snapshot(kwargs={'a': 3, 'b': 5}))
-    assert sn == code.serial_number
+    assert sn == code.get_serial_number()
     default_config_dir = Config.get_default_config_dir()
     script_dir = os.path.join(default_config_dir, 'scripts')
     mock_docker_client.return_value.containers.run.assert_called_once_with(

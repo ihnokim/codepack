@@ -19,31 +19,31 @@ async def save(params: JsonArgPack):
         tmp.save()
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    return {'id': tmp.get_id()}
+    return {'name': tmp.get_name()}
 
 
 @router.patch('/update')
 async def update(params: JsonArgPack):
     tmp = ArgPack.from_dict(params.argpack)
     tmp.save(update=True)
-    return {'id': tmp.get_id()}
+    return {'name': tmp.get_name()}
 
 
-@router.delete('/remove/{id}')
-async def remove(id: str):
+@router.delete('/remove/{name}')
+async def remove(name: str):
     storage_service = Default.get_service('argpack', 'storage_service')
-    if storage_service.check(id=id):
-        ArgPack.remove(id=id)
+    if storage_service.check(name=name):
+        ArgPack.remove(name=name)
     else:
-        raise HTTPException(status_code=404, detail="%s not found" % id)
-    return {'id': id}
+        raise HTTPException(status_code=404, detail="%s not found" % name)
+    return {'name': name}
 
 
-@router.get('/load/{id}')
-async def load(id: str):
-    argpack = ArgPack.load(id=id)
+@router.get('/load/{name}')
+async def load(name: str):
+    argpack = ArgPack.load(name=name)
     if argpack is None:
-        raise HTTPException(status_code=404, detail="%s not found" % id)
+        raise HTTPException(status_code=404, detail="%s not found" % name)
     return argpack.to_dict()
 
 
