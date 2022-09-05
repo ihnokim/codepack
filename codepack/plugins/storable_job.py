@@ -11,12 +11,12 @@ except ImportError:  # pragma: nocover
 
 class StorableJob(Storable):
     def __init__(self, job: Job) -> None:
-        super().__init__(name=job.id, serial_number=job.id)
+        super().__init__(name=job.id, serial_number=job.id, id_key='_name')
         self.job = job
 
     def to_dict(self) -> dict:
         utc_timestamp = datetime_to_utc_timestamp(self.job.next_run_time)
-        return {'_id': self.get_name(),
+        return {'_id': self.get_id(),
                 'trigger': self.job.trigger.__str__(),
                 'codepack': self.job.kwargs['snapshot']['_name'],
                 'argpack': self.job.kwargs['snapshot']['argpack']['_name'],

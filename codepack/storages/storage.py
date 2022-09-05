@@ -72,7 +72,9 @@ class Storage(metaclass=abc.ABCMeta):
                 return item.get_name()
             elif self.key == '_timestamp':
                 return item.get_timestamp()
+            elif self.key == '_id':
+                return item.get_id()
             else:
                 return getattr(item, self.key)
         else:
-            return item.get_name()
+            return item.get_id()

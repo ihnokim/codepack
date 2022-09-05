@@ -406,9 +406,8 @@ class Code(CodeBase):
         return ret
 
     def to_dict(self) -> dict:
-        d = self.get_meta()
+        d = self.get_metadata()
         d.pop('_serial_number', None)
-        d['_id'] = self.get_name()
         d['source'] = self.source
         d['description'] = self.description
         d['env'] = self.env

@@ -18,6 +18,7 @@ class Storable(metaclass=abc.ABCMeta):
                  serial_number: Optional[str] = None,
                  version: Optional[str] = None,
                  timestamp: Optional[float] = None,
+                 id_key: Optional[str] = None,
                  *args: Any, **kwargs: Any) -> None:
         self._name = name
         _, self._version = self.parse_id_and_version(key=name)
@@ -27,6 +28,7 @@ class Storable(metaclass=abc.ABCMeta):
         self.set_timestamp(timestamp=timestamp)
         if version is not None:
             self.set_version(version=version)
+        self.id_key = id_key
 
     @classmethod
     def parse_id_and_version(cls, key: Optional[str] = None) -> tuple:
@@ -37,6 +39,12 @@ class Storable(metaclass=abc.ABCMeta):
             return key[:idx], key[idx+1:]
         except ValueError:
             return key, None
+
+    def get_id(self) -> str:
+        if self.id_key is None:
+            return self.get_name()
+        else:
+            return getattr(self, self.id_key)
 
     def get_name(self) -> str:
         return self._name
@@ -109,9 +117,12 @@ class Storable(metaclass=abc.ABCMeta):
         else:
             return os.path.join(path, '%s.json' % key)
 
-    def get_meta(self) -> dict:
-        return {'_name': self.get_name(), '_serial_number': self.get_serial_number(),
-                '_timestamp': self.get_timestamp()}
+    def get_metadata(self) -> dict:
+        ret = {'_name': self.get_name(), '_serial_number': self.get_serial_number(),
+               '_timestamp': self.get_timestamp()}
+        if self.id_key is not None:
+            ret['_id'] = ret[self.id_key]
+        return ret
 
     def diff(self, other: Union['Storable', dict]) -> dict:
         ret = dict()

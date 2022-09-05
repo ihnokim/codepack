@@ -7,7 +7,7 @@ from typing import Any, Optional
 class Delivery(Storable):
     def __init__(self, name: str, serial_number: str,
                  item: Optional[Any] = None, timestamp: Optional[float] = None) -> None:
-        Storable.__init__(self, name=name, serial_number=serial_number, timestamp=timestamp)
+        Storable.__init__(self, name=name, serial_number=serial_number, timestamp=timestamp, id_key='_serial_number')
         self.item = item
 
     def __str__(self) -> str:
@@ -25,8 +25,7 @@ class Delivery(Storable):
         return self.item
 
     def to_dict(self) -> dict:
-        ret = self.get_meta()
-        ret['_id'] = self.get_serial_number()
+        ret = self.get_metadata()
         ret['item'] = json.dumps(self.item)
         return ret
 

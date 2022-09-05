@@ -7,7 +7,7 @@ class Snapshot(Storable):
     def __init__(self, name: Optional[str] = None, serial_number: Optional[str] = None,
                  state: Optional[Union[State, str]] = None,
                  timestamp: Optional[float] = None, **kwargs: Any) -> None:
-        super().__init__(name=name, serial_number=serial_number, timestamp=timestamp)
+        super().__init__(name=name, serial_number=serial_number, timestamp=timestamp, id_key='_serial_number')
         self.attr = dict()
         self.__setitem__('state', State.get(state))
         for k, v in kwargs.items():
@@ -41,12 +41,11 @@ class Snapshot(Storable):
         return self.__getitem__(item)
 
     def to_dict(self) -> dict:
-        ret = self.get_meta()
+        ret = self.get_metadata()
         for k, v in self.attr.items():
             ret[k] = v
         if isinstance(ret['state'], State):
             ret['state'] = ret['state'].name
-        ret['_id'] = self.get_serial_number()
         return ret
 
     @classmethod

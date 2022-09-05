@@ -55,7 +55,7 @@ class Dependency(Storable):
         return self.__str__()  # pragma: no cover
 
     def to_dict(self) -> dict:
-        ret = self.get_meta()
+        ret = self.get_metadata()
         ret.pop('_timestamp', None)
         ret['param'] = self.param
         return ret

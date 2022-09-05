@@ -19,7 +19,7 @@ class ArgPack(Storable):
             _name = codepack.get_name()
         if name:
             _name = name
-        Storable.__init__(self, name=_name, version=version, timestamp=timestamp)
+        Storable.__init__(self, name=_name, version=version, timestamp=timestamp, id_key='_name')
         if args:
             self.args = dict()
             for n, kwargs in args.items():
@@ -50,12 +50,11 @@ class ArgPack(Storable):
         self.args[key] = value
 
     def to_dict(self) -> dict:
-        d = self.get_meta()
+        d = self.get_metadata()
         d.pop('_serial_number', None)
-        d['_id'] = self.get_name()
         d['args'] = dict()
-        for id, arg in self.args.items():
-            d['args'][id] = arg.to_dict()
+        for name, arg in self.args.items():
+            d['args'][name] = arg.to_dict()
         return d
 
     @classmethod

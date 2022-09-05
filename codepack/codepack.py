@@ -208,8 +208,8 @@ class CodePack(CodePackBase):
             self._recursive_run(leave, argpack)
 
     def async_run(self, argpack: Union[ArgPack, dict]) -> None:
-        for id, code in self.codes.items():
-            code(**argpack[id])
+        for name, code in self.codes.items():
+            code(**argpack[name])
 
     def __call__(self, argpack: Optional[Union[ArgPack, dict]] = None, sync: bool = True) -> Any:
         self.init_code_state(state=State.READY, argpack=argpack)
@@ -223,12 +223,12 @@ class CodePack(CodePackBase):
         return self.get_result()
 
     def init_code_state(self, state: Union[State, str], argpack: Optional[Union[ArgPack, dict]] = None) -> None:
-        for id, code in self.codes.items():
-            if argpack and id in argpack:
-                if isinstance(argpack[id], dict):
-                    _kwargs = argpack[id]
+        for name, code in self.codes.items():
+            if argpack and name in argpack:
+                if isinstance(argpack[name], dict):
+                    _kwargs = argpack[name]
                 else:
-                    _kwargs = argpack[id].to_dict()
+                    _kwargs = argpack[name].to_dict()
                 code.update_state(state, kwargs=_kwargs)
 
     def get_result(self) -> Optional[Any]:
@@ -238,9 +238,8 @@ class CodePack(CodePackBase):
             return None
 
     def to_dict(self) -> dict:
-        d = self.get_meta()
+        d = self.get_metadata()
         d.pop('serial_number', None)
-        d['_id'] = self.get_name()
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
         d['source'] = self.get_source()
@@ -278,14 +277,14 @@ class CodePack(CodePackBase):
             n, h = stack.pop(-1)
             if len(stack) > 0 and n.get_name() not in stack[-1][0].children:
                 stack[-1][0] >> n
-        for id, code in codes.items():
-            for arg, sender in receive[id].items():
+        for name, code in codes.items():
+            for arg, sender in receive[name].items():
                 code.receive(arg) << codes[sender]
         return cls(name=d['_name'], code=root, subscribe=d['subscribe'],
                    owner=d.get('owner', None), timestamp=d.get('_timestamp', None))
 
     def get_source(self) -> dict:
-        return {id: code.source for id, code in self.codes.items()}
+        return {name: code.source for name, code in self.codes.items()}
 
     def get_structure(self) -> str:
         ret = str()
@@ -313,6 +312,6 @@ class CodePack(CodePackBase):
         d = snapshot.to_dict()
         ret = cls.from_dict(d)
         ret.set_serial_number(serial_number=d['_serial_number'])
-        for _id, code in ret.codes.items():
-            code.update_serial_number(d['codes'][_id])
+        for name, code in ret.codes.items():
+            code.update_serial_number(d['codes'][name])
         return ret

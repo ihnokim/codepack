@@ -10,4 +10,5 @@ class CodePackBase(Storable, Snapshotable, metaclass=abc.ABCMeta):
                  serial_number: Optional[str] = None,
                  version: Optional[str] = None,
                  timestamp: Optional[float] = None) -> None:
-        Storable.__init__(self, name=name, serial_number=serial_number, version=version, timestamp=timestamp)
+        Storable.__init__(self, name=name, serial_number=serial_number, version=version,
+                          timestamp=timestamp, id_key='_name')

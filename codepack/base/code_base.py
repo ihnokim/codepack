@@ -18,5 +18,6 @@ class CodeBase(Storable, Function, Snapshotable, metaclass=abc.ABCMeta):
         Storable.__init__(self, name=name if name is not None else self.function.__name__,
                           serial_number=serial_number,
                           version=version,
-                          timestamp=timestamp)
+                          timestamp=timestamp,
+                          id_key='_name')
         Snapshotable.__init__(self)
