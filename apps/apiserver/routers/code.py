@@ -29,7 +29,7 @@ async def run_by_name(name: str, params: Args):
     return {'serial_number': code.get_serial_number()}
 
 
-@router.post('/run/snapshot')
+@router.post('/snapshot/run')
 async def run_by_snapshot(params: JsonSnapshot):
     snapshot = CodeSnapshot.from_dict(params.snapshot)
     code = Code.from_snapshot(snapshot)
