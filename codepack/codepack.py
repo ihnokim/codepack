@@ -239,7 +239,7 @@ class CodePack(CodePackBase):
 
     def to_dict(self) -> dict:
         d = self.get_metadata()
-        d.pop('serial_number', None)
+        d.pop('_serial_number', None)
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
         d['source'] = self.get_source()

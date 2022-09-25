@@ -16,9 +16,9 @@ def inform_supervisor_of_termination(x: dict, supervisor: Union[str, 'codepack.p
     from codepack.plugins.supervisor import Supervisor
     if x['state'] == 'TERMINATED':
         if isinstance(supervisor, str):
-            requests.get(supervisor + '/organize/%s' % x['serial_number'])
+            requests.get(supervisor + '/organize/%s' % x['_serial_number'])
         elif isinstance(supervisor, Supervisor):
-            supervisor.organize(x['serial_number'])
+            supervisor.organize(x['_serial_number'])
 
 
 def get_source(function: Callable) -> str:
