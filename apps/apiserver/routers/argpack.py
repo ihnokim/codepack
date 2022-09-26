@@ -15,6 +15,8 @@ router = APIRouter(
 @router.post('/save')
 async def save(params: JsonArgPack):
     tmp = ArgPack.from_dict(params.argpack)
+    if tmp.get_name() is None:
+        raise HTTPException(status_code=422, detail='name should not be null')
     try:
         tmp.save()
     except ValueError as e:
@@ -49,5 +51,5 @@ async def load(name: str):
 
 @router.get('/search')
 async def search(params: SearchQuery):
-    storage_service = Default.get_service('code', 'storage_service')
+    storage_service = Default.get_service('argpack', 'storage_service')
     return storage_service.search(query=params.query, projection=params.projection)

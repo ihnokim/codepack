@@ -12,6 +12,7 @@ class ArgPack(Storable):
     def __init__(self, codepack: Optional[CodePack] = None,
                  name: Optional[str] = None,
                  version: Optional[str] = None,
+                 owner: Optional[str] = None,
                  timestamp: Optional[float] = None,
                  args: Optional[dict] = None) -> None:
         _name = None
@@ -28,6 +29,7 @@ class ArgPack(Storable):
             self.args = self.extract(codepack)
         else:
             self.args = dict()
+        self.owner = owner
 
     @staticmethod
     def extract(codepack: CodePack) -> dict:
@@ -55,11 +57,13 @@ class ArgPack(Storable):
         d['args'] = dict()
         for name, arg in self.args.items():
             d['args'][name] = arg.to_dict()
+        d['owner'] = self.owner
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> 'ArgPack':
-        return cls(name=d.get('_name', None), timestamp=d.get('_timestamp', None), args=d.get('args', None))
+        return cls(name=d.get('_name', None), timestamp=d.get('_timestamp', None),
+                   args=d.get('args', None), owner=d.get('owner', None))
 
     def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
@@ -91,7 +95,10 @@ class ArgPack(Storable):
             if i:
                 ret += ', '
             ret += '%s%s' % (name, arg.__str__().replace('Arg(', '('))
-        ret += '})'
+        ret += '}'
+        if self.owner:
+            ret += ', owner: %s' % self.owner
+        ret += ')'
         return ret
 
     def __repr__(self) -> str:
