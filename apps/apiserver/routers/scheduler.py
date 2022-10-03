@@ -36,7 +36,7 @@ async def register(params: JobWithJsonCodePackAndJsonArgPack):
 @router.post('/register/{name}')
 async def register_by_name(name: str, params: JobWithJsonArgPack):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id', json=params.dict())
+        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/%s' % name, json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
         codepack = CodePack.load(name)
         if codepack is None:
@@ -54,9 +54,11 @@ async def register_by_name(name: str, params: JobWithJsonArgPack):
 
 
 @router.post('/register/{codepack_name}/{argpack_name}')
-async def register_by_id_pair(codepack_name: str, argpack_name: str, params: Job):
+async def register_by_name_pair(codepack_name: str, argpack_name: str, params: Job):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.post, 'scheduler/register/id-pair', json=params.dict())
+        return redirect_to_remote_scheduler(requests.post,
+                                            'scheduler/register/%s/%s' % (codepack_name, argpack_name),
+                                            json=params.dict())
     elif isinstance(common.scheduler, Scheduler):
         codepack = CodePack.load(codepack_name)
         if codepack is None:
@@ -92,16 +94,16 @@ async def register_by_snapshot(params: JobWithJsonSnapshot):
         raise TypeError(common.scheduler)
 
 
-@router.delete('/unregister/{name}')
-async def unregister(name: str):
+@router.delete('/unregister/{job_id}')
+async def unregister(job_id: str):
     if isinstance(common.scheduler, str):
-        return redirect_to_remote_scheduler(requests.delete, 'scheduler/unregister/%s' % name)
+        return redirect_to_remote_scheduler(requests.delete, 'scheduler/unregister/%s' % job_id)
     elif isinstance(common.scheduler, Scheduler):
         try:
-            common.scheduler.remove_job(job_id=name)
+            common.scheduler.remove_job(job_id=job_id)
         except JobLookupError:
-            raise HTTPException(status_code=404, detail='%s not found' % name)
-        return {'name': name}
+            raise HTTPException(status_code=404, detail='%s not found' % job_id)
+        return {'job_id': job_id}
     else:
         raise TypeError(common.scheduler)
 
