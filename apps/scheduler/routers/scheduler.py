@@ -1,6 +1,6 @@
 from codepack import CodePack, CodePackSnapshot, ArgPack
 from fastapi import APIRouter, HTTPException
-from ..models.scheduler import CodePackIDJob, CodePackJSONJob, SnapshotJSONJob, IDPairJob
+from ..models.scheduler import Job, JobWithJsonArgPack, JobWithJsonCodePackAndJsonArgPack, JobWithJsonSnapshot
 from apscheduler.jobstores.base import JobLookupError, ConflictingIdError
 from ..dependencies import common
 
@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post('/register')
-async def register(params: CodePackJSONJob):
+async def register(params: JobWithJsonCodePackAndJsonArgPack):
     codepack = CodePack.from_dict(params.codepack)
     argpack = ArgPack.from_dict(params.argpack)
     try:
@@ -26,11 +26,11 @@ async def register(params: CodePackJSONJob):
     return {'serial_number': codepack.get_serial_number()}
 
 
-@router.post('/register/id')
-async def register_by_id(params: CodePackIDJob):
-    codepack = CodePack.load(params.id)
+@router.post('/register/{name}')
+async def register_by_name(name: str, params: JobWithJsonArgPack):
+    codepack = CodePack.load(name)
     if codepack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.id)
+        raise HTTPException(status_code=404, detail="'%s' not found" % name)
     argpack = ArgPack.from_dict(params.argpack)
     try:
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
@@ -41,14 +41,14 @@ async def register_by_id(params: CodePackIDJob):
     return {'serial_number': codepack.get_serial_number()}
 
 
-@router.post('/register/id-pair')
-async def register_by_id_pair(params: IDPairJob):
-    codepack = CodePack.load(params.codepack_id)
+@router.post('/register/{codepack_name}/{argpack_name}')
+async def register_by_name_pair(codepack_name: str, argpack_name: str, params: Job):
+    codepack = CodePack.load(codepack_name)
     if codepack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.codepack_id)
-    argpack = ArgPack.load(params.argpack_id)
+        raise HTTPException(status_code=404, detail="'%s' not found" % codepack_name)
+    argpack = ArgPack.load(argpack_name)
     if argpack is None:
-        raise HTTPException(status_code=404, detail="'%s' not found" % params.argpack_id)
+        raise HTTPException(status_code=404, detail="'%s' not found" % argpack_name)
     try:
         common.scheduler.add_codepack(codepack=codepack, argpack=argpack, job_id=params.job_id,
                                       trigger=params.trigger, **params.trigger_config)
@@ -59,7 +59,7 @@ async def register_by_id_pair(params: IDPairJob):
 
 
 @router.post('/register/snapshot')
-async def register_by_snapshot(params: SnapshotJSONJob):
+async def register_by_snapshot(params: JobWithJsonSnapshot):
     snapshot = CodePackSnapshot.from_dict(params.snapshot)
     try:
         common.scheduler.add_codepack(snapshot=snapshot, job_id=params.job_id,
@@ -70,13 +70,13 @@ async def register_by_snapshot(params: SnapshotJSONJob):
     return {'serial_number': snapshot.get_serial_number()}
 
 
-@router.delete('/unregister/{id}')
-async def unregister(id: str):
+@router.delete('/unregister/{job_id}')
+async def unregister(job_id: str):
     try:
-        common.scheduler.remove_job(job_id=id)
+        common.scheduler.remove_job(job_id=job_id)
     except JobLookupError:
-        raise HTTPException(status_code=404, detail='%s not found' % id)
-    return {'id': id}
+        raise HTTPException(status_code=404, detail='%s not found' % job_id)
+    return {'job_id': job_id}
 
 
 @router.get('/alive')

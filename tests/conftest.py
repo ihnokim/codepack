@@ -1,6 +1,8 @@
 from codepack import Default, Delivery
 from codepack.interfaces import MongoDB
 from codepack.interfaces import MemoryMessageQueue
+from apps.apiserver.main import app
+from fastapi.testclient import TestClient
 import pytest
 import os
 import mongomock
@@ -127,3 +129,17 @@ def dummy_deliveries_for_text_key_search():
     obj2 = Delivery(name='orange_banana', serial_number='456', item='y')
     obj3 = Delivery(name='banana_apple', serial_number='789', item='z')
     yield [obj1, obj2, obj3]
+
+
+@pytest.fixture
+def test_client():
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def test_worker():
+    worker = Default.get_employee('worker')
+    worker.start()
+    yield worker
+    worker.stop()

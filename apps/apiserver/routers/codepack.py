@@ -44,7 +44,7 @@ async def run_by_name_pair(codepack_name: str, argpack_name: str):
     return {'serial_number': codepack.get_serial_number()}
 
 
-@router.post('/run/snapshot')
+@router.post('/snapshot/run')
 async def run_by_snapshot(params: JsonSnapshot):
     snapshot = CodePackSnapshot.from_dict(params.snapshot)
     codepack = CodePack.from_snapshot(snapshot)
@@ -90,7 +90,7 @@ async def load(name: str):
 
 @router.get('/search')
 async def search(params: SearchQuery):
-    storage_service = Default.get_service('code', 'storage_service')
+    storage_service = Default.get_service('codepack', 'storage_service')
     return storage_service.search(query=params.query, projection=params.projection)
 
 
