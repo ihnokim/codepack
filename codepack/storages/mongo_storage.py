@@ -5,7 +5,7 @@ from typing import Type, Optional, Union, Any
 
 
 class MongoStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number',
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None,
                  mongodb: Optional[Union[MongoDB, dict]] = None,
                  db: Optional[str] = None, collection: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         super().__init__(item_type=item_type, key=key)
@@ -61,8 +61,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection
@@ -74,13 +73,16 @@ class MongoStorage(Storage):
         else:
             return [self.item_type.from_dict(d) for d in search_result]
 
+    def text_key_search(self, key: str) -> list:
+        return [x['_id'] for x in self.mongodb[self.db][self.collection].find({'_id': {'$regex': key}})]
+
     def list_all(self) -> list:
         search_result = self.mongodb[self.db][self.collection].find(projection={'_id': 1})
         return [x['_id'] for x in search_result]
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             if not update and self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:
@@ -107,8 +109,7 @@ class MongoStorage(Storage):
         if projection:
             to_dict = True
             _projection = {k: True for k in projection}
-            _projection[self.key] = True
-            if '_id' not in projection and self.key != '_id':
+            if '_id' not in projection:
                 _projection['_id'] = False
         else:
             _projection = projection

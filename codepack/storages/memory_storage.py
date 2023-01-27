@@ -6,7 +6,7 @@ Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # n
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number') -> None:
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
         super().__init__(item_type=item_type, key=key)
         self.memory = None
         self.init()
@@ -46,28 +46,30 @@ class MemoryStorage(Storage):
 
     def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         ret = list()
-        for item in self.memory.values():
-            d = item.to_dict()
+        for d in self.memory.values():
             if d[key] != value:
                 continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
+                ret.append({k: d[k] for k in projection if k in d})
             elif to_dict:
                 ret.append(d)
             else:
-                ret.append(item)
+                ret.append(self.item_type.from_dict(d))
         return ret
+
+    def text_key_search(self, key: str) -> list:
+        return [k for k in self.memory.keys() if key in k]
 
     def list_all(self) -> list:
         return list(self.memory.keys())
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             if not update and self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:
-                self.memory[item_key] = item
+                self.memory[item_key] = item.to_dict()
         elif isinstance(item, list):
             for i in item:
                 self.save(item=i, update=update)
@@ -95,14 +97,13 @@ class MemoryStorage(Storage):
             -> Optional[Union[Storable, dict, list]]:
         if isinstance(key, str):
             if self.exist(key=key):
-                item = self.memory[key]
-                d = item.to_dict()
+                d = self.memory[key]
                 if projection:
-                    return {k: d[k] for k in set(projection).union({self.key})}
+                    return {k: d[k] for k in projection if k in d}
                 elif to_dict:
                     return d
                 else:
-                    return item
+                    return self.item_type.from_dict(d)
             else:
                 return None
         elif isinstance(key, list):

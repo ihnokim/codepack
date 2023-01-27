@@ -1,6 +1,8 @@
 from codepack import Default, Delivery
 from codepack.interfaces import MongoDB
-from codepack.storages import MemoryMessenger
+from codepack.interfaces import MemoryMessageQueue
+from apps.apiserver.main import app
+from fastapi.testclient import TestClient
 import pytest
 import os
 import mongomock
@@ -110,12 +112,34 @@ def init_default():
     Default.alias = None
     Default.config = None
     Default.instances = dict()
-    MemoryMessenger.destroy()
+    MemoryMessageQueue.remove_all_instances()
 
 
 @pytest.fixture(scope='function', autouse=False)
 def dummy_deliveries():
-    obj1 = Delivery(id='obj1', serial_number='123', item='x')
-    obj2 = Delivery(id='obj2', serial_number='456', item='y')
-    obj3 = Delivery(id='obj3', serial_number='789', item='y')
+    obj1 = Delivery(name='obj1', serial_number='123', item='x')
+    obj2 = Delivery(name='obj2', serial_number='456', item='y')
+    obj3 = Delivery(name='obj3', serial_number='789', item='y')
     yield [obj1, obj2, obj3]
+
+
+@pytest.fixture(scope='function', autouse=False)
+def dummy_deliveries_for_text_key_search():
+    obj1 = Delivery(name='apple_orange', serial_number='123', item='x')
+    obj2 = Delivery(name='orange_banana', serial_number='456', item='y')
+    obj3 = Delivery(name='banana_apple', serial_number='789', item='z')
+    yield [obj1, obj2, obj3]
+
+
+@pytest.fixture
+def test_client():
+    with TestClient(app) as client:
+        yield client
+
+
+@pytest.fixture
+def test_worker():
+    worker = Default.get_employee('worker')
+    worker.start()
+    yield worker
+    worker.stop()

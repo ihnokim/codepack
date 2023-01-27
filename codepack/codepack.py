@@ -16,13 +16,16 @@ StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_servi
 
 
 class CodePack(CodePackBase):
-    def __init__(self, id: str, code: Code, subscribe: Optional[Union[Code, str]] = None,
-                 serial_number: Optional[str] = None, config_path: Optional[str] = None,
+    def __init__(self, name: str, code: Code, subscribe: Optional[Union[Code, str]] = None,
+                 serial_number: Optional[str] = None,
+                 version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
+                 config_path: Optional[str] = None,
                  snapshot_service: Optional[SnapshotService] = None,
                  storage_service: Optional[StorageService] = None,
                  argpack_service: Optional[StorageService] = None,
                  owner: Optional[str] = None) -> None:
-        super().__init__(id=id, serial_number=serial_number)
+        super().__init__(name=name, serial_number=serial_number, version=version, timestamp=timestamp)
         self.root = None
         self.roots = None
         self.subscribe = None
@@ -57,7 +60,7 @@ class CodePack(CodePackBase):
 
     def init_subscription(self, subscribe: Optional[Union[Code, str]] = None) -> None:
         if isinstance(subscribe, Code):
-            self.subscribe = subscribe.id
+            self.subscribe = subscribe.get_name()
         elif isinstance(subscribe, str):
             self.subscribe = subscribe
         else:
@@ -76,8 +79,8 @@ class CodePack(CodePackBase):
     def save_argpack(self, argpack: ArgPack) -> None:
         self.service['argpack'].save(item=argpack)
 
-    def load_argpack(self, id: str) -> ArgPack:
-        return self.service['argpack'].load(id=id)
+    def load_argpack(self, name: str) -> ArgPack:
+        return self.service['argpack'].load(name=name)
 
     def _set_root(self, code: Code) -> None:
         if not isinstance(code, Code):
@@ -85,7 +88,7 @@ class CodePack(CodePackBase):
         self.root = code
 
     def __str__(self) -> str:
-        ret = '%s(id: %s, subscribe: %s' % (self.__class__.__name__, self.id, self.subscribe)
+        ret = '%s(name: %s, subscribe: %s' % (self.__class__.__name__, self.get_name(), self.subscribe)
         additional_item = 'owner'
         item = getattr(self, additional_item)
         if item:
@@ -116,7 +119,7 @@ class CodePack(CodePackBase):
 
     def get_state(self) -> str:
         states = self.root.service['snapshot']\
-            .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'state'})
+            .load(serial_number=[code.get_serial_number() for code in self.codes.values()], projection={'state'})
         if states:
             max_state = 0
             terminated = True
@@ -134,29 +137,30 @@ class CodePack(CodePackBase):
 
     def get_message(self) -> dict:
         messages = self.root.service['snapshot'] \
-            .load(serial_number=[code.serial_number for code in self.codes.values()], projection={'id', 'message'})
+            .load(serial_number=[code.get_serial_number() for code in self.codes.values()],
+                  projection={'_name', 'message'})
         ret = dict()
         if messages:
             for message in messages:
                 if message['message']:
-                    ret[message['id']] = message['message']
+                    ret[message['_name']] = message['message']
         return ret
 
     def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
 
     @classmethod
-    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+    def load(cls, name: Union[str, list], storage_service: Optional[StorageService] = None)\
             -> Optional[Union['CodePack', list]]:
         if storage_service is None:
             storage_service = Default.get_service('codepack', 'storage_service')
-        return storage_service.load(id)
+        return storage_service.load(name=name)
 
     @classmethod
-    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+    def remove(cls, name: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
             storage_service = Default.get_service('codepack', 'storage_service')
-        storage_service.remove(id=id)
+        storage_service.remove(name=name)
 
     def _get_leaves(self) -> set:
         leaves = set()
@@ -176,15 +180,15 @@ class CodePack(CodePackBase):
         q = Queue()
         for leave in self._get_leaves():
             q.put(leave)
-            touched.add(leave.id)
+            touched.add(leave.get_name())
         while not q.empty():
             n = q.get()
-            if n.id not in self.codes:
-                self.codes[n.id] = n
+            if n.get_name() not in self.codes:
+                self.codes[n.get_name()] = n
             for p in n.parents.values():
-                if p.id not in touched:
+                if p.get_name() not in touched:
                     q.put(p)
-                    touched.add(p.id)
+                    touched.add(p.get_name())
             if len(n.parents) == 0:
                 roots.add(n)
         return roots
@@ -195,15 +199,17 @@ class CodePack(CodePackBase):
                 code.update_state(State.WAITING)
                 self._recursive_run(p, argpack)
         code.update_state(State.READY)
-        code(**argpack[code.id])
+        if isinstance(argpack, dict):
+            argpack = ArgPack.from_dict(argpack)
+        code(**argpack[code.get_name()])
 
     def sync_run(self, argpack: Union[ArgPack, dict]) -> None:
         for leave in self._get_leaves():
             self._recursive_run(leave, argpack)
 
     def async_run(self, argpack: Union[ArgPack, dict]) -> None:
-        for id, code in self.codes.items():
-            code(**argpack[id])
+        for name, code in self.codes.items():
+            code(**argpack[name])
 
     def __call__(self, argpack: Optional[Union[ArgPack, dict]] = None, sync: bool = True) -> Any:
         self.init_code_state(state=State.READY, argpack=argpack)
@@ -217,12 +223,12 @@ class CodePack(CodePackBase):
         return self.get_result()
 
     def init_code_state(self, state: Union[State, str], argpack: Optional[Union[ArgPack, dict]] = None) -> None:
-        for id, code in self.codes.items():
-            if argpack and id in argpack:
-                if isinstance(argpack[id], dict):
-                    _kwargs = argpack[id]
+        for name, code in self.codes.items():
+            if argpack and name in argpack:
+                if isinstance(argpack[name], dict):
+                    _kwargs = argpack[name]
                 else:
-                    _kwargs = argpack[id].to_dict()
+                    _kwargs = argpack[name].to_dict()
                 code.update_state(state, kwargs=_kwargs)
 
     def get_result(self) -> Optional[Any]:
@@ -232,8 +238,8 @@ class CodePack(CodePackBase):
             return None
 
     def to_dict(self) -> dict:
-        d = dict()
-        d['_id'] = self.id
+        d = self.get_metadata()
+        d.pop('_serial_number', None)
         d['subscribe'] = self.subscribe
         d['structure'] = self.get_structure()
         d['source'] = self.get_source()
@@ -252,31 +258,33 @@ class CodePack(CodePackBase):
             code_str = line[split_idx:]
             p = parser(Code.blueprint(code_str))
             attr = p.parse(code_str).named
-            if attr['id'] not in codes:
-                codes[attr['id']] = Code(id=attr['id'], source=d['source'][attr['id']],
-                                         env=attr.get('env', None), image=attr.get('image', None),
-                                         owner=attr.get('owner', None))
-            code = codes[attr['id']]
+            if attr['name'] not in codes:
+                codes[attr['name']] = Code(name=attr['name'],
+                                           source=d['source'][attr['name']],
+                                           env=attr.get('env', None), image=attr.get('image', None),
+                                           owner=attr.get('owner', None))
+            code = codes[attr['name']]
             dependent_params = attr.get('receive', None)
-            receive[code.id] = literal_eval(dependent_params) if dependent_params else dict()
+            receive[code.get_name()] = literal_eval(dependent_params) if dependent_params else dict()
             if i == 0:
                 root = code
             while len(stack) and stack[-1][1] >= hierarchy:
                 n, h = stack.pop(-1)
-                if len(stack) > 0 and n.id not in stack[-1][0].children:
+                if len(stack) > 0 and n.get_name() not in stack[-1][0].children:
                     stack[-1][0] >> n
             stack.append((code, hierarchy))
         while len(stack):
             n, h = stack.pop(-1)
-            if len(stack) > 0 and n.id not in stack[-1][0].children:
+            if len(stack) > 0 and n.get_name() not in stack[-1][0].children:
                 stack[-1][0] >> n
-        for id, code in codes.items():
-            for arg, sender in receive[id].items():
+        for name, code in codes.items():
+            for arg, sender in receive[name].items():
                 code.receive(arg) << codes[sender]
-        return cls(d['_id'], code=root, subscribe=d['subscribe'], owner=d.get('owner', None))
+        return cls(name=d['_name'], code=root, subscribe=d['subscribe'],
+                   owner=d.get('owner', None), timestamp=d.get('_timestamp', None))
 
     def get_source(self) -> dict:
-        return {id: code.source for id, code in self.codes.items()}
+        return {name: code.source for name, code in self.codes.items()}
 
     def get_structure(self) -> str:
         ret = str()
@@ -302,9 +310,8 @@ class CodePack(CodePackBase):
     @classmethod
     def from_snapshot(cls, snapshot: CodePackSnapshot) -> 'CodePack':
         d = snapshot.to_dict()
-        d['_id'] = d['id']
         ret = cls.from_dict(d)
-        ret.serial_number = d['serial_number']
-        for id, code in ret.codes.items():
-            code.update_serial_number(d['codes'][id])
+        ret.set_serial_number(serial_number=d['_serial_number'])
+        for name, code in ret.codes.items():
+            code.update_serial_number(d['codes'][name])
         return ret

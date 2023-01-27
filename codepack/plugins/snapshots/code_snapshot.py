@@ -11,8 +11,8 @@ class CodeSnapshot(Snapshot):
     def __init__(self, code: Optional[Code] = None, args: Optional[tuple] = None, kwargs: Optional[dict] = None,
                  timestamp: Optional[float] = None, message: str = '') -> None:
         if code:
-            _id = code.id
-            _serial_number = code.serial_number
+            _name = code.get_name()
+            _serial_number = code.get_serial_number()
             _state = code.get_state()
             _source = code.source
             _context = code.context
@@ -22,7 +22,7 @@ class CodeSnapshot(Snapshot):
             _owner = code.owner
             _callback = code.callback
         else:
-            _id = None
+            _name = None
             _serial_number = None
             _state = None
             _source = None
@@ -32,7 +32,7 @@ class CodeSnapshot(Snapshot):
             _image = None
             _owner = None
             _callback = None
-        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp,
+        super().__init__(name=_name, serial_number=_serial_number, state=_state, timestamp=timestamp,
                          env=_env, image=_image, owner=_owner, message=message, context=_context)
         self.__setitem__('source', _source)
         self.set_args(args=args, kwargs=kwargs)
@@ -53,7 +53,7 @@ class CodeSnapshot(Snapshot):
                     self.__getitem__('dependency').append(d)
                 else:
                     raise TypeError(type(d))  # pragma: no cover
-            self.__getitem__('dependency').sort(key=lambda x: x['serial_number'])
+            self.__getitem__('dependency').sort(key=lambda x: x['_serial_number'])
 
     def set_callback(self, callback: Optional[dict]) -> None:
         self.__setitem__('callback', list())
@@ -65,11 +65,3 @@ class CodeSnapshot(Snapshot):
                     self.__getitem__('callback').append(c)
                 else:
                     raise TypeError(type(c))  # pragma: no cover
-
-    @classmethod
-    def from_dict(cls, d: dict) -> 'CodeSnapshot':
-        ret = cls()
-        for k, v in d.items():
-            if k != '_id':
-                ret[k] = v
-        return ret

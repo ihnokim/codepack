@@ -14,11 +14,64 @@ MongoClient = TypeVar('MongoClient', bound='pymongo.mongo_client.MongoClient')  
 
 
 class Storable(metaclass=abc.ABCMeta):
-    def __init__(self, id: Optional[str] = None, serial_number: Optional[str] = None,
+    def __init__(self, name: Optional[str] = None,
+                 serial_number: Optional[str] = None,
+                 version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
+                 id_key: Optional[str] = None,
                  *args: Any, **kwargs: Any) -> None:
-        """initialize instance"""
-        self.id = id
-        self.serial_number = serial_number if serial_number else self.generate_serial_number()
+        self._name = name
+        _, self._version = self.parse_id_and_version(key=name)
+        self._serial_number = None
+        self.set_serial_number(serial_number=serial_number if serial_number else self.generate_serial_number())
+        self._timestamp = None
+        self.set_timestamp(timestamp=timestamp)
+        if version is not None:
+            self.set_version(version=version)
+        self.id_key = id_key
+
+    @classmethod
+    def parse_id_and_version(cls, key: Optional[str] = None) -> tuple:
+        if key is None:
+            return None, None
+        try:
+            idx = key.rindex('@')
+            return key[:idx], key[idx+1:]
+        except ValueError:
+            return key, None
+
+    def get_id(self) -> str:
+        if self.id_key is None:
+            return self.get_name()
+        else:
+            return getattr(self, self.id_key)
+
+    def get_name(self) -> str:
+        return self._name
+
+    def set_name(self, name: Optional[str] = None) -> None:
+        self._name = name
+
+    def get_version(self) -> Optional[str]:
+        return self._version
+
+    def set_version(self, version: str) -> None:
+        _name, _version = self.parse_id_and_version(self._name)
+        self._version = version
+        if _name is not None:
+            self._name = '%s@%s' % (_name, self._version)
+
+    def get_serial_number(self) -> str:
+        return self._serial_number
+
+    def set_serial_number(self, serial_number: str) -> None:
+        self._serial_number = serial_number
+
+    def get_timestamp(self) -> float:
+        return self._timestamp
+
+    def set_timestamp(self, timestamp: float):
+        self._timestamp = timestamp if timestamp else datetime.now().timestamp()
 
     def generate_serial_number(self) -> str:
         return (str(id(self)) + str(datetime.now().timestamp())).replace('.', '')
@@ -48,19 +101,6 @@ class Storable(metaclass=abc.ABCMeta):
             ret = cls.from_json(f.read())
         return ret
 
-    def to_db(self, mongodb: Union[MongoDB, MongoClient], db: str, collection: str,
-              *args: Any, **kwargs: Any) -> None:
-        mongodb[db][collection].insert_one(self.to_dict(), *args, **kwargs)
-
-    @classmethod
-    def from_db(cls, id: id, mongodb: Union[MongoDB, MongoClient], db: str, collection: str,
-                *args: Any, **kwargs: Any) -> Optional['Storable']:
-        d = mongodb[db][collection].find_one({'_id': id}, *args, **kwargs)
-        if d is None:
-            return d
-        else:
-            return cls.from_dict(d)
-
     @abc.abstractmethod
     def to_dict(self) -> dict:
         """convert to dict"""
@@ -76,3 +116,25 @@ class Storable(metaclass=abc.ABCMeta):
             return posixpath_join(path, '%s.json' % key)
         else:
             return os.path.join(path, '%s.json' % key)
+
+    def get_metadata(self) -> dict:
+        ret = {'_name': self.get_name(), '_serial_number': self.get_serial_number(),
+               '_timestamp': self.get_timestamp()}
+        if self.id_key is not None:
+            ret['_id'] = ret[self.id_key]
+        return ret
+
+    def diff(self, other: Union['Storable', dict]) -> dict:
+        ret = dict()
+        if isinstance(other, self.__class__):
+            return self.diff(other.to_dict())
+        elif isinstance(other, dict):
+            tmp = self.to_dict()
+            for k, v in other.items():
+                if k not in tmp.keys():
+                    ret[k] = v
+                elif v != tmp[k]:
+                    ret[k] = v
+        else:
+            raise TypeError(type(other))  # pragma: no cover
+        return ret

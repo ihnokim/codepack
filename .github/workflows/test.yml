@@ -21,12 +21,12 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-cov mongomock
+        pip install pytest pytest-cov mongomock fastapi
         pip install -r requirements.txt
         pip install -r extra-requirements.txt
     - name: Run Tests
       run: |
-        pytest --cov=codepack tests
+        pytest --cov codepack --cov apps tests
     - name: Upload coverage data to coveralls.io
       run: |
         python -m pip install coveralls==2.2

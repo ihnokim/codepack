@@ -7,7 +7,7 @@ from codepack.plugins.callback import Callback
 from codepack.plugins.state import State
 from collections.abc import Iterable, Callable
 from functools import partial
-from typing import Any, TypeVar, Union, Optional
+from typing import Any, TypeVar, Union, Optional, List
 from queue import Queue
 import codepack.utils.exceptions
 import codepack.utils.functions
@@ -27,7 +27,8 @@ StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_servi
 class Code(CodeBase):
     def __init__(self,
                  function: Optional[Callable] = None, source: Optional[str] = None, context: Optional[dict] = None,
-                 id: Optional[str] = None, serial_number: Optional[str] = None,
+                 name: Optional[str] = None, serial_number: Optional[str] = None, version: Optional[str] = None,
+                 timestamp: Optional[float] = None,
                  dependency: Optional[Union[Dependency, dict, Iterable]] = None, config_path: Optional[str] = None,
                  delivery_service: Optional[DeliveryService] = None,
                  snapshot_service: Optional[SnapshotService] = None,
@@ -36,7 +37,8 @@ class Code(CodeBase):
                  env: Optional[str] = None, image: Optional[str] = None, owner: Optional[str] = None,
                  decorator: Optional[Callable] = None,
                  log: bool = False) -> None:
-        super().__init__(id=id, serial_number=serial_number, function=function, source=source, context=context)
+        super().__init__(name=name, serial_number=serial_number, version=version, timestamp=timestamp,
+                         function=function, source=source, context=context)
         self.parents = None
         self.children = None
         self.dependency = None
@@ -46,7 +48,7 @@ class Code(CodeBase):
         self.env = None
         self.image = None
         self.owner = None
-        self.decorator = None
+        self.decorators = list()
         self.log = log
         self.logger = None
         self.init_logger()
@@ -54,8 +56,6 @@ class Code(CodeBase):
                           snapshot_service=snapshot_service,
                           storage_service=storage_service,
                           config_path=config_path)
-        if id is None:
-            self.id = self.function.__name__
         self.init_linkage()
         self.init_dependency(dependency=dependency)
         self.register_callback(callback=callback)
@@ -141,7 +141,7 @@ class Code(CodeBase):
             elif isinstance(name, str):
                 _name = name
             elif name is None:
-                _name = _callback.id
+                _name = _callback.get_name()
             else:
                 raise TypeError(type(name))  # pragma: no cover
             self.callback[_name] = _callback
@@ -150,42 +150,50 @@ class Code(CodeBase):
         else:
             raise TypeError(type(callback))  # pragma: no cover
 
-    def set_decorator(self, decorator: Optional[Callable] = None) -> None:
-        self.decorator = decorator
+    def set_decorator(self, decorator: Optional[Union[Callable, List[Callable]]] = None) -> None:
+        if isinstance(decorator, list):
+            self.decorators = decorator
+        elif isinstance(decorator, Callable):
+            self.decorators = [decorator]
+        elif decorator is None:
+            self.decorators = list()
+        else:
+            raise TypeError(type(decorator))
 
     def run_callback(self, state: Optional[Union[State, str]] = None, message: Optional[str] = None) -> None:
         for callback in self.callback.values():
-            d = {'serial_number': self.serial_number, 'state': state if state else self.get_state()}
+            d = {'_serial_number': self.get_serial_number(), 'state': state if state else self.get_state()}
             if message:
                 d['message'] = message
             callback(d)
 
-    def _collect_linked_ids(self) -> set:
-        ids = set()
+    def _collect_linked_names(self) -> set:
+        names = set()
         q = Queue()
         q.put(self)
         while not q.empty():
             code = q.get()
-            ids.add(code.id)
+            names.add(code.get_name())
             for c in {**code.children, **code.parents}.values():
-                if c.id not in ids:
+                if c.get_name() not in names:
                     q.put(c)
-        return ids
+        return names
 
     def link(self, other: 'Code') -> None:
-        linked_ids = self._collect_linked_ids()
-        if other.id in linked_ids:
-            raise ValueError("'%s' is already linked" % other.id)
-        self.children[other.id] = other
-        other.parents[self.id] = self
-        if self.serial_number not in other.dependency:
-            other.add_dependency(dependency=Dependency(code=other, serial_number=self.serial_number, id=self.id))
+        linked_names = self._collect_linked_names()
+        if other.get_name() in linked_names:
+            raise ValueError("'%s' is already linked" % other.get_name())
+        self.children[other.get_name()] = other
+        other.parents[self.get_name()] = self
+        if self.get_serial_number() not in other.dependency:
+            other.add_dependency(dependency=Dependency(code=other,
+                                                       serial_number=self.get_serial_number(), name=self.get_name()))
 
     def unlink(self, other: 'Code') -> None:
-        other.parents.pop(self.id, None)
-        self.children.pop(other.id, None)
-        if self.serial_number in other.dependency:
-            other.remove_dependency(self.serial_number)
+        other.parents.pop(self.get_name(), None)
+        self.children.pop(other.get_name(), None)
+        if self.get_serial_number() in other.dependency:
+            other.remove_dependency(self.get_serial_number())
 
     def __rshift__(self, other: Union['Code', Iterable]) -> Union['Code', Iterable]:
         if isinstance(other, self.__class__):
@@ -209,12 +217,13 @@ class Code(CodeBase):
 
     def update_serial_number(self, serial_number: str) -> None:
         for c in self.children.values():
-            if self.serial_number in c.dependency:
-                d = c.dependency[self.serial_number]
-                c.remove_dependency(self.serial_number)
-                d.serial_number = serial_number
+            _serial_number = self.get_serial_number()
+            if _serial_number in c.dependency:
+                d = c.dependency[_serial_number]
+                c.remove_dependency(_serial_number)
+                d.set_serial_number(serial_number=serial_number)
                 c.add_dependency(d)
-        self.serial_number = serial_number
+        self.set_serial_number(serial_number=serial_number)
 
     def get_reserved_params(self) -> dict:
         return codepack.utils.functions.get_reserved_params(function=self.function)
@@ -225,7 +234,10 @@ class Code(CodeBase):
 
     @classmethod
     def blueprint(cls, s: str) -> str:
-        ret = 'Code(id: {id}, function: {function}, params: {params}'
+        ret = 'Code(name: {name}'
+        if 'version' in s:
+            ret += ', version: {version}'
+        ret += ', function: {function}, params: {params}'
         for additional_item in ['receive', 'context', 'env', 'image', 'owner', 'state']:
             if ', %s:' % additional_item in s:
                 ret += ', %s: {%s}' % (additional_item, additional_item)
@@ -233,9 +245,8 @@ class Code(CodeBase):
         return ret
 
     def get_info(self, state: bool = True) -> str:
-        ret = '%s(id: %s, function: %s, params: %s' % (self.__class__.__name__,
-                                                       self.id, self.function.__name__,
-                                                       self.print_params())
+        ret = '%s(name: %s, function: %s, params: %s' % (self.__class__.__name__, self.get_name(),
+                                                         self.function.__name__, self.print_params())
         dependent_params = self.dependency.get_params()
         if dependent_params:
             ret += ', receive: %s' % dependent_params
@@ -263,41 +274,42 @@ class Code(CodeBase):
             self.run_callback(state=state, message=message)
 
     def get_state(self) -> str:
-        ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'state'})
+        ret = self.service['snapshot'].load(serial_number=self.get_serial_number(), projection={'state'})
         if ret:
             return ret['state']
         else:
             return 'UNKNOWN'
 
     def get_message(self) -> str:
-        ret = self.service['snapshot'].load(serial_number=self.serial_number, projection={'message'})
+        ret = self.service['snapshot'].load(serial_number=self.get_serial_number(), projection={'message'})
         if ret:
             return ret['message']
         else:
             return ''
 
     def send_result(self, item: Any, timestamp: Optional[float] = None) -> None:
-        self.service['delivery'].send(id=self.id, serial_number=self.serial_number, item=item, timestamp=timestamp)
+        self.service['delivery'].send(name=self.get_name(), serial_number=self.get_serial_number(),
+                                      item=item, timestamp=timestamp)
 
     def get_result(self, serial_number: Optional[str] = None) -> Any:
-        serial_number = serial_number if serial_number else self.serial_number
+        serial_number = serial_number if serial_number else self.get_serial_number()
         return self.service['delivery'].receive(serial_number=serial_number)
 
     def save(self, update: bool = False) -> None:
         self.service['storage'].save(item=self, update=update)
 
     @classmethod
-    def load(cls, id: Union[str, list], storage_service: Optional[StorageService] = None)\
+    def load(cls, name: Union[str, list], storage_service: Optional[StorageService] = None)\
             -> Optional[Union['Code', list]]:
         if storage_service is None:
             storage_service = Default.get_service('code', 'storage_service')
-        return storage_service.load(id)
+        return storage_service.load(name=name)
 
     @classmethod
-    def remove(cls, id: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
+    def remove(cls, name: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
         if storage_service is None:
             storage_service = Default.get_service('code', 'storage_service')
-        storage_service.remove(id=id)
+        storage_service.remove(name=name)
 
     def receive(self, param: str) -> Dependency:
         self.assert_param(param)
@@ -323,14 +335,17 @@ class Code(CodeBase):
         self.logger.info(msg)
 
     def get_log_dir(self) -> str:
-        return os.path.join(Config.get_log_dir(), self.id)
+        return os.path.join(Config.get_log_dir(), self.get_name())
 
     def get_log_path(self) -> str:
-        return os.path.join(self.get_log_dir(), '%s.log' % self.serial_number)
+        return os.path.join(self.get_log_dir(), '%s.log' % self.get_serial_number())
 
     def light(self, *args: Any, **kwargs: Any) -> Any:
-        if self.decorator is not None:
-            return self.decorator(self.function)(*args, **kwargs)
+        if len(self.decorators) > 0:
+            f = self.function
+            for decorator in self.decorators:
+                f = decorator(f)
+            return f(*args, **kwargs)
         else:
             return self.function(*args, **kwargs)
 
@@ -340,7 +355,7 @@ class Code(CodeBase):
                 kwargs[k] = v
         for dependency in self.dependency.values():
             if dependency.param and dependency.param not in kwargs:
-                kwargs[dependency.param] = self.get_result(serial_number=dependency.serial_number)
+                kwargs[dependency.param] = self.get_result(serial_number=dependency.get_serial_number())
         if self.log:
             old_print = builtins.print
             log_dir = self.get_log_dir()
@@ -391,8 +406,8 @@ class Code(CodeBase):
         return ret
 
     def to_dict(self) -> dict:
-        d = dict()
-        d['_id'] = self.id
+        d = self.get_metadata()
+        d.pop('_serial_number', None)
         d['source'] = self.source
         d['description'] = self.description
         d['env'] = self.env
@@ -403,16 +418,16 @@ class Code(CodeBase):
 
     @classmethod
     def from_dict(cls, d: dict) -> 'Code':
-        return cls(id=d['_id'], source=d['source'],
+        return cls(name=d.get('_name', None), source=d['source'],
                    env=d.get('env', None), image=d.get('image', None),
-                   owner=d.get('owner', None), context=d.get('context', dict()))
+                   owner=d.get('owner', None), context=d.get('context', dict()), timestamp=d.get('_timestamp', None))
 
     def to_snapshot(self, *args: Any, **kwargs: Any) -> CodeSnapshot:
         return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
 
     @classmethod
     def from_snapshot(cls, snapshot: CodeSnapshot) -> 'Code':
-        return cls(id=snapshot['id'], serial_number=snapshot['serial_number'],
+        return cls(name=snapshot['_name'], serial_number=snapshot['_serial_number'],
                    state=snapshot['state'], dependency=snapshot['dependency'], source=snapshot['source'],
                    env=snapshot['env'], image=snapshot['image'],
                    owner=snapshot['owner'], context=snapshot['context'],

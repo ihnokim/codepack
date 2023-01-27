@@ -8,7 +8,7 @@ from functools import partial
 
 
 def fake_get_object(dummy_deliveries, Key, *args, **kwargs):
-    tmp = {x.get_path(key=x.id, path='test_path', posix=True): {'Body': x.to_json()} for x in dummy_deliveries}
+    tmp = {x.get_path(key=x.get_name(), path='test_path', posix=True): {'Body': x.to_json()} for x in dummy_deliveries}
     ret = tmp.get(Key, dict())
     if ret:
         body = ret['Body']
@@ -114,7 +114,7 @@ def test_s3_storage_search(mock_client, dummy_deliveries):
     ret = ss.search(key='item', value=json.dumps('y'))
     assert len(ret) == 2
     assert isinstance(ret[0], Delivery)
-    assert sorted([obj.id for obj in ret]) == ['obj2', 'obj3']
+    assert sorted([obj.get_name() for obj in ret]) == ['obj2', 'obj3']
     arg_list = mock_client.return_value.get_object.call_args_list
     assert len(arg_list) == 3
     args, kwargs = arg_list[0]
@@ -129,10 +129,10 @@ def test_s3_storage_search(mock_client, dummy_deliveries):
     ret = ss.search(key='item', value=json.dumps('y'), to_dict=True)
     assert len(ret) == 2
     assert isinstance(ret[0], dict)
-    ret = ss.search(key='item', value=json.dumps('y'), projection=['serial_number'])
+    ret = ss.search(key='item', value=json.dumps('y'), projection=['_serial_number'])
     assert len(ret) == 2
     assert isinstance(ret[0], dict)
-    assert set(ret[0].keys()) == {'id', 'serial_number'}
+    assert set(ret[0].keys()) == {'_serial_number'}
 
 
 @patch('boto3.client')
@@ -155,7 +155,7 @@ def test_s3_storage_list_all(mock_client):
 def test_s3_storage_save(mock_client, dummy_deliveries):
     config = Config()
     s3_config = config.get_config('s3')
-    ss = S3Storage(s3=s3_config, item_type=Delivery, key='id', bucket='test_bucket', path='test_path')
+    ss = S3Storage(s3=s3_config, item_type=Delivery, key='_name', bucket='test_bucket', path='test_path')
     mock_client.return_value.exceptions.ClientError = Exception
     mock_client.return_value.head_object.return_value = None
     obj_key1 = dummy_deliveries[0].get_path(key='obj1', path='test_path', posix=True)
@@ -177,11 +177,11 @@ def test_s3_storage_save(mock_client, dummy_deliveries):
 def test_s3_storage_update(mock_client, dummy_deliveries):
     config = Config()
     s3_config = config.get_config('s3')
-    ss = S3Storage(s3=s3_config, item_type=Delivery, key='id', bucket='test_bucket', path='test_path')
+    ss = S3Storage(s3=s3_config, item_type=Delivery, key='_name', bucket='test_bucket', path='test_path')
     mock_client.return_value.exceptions.NoSuchKey = Exception
     mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries)
     mock_client.return_value.exceptions.ClientError = Exception
-    ss.update(key='obj2', values={'serial_number': 'test'})
+    ss.update(key='obj2', values={'_serial_number': 'test'})
     obj1 = dummy_deliveries[0]
     obj_key1 = obj1.get_path(key='obj1', path='test_path', posix=True)
     obj2 = dummy_deliveries[1]
@@ -189,17 +189,17 @@ def test_s3_storage_update(mock_client, dummy_deliveries):
     obj3 = dummy_deliveries[2]
     obj_key3 = obj3.get_path(key='obj3', path='test_path', posix=True)
     obj1_dict = obj1.to_dict()
-    obj1_dict['serial_number'] = 'hello'
+    obj1_dict['_serial_number'] = 'hello'
     obj1_dict['_id'] = 'hello'
     obj2_dict = obj2.to_dict()
-    obj2_dict['serial_number'] = 'test'
+    obj2_dict['_serial_number'] = 'test'
     obj2_dict['_id'] = 'test'
     obj3_dict = obj3.to_dict()
-    obj3_dict['serial_number'] = 'hello'
+    obj3_dict['_serial_number'] = 'hello'
     obj3_dict['_id'] = 'hello'
     mock_client.return_value.put_object.assert_called_once_with(Bucket='test_bucket', Key=obj_key2,
                                                                 Body=json.dumps(obj2_dict))
-    ss.update(key=['obj1', 'obj3'], values={'serial_number': 'hello'})
+    ss.update(key=['obj1', 'obj3'], values={'_serial_number': 'hello'})
 
     arg_list = mock_client.return_value.put_object.call_args_list
     assert len(arg_list) == 3
@@ -211,7 +211,7 @@ def test_s3_storage_update(mock_client, dummy_deliveries):
 def test_s3_storage_load(mock_client, dummy_deliveries):
     config = Config()
     s3_config = config.get_config('s3')
-    ss = S3Storage(s3=s3_config, item_type=Delivery, key='id', bucket='test_bucket', path='test_path')
+    ss = S3Storage(s3=s3_config, item_type=Delivery, key='_name', bucket='test_bucket', path='test_path')
     mock_client.return_value.exceptions.NoSuchKey = Exception
     mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries)
     ret = ss.load(key='obj2')
@@ -220,9 +220,35 @@ def test_s3_storage_load(mock_client, dummy_deliveries):
     ret = ss.load(key='obj1', to_dict=True)
     assert isinstance(ret, dict)
     assert ret == dummy_deliveries[0].to_dict()
-    ret = ss.load(key='obj3', projection=['serial_number'])
+    ret = ss.load(key='obj3', projection=['_serial_number'])
     assert isinstance(ret, dict)
-    assert set(ret.keys()) == {'id', 'serial_number'}
+    assert set(ret.keys()) == {'_serial_number'}
     ret = ss.load(key=['obj2', 'obj4', 'obj3'])
     assert len(ret) == 2
-    assert {x.id for x in ret} == {'obj2', 'obj3'}
+    assert {x.get_name() for x in ret} == {'obj2', 'obj3'}
+
+
+@patch('boto3.client')
+def test_s3_storage_text_key_search(mock_client, dummy_deliveries_for_text_key_search):
+    config = Config()
+    s3_config = config.get_config('s3')
+    storage = S3Storage(s3=s3_config, item_type=Delivery, key='_name', bucket='test_bucket', path='test_path')
+    mock_client.return_value.exceptions.NoSuchKey = Exception
+    mock_client.return_value.get_object.side_effect = partial(fake_get_object, dummy_deliveries_for_text_key_search)
+    mock_client.return_value.get_paginator.return_value.paginate.return_value \
+        = [{'Contents': [{'Key': 'test_path/%s.json' % x.get_name()} for x in dummy_deliveries_for_text_key_search]}]
+    assert storage.key == '_name'
+    dummy_keys = sorted([d.get_name() for d in dummy_deliveries_for_text_key_search])
+    all_keys = sorted(storage.list_all())
+    assert all_keys == dummy_keys
+    banana_items = storage.text_key_search(key='banana')
+    assert isinstance(banana_items, list)
+    assert len(banana_items) == 2
+    assert sorted(banana_items) == ['banana_apple', 'orange_banana']
+    apple_items = storage.text_key_search(key='apple')
+    assert sorted(apple_items) == ['apple_orange', 'banana_apple']
+    _items = storage.text_key_search(key='_')
+    assert sorted(_items) == ['apple_orange', 'banana_apple', 'orange_banana']
+    mock_client.return_value.get_paginator.return_value.paginate.assert_called_with(Bucket='test_bucket',
+                                                                                    Prefix='test_path/')
+    assert mock_client.return_value.get_paginator.return_value.paginate.call_count == 4

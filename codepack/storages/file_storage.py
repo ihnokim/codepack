@@ -7,7 +7,7 @@ from typing import Type, Union, Optional, Any
 
 
 class FileStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number', path: str = '.') -> None:
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None, path: str = '.') -> None:
         super().__init__(item_type=item_type, key=key)
         self.path = None
         self.new_path = None
@@ -62,11 +62,19 @@ class FileStorage(Storage):
             if d[key] != value:
                 continue
             if projection:
-                ret.append({k: d[k] for k in set(projection).union({self.key})})
+                ret.append({k: d[k] for k in projection if k in d})
             elif to_dict:
                 ret.append(d)
             else:
                 ret.append(item)
+        return ret
+
+    def text_key_search(self, key: str) -> list:
+        ret = list()
+        for filename in os.listdir(self.path):
+            k = filename.replace('.json', '')
+            if key in k:
+                ret.append(k)
         return ret
 
     def list_all(self) -> list:
@@ -74,16 +82,16 @@ class FileStorage(Storage):
 
     def save(self, item: Union[Storable, list], update: bool = False) -> None:
         if isinstance(item, self.item_type):
-            item_key = getattr(item, self.key)
+            item_key = self.get_item_key(item)
             path = item.get_path(key=item_key, path=self.path)
             if update:
                 if self.exist(key=item_key):
                     self.remove(key=item_key)
-                item.to_file(path)
+                item.to_file(path=path)
             elif self.exist(key=item_key):
                 raise ValueError('%s already exists' % item_key)
             else:
-                item.to_file(path)
+                item.to_file(path=path)
         elif isinstance(item, list):
             for i in item:
                 self.save(item=i, update=update)
@@ -118,7 +126,7 @@ class FileStorage(Storage):
             ret_instance = self.item_type.from_file(path)
             if projection:
                 d = ret_instance.to_dict()
-                return {k: d[k] for k in set(projection).union({self.key})}
+                return {k: d[k] for k in projection if k in d}
             elif to_dict:
                 return ret_instance.to_dict()
             else:

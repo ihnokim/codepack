@@ -13,11 +13,11 @@ import sys
 from typing import TypeVar, Union, Optional, Callable
 
 
-Messenger = TypeVar('Messenger', bound='codepack.storages.messenger.Messenger')  # noqa: F821
+MessageReceiver = TypeVar('MessageReceiver', bound='codepack.storages.message_receiver.MessageReceiver')  # noqa: F821
 
 
 class Worker(Employee):
-    def __init__(self, messenger: Messenger, interval: Union[float, str] = 1,
+    def __init__(self, messenger: MessageReceiver, interval: Union[float, str] = 1,
                  script_path: str = 'run_snapshot.py', callback: Optional[Callable] = None,
                  supervisor: Optional[Union[Supervisor, str]] = None, background: Union[bool, str] = False,
                  docker_manager: Optional[DockerManager] = None,
@@ -107,7 +107,7 @@ class Worker(Employee):
             if code.image or code.env:
                 state = code.check_dependency()
                 if state == 'READY':
-                    filepath = '%s.json' % code.serial_number
+                    filepath = '%s.json' % code.get_serial_number()
                     snapshot_path = os.path.join(self.script_dir, filepath)
                     script_path = os.path.join(self.script_dir, self.script)
                     snapshot.to_file(snapshot_path)
@@ -138,4 +138,4 @@ class Worker(Employee):
         finally:
             if snapshot_path:
                 DockerManager.remove_file_if_exists(path=snapshot_path)
-            return snapshot['serial_number']
+            return snapshot['_serial_number']

@@ -12,16 +12,16 @@ Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # n
 class SnapshotService(Service):
     def __init__(self, storage: Storage) -> None:
         super().__init__(storage=storage)
-        if self.storage.key != 'serial_number':
-            self.storage.key = 'serial_number'
+        if self.storage.key != '_serial_number':
+            self.storage.key = '_serial_number'
 
     def save(self, snapshot: Snapshot) -> None:
-        if self.storage.exist(key=snapshot.serial_number):
-            existing_snapshot = self.storage.load(key=snapshot.serial_number)
+        if self.storage.exist(key=snapshot.get_serial_number()):
+            existing_snapshot = self.storage.load(key=snapshot.get_serial_number())
             diff = existing_snapshot.diff(snapshot)
             if 'state' in diff and isinstance(diff['state'], State):
                 diff['state'] = diff['state'].name
-            self.storage.update(key=snapshot.serial_number, values=diff)
+            self.storage.update(key=snapshot.get_serial_number(), values=diff)
         else:
             self.storage.save(item=snapshot)
 

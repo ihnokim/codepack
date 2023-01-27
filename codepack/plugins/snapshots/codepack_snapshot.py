@@ -11,16 +11,16 @@ class CodePackSnapshot(Snapshot):
     def __init__(self, codepack: Optional[CodePack] = None, argpack: Optional[Union[ArgPack, dict]] = None,
                  timestamp: Optional[float] = None) -> None:
         if codepack:
-            _id = codepack.id
-            _serial_number = codepack.serial_number
+            _name = codepack.get_name()
+            _serial_number = codepack.get_serial_number()
             _state = None
-            _codes = {k: v.serial_number for k, v in codepack.codes.items()}
+            _codes = {k: v.get_serial_number() for k, v in codepack.codes.items()}
             _source = codepack.get_source()
             _structure = codepack.get_structure()
             _subscribe = codepack.subscribe
             _owner = codepack.owner
         else:
-            _id = None
+            _name = None
             _serial_number = None
             _state = None
             _codes = None
@@ -28,7 +28,7 @@ class CodePackSnapshot(Snapshot):
             _structure = None
             _subscribe = None
             _owner = None
-        super().__init__(id=_id, serial_number=_serial_number, state=_state, timestamp=timestamp, owner=_owner)
+        super().__init__(name=_name, serial_number=_serial_number, state=_state, timestamp=timestamp, owner=_owner)
         self.__setitem__('codes', _codes)
         self.__setitem__('source', _source)
         self.__setitem__('structure', _structure)
@@ -47,11 +47,3 @@ class CodePackSnapshot(Snapshot):
         else:
             tmp = dict()
         self.__setitem__('argpack', tmp)
-
-    @classmethod
-    def from_dict(cls, d: dict) -> 'CodePackSnapshot':
-        ret = cls()
-        for k, v in d.items():
-            if k != '_id':
-                ret[k] = v
-        return ret

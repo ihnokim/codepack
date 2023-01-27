@@ -4,7 +4,7 @@ from typing import Any, Type, Optional, Union
 
 
 class Storage(metaclass=abc.ABCMeta):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: str = 'serial_number') -> None:
+    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
         if item_type and not issubclass(item_type, Storable):
             raise TypeError(type(item_type))
         self.item_type = item_type
@@ -29,6 +29,10 @@ class Storage(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
         """search by key and value"""
+
+    @abc.abstractmethod
+    def text_key_search(self, key: str) -> list:
+        """search for items whose key contains given substring"""
 
     @abc.abstractmethod
     def list_all(self) -> list:
@@ -59,3 +63,18 @@ class Storage(metaclass=abc.ABCMeta):
         else:
             raise ValueError('%s is unknown' % summary)
         return op, init
+
+    def get_item_key(self, item: Storable) -> Any:
+        if self.key is not None:
+            if self.key == '_serial_number':
+                return item.get_serial_number()
+            elif self.key == '_name':
+                return item.get_name()
+            elif self.key == '_timestamp':
+                return item.get_timestamp()
+            elif self.key == '_id':
+                return item.get_id()
+            else:
+                return getattr(item, self.key)
+        else:
+            return item.get_id()

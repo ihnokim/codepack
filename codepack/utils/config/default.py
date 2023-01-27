@@ -138,16 +138,18 @@ class Default:
                      alias_path: Optional[str] = None) -> Employee:
         key = section
         if 'worker' in section:
-            messenger_type = 'consumer'
+            messenger_type = 'message_receiver'
+            kafka_type = 'consumer'
         elif 'supervisor' in section:
-            messenger_type = 'producer'
+            messenger_type = 'message_sender'
+            kafka_type = 'producer'
         else:
             raise NotImplementedError("'%s' is unknown")  # pragma: no cover
         if config_path or alias_path or key not in cls.instances:
             config = cls.get_config_instance(config_path=config_path)
             storage_config = config.get_storage_config(section=section, config_path=config_path)
             source = storage_config.pop('source')
-            storage_alias = cls.get_alias_from_source(source=source, suffix='messenger')
+            storage_alias = cls.get_alias_from_source(source=source, suffix=messenger_type)
             storage_class = cls.get_class_from_alias(storage_alias, alias_path=alias_path)
             if source == 'memory':
                 conn_config = dict()
@@ -161,7 +163,7 @@ class Default:
                 else:
                     conn_config[k] = v
             if source == 'kafka':
-                storage_instance = storage_class(**{messenger_type: conn_config})
+                storage_instance = storage_class(**{kafka_type: conn_config})
             else:
                 storage_instance = storage_class(**conn_config)
             _instance = employee_class(messenger=storage_instance, **employee_config)

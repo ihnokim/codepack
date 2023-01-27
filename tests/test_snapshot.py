@@ -1,4 +1,4 @@
-from codepack import Code, CodePack, Snapshot, CodeSnapshot
+from codepack import Code, CodePack, Snapshot, CodeSnapshot, CodePackSnapshot
 from functools import partial
 from tests import add2, add3, mul2, print_x, combination, linear
 from datetime import datetime
@@ -9,9 +9,9 @@ def test_snapshot_to_dict_and_from_dict():
     snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9)
     snapshot_dict1 = snapshot1.to_dict()
     snapshot2 = Snapshot.from_dict(snapshot_dict1)
-    assert snapshot1.id == snapshot2.id
-    assert snapshot1.serial_number == snapshot2.serial_number
-    assert snapshot1.timestamp == snapshot2.timestamp
+    assert snapshot1.get_name() == snapshot2.get_name()
+    assert snapshot1.get_serial_number() == snapshot2.get_serial_number()
+    assert snapshot1.get_timestamp() == snapshot2.get_timestamp()
     assert snapshot1.custom_value == snapshot2.custom_value
     assert snapshot2.custom_value == 9
     assert '_id' in snapshot_dict1
@@ -20,13 +20,13 @@ def test_snapshot_to_dict_and_from_dict():
 
 def test_snapshot_diff():
     timestamp = datetime.now().timestamp()
-    snapshot1 = Snapshot(id='1234', serial_number='5678', custom_value=9, timestamp=timestamp)
-    snapshot2 = Snapshot(id='1234', serial_number='8765', custom_value=3, timestamp=timestamp + 1)
+    snapshot1 = Snapshot(name='1234', serial_number='5678', custom_value=9, timestamp=timestamp)
+    snapshot2 = Snapshot(name='1234', serial_number='8765', custom_value=3, timestamp=timestamp + 1)
     diff = snapshot1.diff(snapshot2)
-    assert set(diff.keys()) == {'serial_number', 'custom_value', 'timestamp'}
-    assert diff['serial_number'] == '8765'
+    assert set(diff.keys()) == {'_serial_number', 'custom_value', '_timestamp', '_id'}
+    assert diff['_serial_number'] == '8765'
     assert diff['custom_value'] == 3
-    assert diff['timestamp'] == timestamp + 1
+    assert diff['_timestamp'] == timestamp + 1
 
 
 def test_code_snapshot_to_dict_and_from_dict(default_os_env):
@@ -38,17 +38,22 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     code3.receive('c') << code2
     code3(1, b=2)
     snapshot1 = CodeSnapshot(code3, args=(1, ), kwargs={'b': 2})
+    assert snapshot1.get_name() == code3.get_name()
+    assert snapshot1.get_serial_number() == code3.get_serial_number()
     snapshot_dict1 = snapshot1.to_dict()
+    assert '_name' in snapshot_dict1 and snapshot_dict1['_name'] == code3.get_name()
+    assert '_id' in snapshot_dict1 and snapshot_dict1['_id'] == code3.get_serial_number()
+    assert '_serial_number' in snapshot_dict1 and snapshot_dict1['_serial_number'] == code3.get_serial_number()
     assert 'state' in snapshot_dict1
     assert snapshot_dict1['state'] == 'WAITING'
     assert 'source' in snapshot_dict1
     assert snapshot_dict1['source'] == code3.source
     assert 'dependency' in snapshot_dict1
     for dependency in snapshot_dict1['dependency']:
-        code3_dependency = code3.dependency[dependency['serial_number']]
-        assert set(dependency.keys()) == {'id', 'serial_number', 'param'}
-        assert dependency['id'] == code3_dependency.id
-        assert dependency['serial_number'] == code3_dependency.serial_number
+        code3_dependency = code3.dependency[dependency['_serial_number']]
+        assert set(dependency.keys()) == {'_name', '_serial_number', 'param'}
+        assert dependency['_name'] == code3_dependency.get_name()
+        assert dependency['_serial_number'] == code3_dependency.get_serial_number()
         assert dependency['param'] == code3_dependency.param
     assert 'image' in snapshot_dict1
     assert snapshot_dict1['image'] == 'test-image'
@@ -57,9 +62,9 @@ def test_code_snapshot_to_dict_and_from_dict(default_os_env):
     assert 'owner' in snapshot_dict1
     assert snapshot_dict1['owner'] is None
     snapshot2 = CodeSnapshot.from_dict(snapshot_dict1)
-    assert snapshot1.id == snapshot2.id
-    assert snapshot1.serial_number == snapshot2.serial_number
-    assert snapshot1.timestamp == snapshot2.timestamp
+    assert snapshot1.get_name() == snapshot2.get_name()
+    assert snapshot1.get_serial_number() == snapshot2.get_serial_number()
+    assert snapshot1.get_timestamp() == snapshot2.get_timestamp()
     assert snapshot1.args == snapshot2.args
     assert snapshot1.kwargs == snapshot2.kwargs
     assert snapshot1.source == snapshot2.source
@@ -83,9 +88,9 @@ def test_code_snapshot_diff(default_os_env):
     assert snapshot1.diff(snapshot2) == dict()
     assert snapshot2.diff(snapshot1) == dict()
     diff = snapshot1.diff(snapshot3)
-    assert set(diff.keys()) == {'kwargs', 'timestamp'}
+    assert set(diff.keys()) == {'kwargs', '_timestamp'}
     assert diff['kwargs'] == {'b': 3}
-    assert diff['timestamp'] == timestamp + 1
+    assert diff['_timestamp'] == timestamp + 1
 
 
 def test_code_to_snapshot_and_from_snapshot(default_os_env):
@@ -111,7 +116,7 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     c4.receive('c') << c3
     c5.receive('x') << c3
 
-    cp1 = CodePack(id='test_codepack', code=c1, subscribe=c4)
+    cp1 = CodePack(name='test_codepack', code=c1, subscribe=c4)
 
     argpack = cp1.make_argpack()
     argpack['add3']['a'] = 1
@@ -136,34 +141,34 @@ def test_codepack_to_snapshot_and_from_snapshot(default_os_env):
     assert snapshot1.owner == 'codepack'
     cp2 = CodePack.from_snapshot(snapshot1)
     assert cp2.owner == 'codepack'
-    assert cp1.id == cp2.id
-    assert cp1.serial_number == cp2.serial_number
+    assert cp1.get_name() == cp2.get_name()
+    assert cp1.get_serial_number() == cp2.get_serial_number()
     assert cp1.get_state() == cp2.get_state()
     cp1_source = cp1.get_source()
     cp2_source = cp2.get_source()
     assert cp1_source.keys() == cp2_source.keys()
-    for id in cp1_source.keys():
-        assert cp1_source[id].strip() == cp2_source[id].strip()
+    for name in cp1_source.keys():
+        assert cp1_source[name].strip() == cp2_source[name].strip()
     # assert cp1.get_structure() == cp2.get_structure()
     assert cp1.subscribe == cp2.subscribe
     assert set(cp1.codes.keys()) == set(cp2.codes.keys())
     assert cp1.owner is None
     assert cp2.owner == 'codepack'
-    for code_id in cp1.codes.keys():
-        code1 = cp1.codes[code_id]
-        code2 = cp2.codes[code_id]
-        assert code1.serial_number == code2.serial_number
+    for code_name in cp1.codes.keys():
+        code1 = cp1.codes[code_name]
+        code2 = cp2.codes[code_name]
+        assert code1.get_serial_number() == code2.get_serial_number()
         assert code1.parents.keys() == code2.parents.keys()
-        for id in code1.parents.keys():
-            assert code1.parents[id].serial_number == code2.parents[id].serial_number
+        for name in code1.parents.keys():
+            assert code1.parents[name].get_serial_number() == code2.parents[name].get_serial_number()
         assert code1.children.keys() == code2.children.keys()
-        for id in code1.children.keys():
-            assert code1.children[id].serial_number == code2.children[id].serial_number
+        for name in code1.children.keys():
+            assert code1.children[name].get_serial_number() == code2.children[name].get_serial_number()
         assert code1.get_state() == code2.get_state()
         assert code1.dependency.keys() == code2.dependency.keys()
         for serial_number in code1.dependency.keys():
-            assert code1.dependency[serial_number].id == code2.dependency[serial_number].id
-            assert code1.dependency[serial_number].serial_number == code2.dependency[serial_number].serial_number
+            assert code1.dependency[serial_number].get_name() == code2.dependency[serial_number].get_name()
+            assert code1.dependency[serial_number].get_serial_number() == code2.dependency[serial_number].get_serial_number()
             assert code1.dependency[serial_number].param == code2.dependency[serial_number].param
 
 
@@ -182,10 +187,10 @@ def test_embedded_callback(default_os_env):
     snapshot1 = code.to_snapshot()
     snapshot2 = CodeSnapshot.from_dict(snapshot1.to_dict())
 
-    callback_sources = [{'id': 'my_callback1',
+    callback_sources = [{'_name': 'my_callback1',
                          'context': {},
                          'source': "    def my_callback1(x):\n        print('x is %s' % x)\n"},
-                        {'id': 'my_callback2',
+                        {'_name': 'my_callback2',
                          'context': {'y': 'hello'},
                          'source': '    def my_callback2(x, y):\n        print(x, y)\n'}]
 
@@ -194,3 +199,36 @@ def test_embedded_callback(default_os_env):
 
     code2 = Code.from_snapshot(snapshot2)
     assert set(code2.callback.keys()) == {'my_callback1', 'my_callback2'}
+
+
+def test_code_versioning(default_os_env):
+    code = Code(add2, version='1.2.3')
+    assert code.get_name() == 'add2@1.2.3'
+    snapshot = code.to_snapshot()
+    assert snapshot.get_name() == code.get_name()
+    assert snapshot.get_serial_number() == code.get_serial_number()
+    snapshot_dict = snapshot.to_dict()
+    assert '_name' in snapshot_dict and snapshot_dict['_name'] == 'add2@1.2.3'
+    assert '_serial_number' in snapshot_dict and snapshot_dict['_serial_number'] == code.get_serial_number()
+    assert '_id' in snapshot_dict and snapshot_dict['_id'] == code.get_serial_number()
+
+
+def test_code_snapshot_timestamp(default_os_env):
+    code = Code(add2, version='0.1.1')
+    snapshot1 = code.to_snapshot()
+    d = snapshot1.to_dict()
+    assert '_timestamp' in d
+    snapshot2 = CodeSnapshot.from_dict(d)
+    assert snapshot2.get_timestamp() == d['_timestamp']
+
+
+def test_codepack_snapshot_timestamp(default_os_env):
+    code1 = Code(add2, version='0.1.1')
+    code2 = Code(mul2, name='haha@1.2.3')
+    code1 >> code2
+    codepack = CodePack(name='test_codepack1@1.2.3', code=code1, subscribe=code2)
+    snapshot = codepack.to_snapshot()
+    d = snapshot.to_dict()
+    assert '_timestamp' in d
+    snapshot2 = CodePackSnapshot.from_dict(d)
+    assert snapshot2.get_timestamp() == d['_timestamp']
