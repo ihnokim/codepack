@@ -1,7 +1,6 @@
 from codepack import ArgPack, Default
 from fastapi import APIRouter, HTTPException
 from ..models.argpack import JsonArgPack
-from ..models import SearchQuery
 
 
 router = APIRouter(
@@ -49,7 +48,7 @@ async def load(name: str):
     return argpack.to_dict()
 
 
-@router.get('/search')
-async def search(params: SearchQuery):
+@router.get('/search/{query}')
+async def search(query: str):
     storage_service = Default.get_service('argpack', 'storage_service')
-    return storage_service.search(query=params.query, projection=params.projection)
+    return storage_service.search(query=query)
