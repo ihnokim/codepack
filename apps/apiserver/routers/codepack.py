@@ -2,7 +2,7 @@ from codepack import Default, CodePack, CodePackSnapshot, ArgPack
 from fastapi import APIRouter, HTTPException
 from ..models.codepack import JsonCodePack, JsonCodePackAndJsonArgPack
 from ..models.argpack import JsonArgPack
-from ..models import SearchQuery, JsonSnapshot
+from ..models import JsonSnapshot
 from ..dependencies import common
 
 
@@ -88,10 +88,10 @@ async def load(name: str):
     return codepack.to_dict()
 
 
-@router.get('/search')
-async def search(params: SearchQuery):
+@router.get('/search/{query}')
+async def search(query: str):
     storage_service = Default.get_service('codepack', 'storage_service')
-    return storage_service.search(query=params.query, projection=params.projection)
+    return storage_service.search(query=query)
 
 
 @router.get('/state/{serial_number}')
