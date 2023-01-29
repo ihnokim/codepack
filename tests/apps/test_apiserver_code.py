@@ -34,7 +34,7 @@ def test_apiserver_search_code(test_client):
     response = test_client.get('code/load/add3')
     assert response.status_code == 404
     assert response.json() == {'detail': 'add3 not found'}
-    response = test_client.get('code/search', json={'query': 'add'})
+    response = test_client.get('code/search/add')
     assert response.status_code == 200
     assert response.json() == []
     code1 = Code(add2)
@@ -45,7 +45,7 @@ def test_apiserver_search_code(test_client):
     response = test_client.post('code/save', json={'code': code2.to_dict()})
     assert response.status_code == 200
     assert response.json() == {'name': 'add3@0.0.1'}
-    response = test_client.get('code/search', json={'query': 'add'})
+    response = test_client.get('code/search/add')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -54,14 +54,7 @@ def test_apiserver_search_code(test_client):
     for item in response_json:
         assert item.keys() == {'_name', '_timestamp', '_id', 'source',
                                'description', 'env', 'image', 'owner', 'context'}
-    response = test_client.get('code/search', json={'query': 'add', 'projection': ['_name', 'owner']})
-    assert response.status_code == 200
-    response_json = response.json()
-    assert isinstance(response_json, list)
-    assert len(response_json) == 2
-    for item in response_json:
-        assert item.keys() == {'_name', 'owner'}
-    response = test_client.get('code/search', json={'query': 'add3'})
+    response = test_client.get('code/search/add3')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -73,7 +66,7 @@ def test_apiserver_search_code(test_client):
     response = test_client.delete('code/remove/add3@0.0.1')
     assert response.status_code == 200
     assert response.json() == {'name': 'add3@0.0.1'}
-    response = test_client.get('code/search', json={'query': 'add'})
+    response = test_client.get('code/search/add')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
