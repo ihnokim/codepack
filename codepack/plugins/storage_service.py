@@ -16,7 +16,7 @@ class StorageService(Service):
     def load(self, name: Union[str, list]) -> Optional[Union[Storable, dict, list]]:
         return self.storage.load(key=name)
 
-    def search(self, query: str, projection: Optional[list]) -> list:
+    def search(self, query: str, projection: Optional[list] = None) -> list:
         keys = self.storage.text_key_search(key=query)
         items = self.storage.load(key=keys, projection=projection, to_dict=True)
         return items

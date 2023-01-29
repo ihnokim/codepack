@@ -39,7 +39,7 @@ def test_apiserver_search_codepack(test_client):
     response = test_client.get('codepack/load/test_codepack2')
     assert response.status_code == 404
     assert response.json() == {'detail': 'test_codepack2 not found'}
-    response = test_client.get('codepack/search', json={'query': 'test'})
+    response = test_client.get('codepack/search/test')
     assert response.status_code == 200
     assert response.json() == []
     codepack1 = CodePack('test_codepack1', code=Code(add2) >> Code(mul2), subscribe='mul2')
@@ -50,7 +50,7 @@ def test_apiserver_search_codepack(test_client):
     response = test_client.post('codepack/save', json={'codepack': codepack2.to_dict()})
     assert response.status_code == 200
     assert response.json() == {'name': 'test_codepack2@0.2.1'}
-    response = test_client.get('codepack/search', json={'query': 'test_codepack'})
+    response = test_client.get('codepack/search/test_codepack')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -58,14 +58,7 @@ def test_apiserver_search_codepack(test_client):
     assert sorted([x['_id'] for x in response_json]) == ['test_codepack1', 'test_codepack2@0.2.1']
     for item in response_json:
         assert item.keys() == {'_name', '_timestamp', '_id', 'structure', 'owner', 'subscribe', 'source'}
-    response = test_client.get('codepack/search', json={'query': 'test_codepack', 'projection': ['_name', 'structure']})
-    assert response.status_code == 200
-    response_json = response.json()
-    assert isinstance(response_json, list)
-    assert len(response_json) == 2
-    for item in response_json:
-        assert item.keys() == {'_name', 'structure'}
-    response = test_client.get('codepack/search', json={'query': 'test_codepack2'})
+    response = test_client.get('codepack/search/test_codepack2')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -77,7 +70,7 @@ def test_apiserver_search_codepack(test_client):
     response = test_client.delete('codepack/remove/test_codepack2@0.2.1')
     assert response.status_code == 200
     assert response.json() == {'name': 'test_codepack2@0.2.1'}
-    response = test_client.get('codepack/search', json={'query': 'test_codepack'})
+    response = test_client.get('codepack/search/test_codepack')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)

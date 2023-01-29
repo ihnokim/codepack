@@ -67,7 +67,7 @@ def test_apiserver_search_argpack(test_client):
     response = test_client.get('argpack/load/test_argpack2')
     assert response.status_code == 404
     assert response.json() == {'detail': 'test_argpack2 not found'}
-    response = test_client.get('argpack/search', json={'query': 'test'})
+    response = test_client.get('argpack/search/test')
     assert response.status_code == 200
     assert response.json() == []
     argpack1 = ArgPack(name='test_argpack1', args={'add2': {'a': 3, 'b': 5}, 'mul2': {'b': 4}})
@@ -78,7 +78,7 @@ def test_apiserver_search_argpack(test_client):
     response = test_client.post('argpack/save', json={'argpack': argpack2.to_dict()})
     assert response.status_code == 200
     assert response.json() == {'name': 'test_argpack2@0.2.1'}
-    response = test_client.get('argpack/search', json={'query': 'test_argpack'})
+    response = test_client.get('argpack/search/test_argpack')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -86,14 +86,7 @@ def test_apiserver_search_argpack(test_client):
     assert sorted([x['_id'] for x in response_json]) == ['test_argpack1', 'test_argpack2@0.2.1']
     for item in response_json:
         assert item.keys() == {'_name', '_timestamp', '_id', 'args', 'owner'}
-    response = test_client.get('argpack/search', json={'query': 'test_argpack', 'projection': ['_name', 'owner']})
-    assert response.status_code == 200
-    response_json = response.json()
-    assert isinstance(response_json, list)
-    assert len(response_json) == 2
-    for item in response_json:
-        assert item.keys() == {'_name', 'owner'}
-    response = test_client.get('argpack/search', json={'query': 'test_argpack2'})
+    response = test_client.get('argpack/search/test_argpack2')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
@@ -105,7 +98,7 @@ def test_apiserver_search_argpack(test_client):
     response = test_client.delete('argpack/remove/test_argpack2@0.2.1')
     assert response.status_code == 200
     assert response.json() == {'name': 'test_argpack2@0.2.1'}
-    response = test_client.get('argpack/search', json={'query': 'test_argpack'})
+    response = test_client.get('argpack/search/test_argpack')
     assert response.status_code == 200
     response_json = response.json()
     assert isinstance(response_json, list)
