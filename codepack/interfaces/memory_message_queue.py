@@ -1,91 +1,100 @@
-from codepack.interfaces.interface import Interface
-from queue import Queue, Empty
-from typing import Any, Optional
-from collections import namedtuple
+from codepack.interfaces.message_queue import MessageQueue
+from typing import Dict, Any, List
+from threading import Lock
+from copy import deepcopy
 
 
-Message = namedtuple('Message', 'value')
+# https://stackoverflow.com/questions/57753211/kafka-use-common-consumer-group-to-access-multiple-topics
 
 
-class MemoryMessageQueue(Interface):
-    instances = {}
+class MemoryMessageQueue(MessageQueue):
+    DELIMITER = '@'
+    messages: Dict[str, list] = dict()
+    offsets: Dict[str, int] = dict()
+    locks: Dict[str, Lock] = dict()
+
+    def __init__(self) -> None:
+        self._is_closed = False
+        self.connect()
+
+    def connect(self) -> None:
+        self._is_closed = False
+
+    def get_session(self) -> 'MemoryMessageQueue':
+        return self
+
+    def get_group_key(self, topic: str, group: str = 'default') -> str:
+        return f'{topic}{self.DELIMITER}{group}'
+
+    def get_offset(self, topic: str, group: str = 'default') -> int:
+        group_key = self.get_group_key(topic=topic, group=group)
+        if group_key not in self.offsets:
+            return 0
+        else:
+            return self.offsets[group_key]
+
+    def get_lock(self, topic: str, group: str = 'default') -> Lock:
+        group_key = self.get_group_key(topic=topic, group=group)
+        if group_key not in self.locks:
+            self.locks[group_key] = Lock()
+        return self.locks[group_key]
+
+    def set_offset(self, topic: str, group: str = 'default', offset: int = 0) -> None:
+        group_key = self.get_group_key(topic=topic, group=group)
+        self.offsets[group_key] = offset
 
     @classmethod
-    def get_instance(cls, key: str = 'default') -> Optional['MemoryMessageQueue']:
-        if not cls.instance_exists(key=key):
-            cls.instances[key] = cls()
-        return cls.instances[key]
+    def parse_config(cls, config: Dict[str, str]) -> Dict[str, Any]:
+        return deepcopy(config)
 
-    @classmethod
-    def instance_exists(cls, key: str):
-        return key in cls.instances.keys()
-
-    @classmethod
-    def remove_instance(cls, key: str):
-        if cls.instance_exists(key=key):
-            cls.instances[key].close()
-            cls.instances.pop(key, None)
-
-    @classmethod
-    def remove_all_instances(cls):
-        keys = list(cls.instances.keys())
-        for key in keys:
-            cls.remove_instance(key=key)
-
-    def __init__(self, config: Optional[dict] = None, *args, **kwargs) -> None:
-        super().__init__(config if config else dict())
-        self.maxsize = None
-        self.connect(*args, **kwargs)
-
-    def connect(self, *args: Any, **kwargs: Any) -> dict:
-        self.maxsize = int(self.config['maxsize']) if 'maxsize' in self.config else 1000
-        self.session = dict()
-        return self.session
+    def clear(self) -> None:
+        self.__class__.messages = dict()
+        self.__class__.offsets = dict()
+        self.__class__.locks = dict()
 
     def close(self) -> None:
-        topics = list()
-        for tp, q in self.session.items():
-            with q.mutex:
-                q.queue.clear()
-            topics.append(tp)
-        for topic in topics:
-            self.session.pop(topic, None)
-        self.session = None
-        self._closed = True
+        self._is_closed = True
 
-    @classmethod
-    def create_queue(cls, maxsize: int = 1000) -> Queue:
-        return Queue(maxsize=maxsize)
+    def is_closed(self):
+        return self._is_closed
 
-    def __getitem__(self, topic: str) -> Queue:
-        return self.session[topic]
-
-    def create_topic(self, topic: str) -> None:
+    def create_topic(self, topic: str, maxsize: int = 1000) -> None:
         if self.topic_exists(topic=topic):
             raise ValueError("topic '%s' already exists" % topic)
         else:
-            self.session[topic] = self.create_queue(maxsize=self.maxsize)
+            self.messages[topic] = list()
+
+    def list_topics(self) -> List[str]:
+        return list(self.messages.keys())
 
     def topic_exists(self, topic: str) -> bool:
-        return topic in self.session.keys()
+        return topic in self.messages.keys()
 
     def remove_topic(self, topic: str) -> None:
         if self.topic_exists(topic=topic):
-            with self.session[topic].mutex:
-                self.session[topic].queue.clear()
-            self.session.pop(topic, None)
+            self.messages.pop(topic, None)
+            offsets = [group_key for group_key in self.offsets if f'{topic}{self.DELIMITER}' in group_key]
+            locks = [group_key for group_key in self.locks if f'{topic}{self.DELIMITER}' in group_key]
+            for x in offsets:
+                self.offsets.pop(x, None)
+            for x in locks:
+                self.locks.pop(x, None)
 
-    def fetch(self, topic: str, batch: int = 10, *args: Any, **kwargs: Any) -> list:
+    def receive(self, topic: str, group: str, batch: int = 10) -> List[Any]:
         assert self.topic_exists(topic=topic)
-        msgs = list()
-        for i in range(batch):
-            try:
-                msg = self.session[topic].get(block=False, *args, **kwargs)
-                msgs.append(Message(msg))
-            except Empty:
-                continue
-        return msgs
+        messages = list()
+        with self.get_lock(topic=topic, group=group):
+            offset = self.get_offset(topic=topic, group=group)
+            for _ in range(batch):
+                if offset < len(self.messages[topic]):
+                    message = self.messages[topic][offset]
+                    messages.append(message)
+                    offset += 1
+                else:
+                    break
+            self.set_offset(topic=topic, group=group, offset=offset)
+        return messages
 
-    def send(self, topic: str, item: Any, *args: Any, **kwargs: Any) -> None:
+    def send(self, topic: str, message: Any) -> None:
         assert self.topic_exists(topic=topic)
-        self.session[topic].put(item, block=False, *args, **kwargs)
+        self.messages[topic].append(message)
