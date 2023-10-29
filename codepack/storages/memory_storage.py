@@ -1,117 +1,85 @@
+from typing import Dict, List, Optional, Any
+from copy import deepcopy
 from codepack.storages.storage import Storage
-from typing import TypeVar, Type, Union, Optional, Any
-
-
-Storable = TypeVar('Storable', bound='codepack.storages.storable.Storable')  # noqa: F821
+from codepack.interfaces.random_access_memory import RandomAccessMemory
 
 
 class MemoryStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
-        super().__init__(item_type=item_type, key=key)
-        self.memory = None
-        self.init()
+    def __init__(self, keep_order: bool = False) -> None:
+        super().__init__()
+        self.interface = RandomAccessMemory(keep_order=keep_order)
+        self.memory = self.interface.get_session()
 
-    def init(self) -> None:
-        self.memory = dict()
+    @classmethod
+    def parse_config(cls, config: Dict[str, str]) -> Dict[str, Any]:
+        return RandomAccessMemory.parse_config(config=config)
 
-    def close(self) -> None:
-        self.memory.clear()
-        self.memory = None
-
-    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
-        if isinstance(key, str):
-            return key in self.memory.keys()
-        elif isinstance(key, list):
-            _summary, ret = self._validate_summary(summary=summary)
-            for k in key:
-                exists = k in self.memory.keys()
-                if _summary == 'and' and not exists:
-                    return False
-                elif _summary == 'or' and exists:
-                    return True
-                elif _summary == '':
-                    ret.append(exists)
-            return ret
+    def save(self, id: str, item: Dict[str, Any]) -> bool:
+        if not self.exists(id=id):
+            self.memory[id] = deepcopy(item)
+            return True
         else:
-            raise TypeError(key)  # pragma: no cover
+            return False
 
-    def remove(self, key: Union[str, list]) -> None:
-        if isinstance(key, str):
-            self.memory.pop(key, None)
-        elif isinstance(key, list):
-            for k in key:
-                self.remove(key=k)
+    def load(self, id: str) -> Optional[Dict[str, Any]]:
+        if self.exists(id=id):
+            return deepcopy(self.memory[id])
         else:
-            raise TypeError(key)  # pragma: no cover
+            return None
 
-    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
+    def update(self, id: str, **kwargs: Any) -> bool:
+        if self.exists(id=id):
+            for k, v in kwargs.items():
+                self.memory[id][k] = v
+            return True
+        else:
+            return False
+
+    def remove(self, id: str) -> bool:
+        if self.exists(id=id):
+            self.memory.pop(id, None)
+            return True
+        else:
+            return False
+
+    def exists(self, id: str) -> bool:
+        return id in self.memory.keys()
+
+    def search(self, key: str, value: Any) -> List[str]:
         ret = list()
-        for d in self.memory.values():
-            if d[key] != value:
-                continue
-            if projection:
-                ret.append({k: d[k] for k in projection if k in d})
-            elif to_dict:
-                ret.append(d)
-            else:
-                ret.append(self.item_type.from_dict(d))
+        for k, v in self.memory.items():
+            if v[key] == value:
+                ret.append(k)
         return ret
 
-    def text_key_search(self, key: str) -> list:
-        return [k for k in self.memory.keys() if key in k]
+    def count(self, id: Optional[str] = None) -> int:
+        if id:
+            return len(self.list_like(id=id))
+        else:
+            return len(self.memory.keys())
 
-    def list_all(self) -> list:
+    def list_all(self) -> List[str]:
         return list(self.memory.keys())
 
-    def save(self, item: Union[Storable, list], update: bool = False) -> None:
-        if isinstance(item, self.item_type):
-            item_key = self.get_item_key(item)
-            if not update and self.exist(key=item_key):
-                raise ValueError('%s already exists' % item_key)
-            else:
-                self.memory[item_key] = item.to_dict()
-        elif isinstance(item, list):
-            for i in item:
-                self.save(item=i, update=update)
-        else:
-            raise TypeError(item)  # pragma: no cover
+    def list_like(self, id: str) -> List[str]:
+        ret = list()
+        for k in self.memory.keys():
+            if id in k:
+                ret.append(k)
+        return ret
 
-    def update(self, key: Union[str, list], values: dict) -> None:
-        if len(values) > 0:
-            item = self.load(key=key, to_dict=True)
-            if isinstance(item, dict):
-                if item is not None:
-                    for k, v in values.items():
-                        item[k] = v
-                    self.save(item=self.item_type.from_dict(item), update=True)
-            elif isinstance(item, list):
-                if len(item) > 0:
-                    for i in item:
-                        for k, v in values.items():
-                            i[k] = v
-                    self.save(item=[self.item_type.from_dict(i) for i in item], update=True)
-            else:
-                raise TypeError(type(item))  # pragma: no cover
-
-    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
-            -> Optional[Union[Storable, dict, list]]:
-        if isinstance(key, str):
-            if self.exist(key=key):
-                d = self.memory[key]
-                if projection:
-                    return {k: d[k] for k in projection if k in d}
-                elif to_dict:
-                    return d
-                else:
-                    return self.item_type.from_dict(d)
-            else:
-                return None
-        elif isinstance(key, list):
+    def load_many(self, id: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        if id:
             ret = list()
-            for s in key:
-                tmp = self.load(key=s, projection=projection, to_dict=to_dict)
-                if tmp:
-                    ret.append(tmp)
+            for x in id:
+                if self.exists(id=x):
+                    ret.append(self.load(id=x))
             return ret
         else:
-            raise TypeError(type(key))  # pragma: no cover
+            return [deepcopy(x) for x in self.memory.values()]
+
+    def exists_many(self, id: List[str]) -> List[bool]:
+        ret = list()
+        for i in id:
+            ret.append(i in self.memory.keys())
+        return ret

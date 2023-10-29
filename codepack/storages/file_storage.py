@@ -1,142 +1,102 @@
 from codepack.storages.storage import Storage
-from codepack.storages.storable import Storable
-from codepack.utils.functions import mkdir, rmdir
-from glob import glob
-import os
-from typing import Type, Union, Optional, Any
+from typing import Dict, List, Optional, Any
+from codepack.interfaces.file_interface import FileInterface
+import json
 
 
 class FileStorage(Storage):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None, path: str = '.') -> None:
-        super().__init__(item_type=item_type, key=key)
-        self.path = None
-        self.new_path = None
-        self.init(path=path)
-
-    def init(self, path: str = '.') -> None:
+    def __init__(self, path: str) -> None:
+        super().__init__()
         self.path = path
-        if os.path.exists(path):
-            self.new_path = False
+        self.interface = FileInterface(path=path)
+
+    @classmethod
+    def parse_config(cls, config: Dict[str, str]) -> Dict[str, Any]:
+        return FileInterface.parse_config(config=config)
+
+    @classmethod
+    def get_filename(cls, id: id) -> str:
+        return f'{id}.json'
+
+    def save(self, id: str, item: Dict[str, Any]) -> bool:
+        if not self.exists(id=id):
+            self.interface.save_file(dirname=self.path,
+                                     filename=self.get_filename(id=id),
+                                     data=json.dumps(item))
+            return True
         else:
-            self.new_path = True
-            mkdir(path)
+            return False
 
-    def close(self) -> None:
-        if self.new_path:
-            rmdir(self.path)
-
-    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
-        if isinstance(key, str):
-            path = self.item_type.get_path(key=key, path=self.path)
-            return os.path.exists(path)
-        elif isinstance(key, list):
-            _summary, ret = self._validate_summary(summary=summary)
-            for k in key:
-                path = self.item_type.get_path(key=k, path=self.path)
-                exists = os.path.exists(path)
-                if _summary == 'and' and not exists:
-                    return False
-                elif _summary == 'or' and exists:
-                    return True
-                elif _summary == '':
-                    ret.append(exists)
-            return ret
+    def load(self, id: str) -> Optional[Dict[str, Any]]:
+        if self.exists(id=id):
+            item_json = self.interface.load_file(dirname=self.path,
+                                                 filename=self.get_filename(id=id))
+            return json.loads(item_json)
         else:
-            raise TypeError(key)  # pragma: no cover
+            return None
 
-    def remove(self, key: Union[str, list]) -> None:
-        if isinstance(key, str):
-            os.remove(path=self.item_type.get_path(key=key, path=self.path))
-        elif isinstance(key, list):
-            for k in key:
-                path = self.item_type.get_path(key=k, path=self.path)
-                os.remove(path)
+    def update(self, id: str, **kwargs: Any) -> bool:
+        if self.exists(id=id):
+            d = self.load(id=id)
+            for k, v in kwargs.items():
+                d[k] = v
+            self.interface.save_file(dirname=self.path,
+                                     filename=self.get_filename(id=id),
+                                     data=json.dumps(d))
+            return True
         else:
-            raise TypeError(key)  # pragma: no cover
+            return False
 
-    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: Optional[bool] = None) -> list:
+    def remove(self, id: str) -> bool:
+        if self.exists(id=id):
+            self.interface.remove_file(dirname=self.path,
+                                       filename=self.get_filename(id=id))
+            return True
+        else:
+            return False
+
+    def exists(self, id: str) -> bool:
+        item_filename = self.get_filename(id=id)
+        for filename in self.interface.listdir(self.path):
+            if item_filename == filename:
+                return True
+        return False
+
+    def search(self, key: str, value: Any) -> List[str]:
         ret = list()
-        for filename in glob(self.path + '*.json'):
-            item = self.item_type.from_file(filename)
-            d = item.to_dict()
-            if d[key] != value:
-                continue
-            if projection:
-                ret.append({k: d[k] for k in projection if k in d})
-            elif to_dict:
-                ret.append(d)
-            else:
-                ret.append(item)
+        ids = self.list_all()
+        for id in ids:
+            d = self.load(id=id)
+            if d[key] == value:
+                ret.append(id)
         return ret
 
-    def text_key_search(self, key: str) -> list:
-        ret = list()
-        for filename in os.listdir(self.path):
-            k = filename.replace('.json', '')
-            if key in k:
-                ret.append(k)
-        return ret
-
-    def list_all(self) -> list:
-        return [filename.replace('.json', '') for filename in os.listdir(self.path)]
-
-    def save(self, item: Union[Storable, list], update: bool = False) -> None:
-        if isinstance(item, self.item_type):
-            item_key = self.get_item_key(item)
-            path = item.get_path(key=item_key, path=self.path)
-            if update:
-                if self.exist(key=item_key):
-                    self.remove(key=item_key)
-                item.to_file(path=path)
-            elif self.exist(key=item_key):
-                raise ValueError('%s already exists' % item_key)
-            else:
-                item.to_file(path=path)
-        elif isinstance(item, list):
-            for i in item:
-                self.save(item=i, update=update)
+    def count(self, id: Optional[str] = None) -> int:
+        if id:
+            return len(self.list_like(id=id))
         else:
-            raise TypeError(item)  # pragma: no cover
+            return len(self.list_all())
 
-    def update(self, key: Union[str, list], values: dict) -> None:
-        if len(values) > 0:
-            item = self.load(key=key, to_dict=True)
-            if isinstance(item, dict):
-                if item is not None:
-                    for k, v in values.items():
-                        item[k] = v
-                    self.save(item=self.item_type.from_dict(item), update=True)
-            elif isinstance(item, list):
-                if len(item) > 0:
-                    for i in item:
-                        for k, v in values.items():
-                            i[k] = v
-                    self.save(item=[self.item_type.from_dict(i) for i in item], update=True)
-            else:
-                raise TypeError(type(item))  # pragma: no cover
+    def list_all(self) -> List[str]:
+        filenames = self.interface.listdir(path=self.path)
+        return [filename.replace('.json', '') for filename in filenames if '.json' in filename]
 
-    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
-            -> Optional[Union[Storable, dict, list]]:
-        if isinstance(key, str):
-            if projection:
-                to_dict = True
-            path = self.item_type.get_path(key=key, path=self.path)
-            if not self.exist(key=key):
-                return None
-            ret_instance = self.item_type.from_file(path)
-            if projection:
-                d = ret_instance.to_dict()
-                return {k: d[k] for k in projection if k in d}
-            elif to_dict:
-                return ret_instance.to_dict()
-            else:
-                return ret_instance
-        elif isinstance(key, list):
+    def list_like(self, id: str) -> List[str]:
+        return [x for x in self.list_all() if id in x]
+
+    def load_many(self, id: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        if id:
             ret = list()
-            for k in key:
-                tmp = self.load(key=k, projection=projection, to_dict=to_dict)
-                if tmp is not None:
-                    ret.append(tmp)
+            for x in id:
+                if self.exists(id=x):
+                    ret.append(self.load(id=x))
             return ret
         else:
-            raise TypeError(key)  # pragma: no cover
+            return [self.load(x) for x in self.list_all()]
+
+    def exists_many(self, id: List[str]) -> List[bool]:
+        ids = set(self.list_all())
+        ret = list()
+        for i in id:
+            ret.append(i in ids)
+        return ret
