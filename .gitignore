@@ -9,3 +9,4 @@ build/*
 codepack.egg-info/*
 logs/*
 *.zip
+.coverage
