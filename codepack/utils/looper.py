@@ -4,10 +4,10 @@ from typing import Any, Callable
 
 
 class Looper:
-    def __init__(self, func: Callable, interval: float = 1, background: bool = True, daemon: bool = True,
+    def __init__(self, function: Callable, interval: float = 1, background: bool = True, daemon: bool = True,
                  *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self.func = None
+        self.function = None
         self.interval = None
         self.running = False
         self.thread = None
@@ -16,25 +16,25 @@ class Looper:
         self.set_interval(interval=interval)
         self.args = args
         self.kwargs = kwargs
-        self.set_func(func=func)
+        self.set_function(function=function)
 
-    def make_thread(self, func: Callable, *args: Any, **kwargs: Any) -> threading.Thread:
-        self.thread = threading.Thread(target=self.loop, args=(func, *args), kwargs=kwargs, daemon=self.daemon)
+    def make_thread(self, function: Callable, *args: Any, **kwargs: Any) -> threading.Thread:
+        self.thread = threading.Thread(target=self.loop, args=(function, *args), kwargs=kwargs, daemon=self.daemon)
         return self.thread
 
     def set_interval(self, interval: float) -> None:
         self.interval = interval
 
-    def set_func(self, func: Callable) -> None:
-        self.func = func
+    def set_function(self, function: Callable) -> None:
+        self.function = function
 
-    def loop(self, func: Callable, *args: Any, **kwargs: Any) -> None:
+    def loop(self, function: Callable, *args: Any, **kwargs: Any) -> None:
         try:
             while self.running:
                 try:
                     if self.interval > 0:
                         time.sleep(self.interval)
-                    func(*args, **kwargs)
+                    function(*args, **kwargs)
                 except KeyboardInterrupt:
                     break
         except Exception as e:
@@ -56,10 +56,10 @@ class Looper:
             raise Exception('Thread is already running')
         self.running = True
         if self.background:
-            self.make_thread(func=self.func, *self.args, **self.kwargs)
+            self.make_thread(function=self.function, *self.args, **self.kwargs)
             self.thread.start()
         else:
-            self.loop(func=self.func, *self.args, **self.kwargs)
+            self.loop(function=self.function, *self.args, **self.kwargs)
 
     def restart(self) -> None:
         if self.background and (self.is_running() or self.is_alive()):
