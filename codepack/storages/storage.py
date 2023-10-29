@@ -1,80 +1,49 @@
 import abc
-from codepack.storages.storable import Storable
-from typing import Any, Type, Optional, Union
+from typing import Dict, Any, List, Optional
+from codepack.utils.configurable import Configurable
 
 
-class Storage(metaclass=abc.ABCMeta):
-    def __init__(self, item_type: Optional[Type[Storable]] = None, key: Optional[str] = None) -> None:
-        if item_type and not issubclass(item_type, Storable):
-            raise TypeError(type(item_type))
-        self.item_type = item_type
-        self.key = key
+class Storage(Configurable, metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def save(self, id: str, item: Dict[str, Any]) -> bool:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def init(self, *args: Any, **kwargs: Any) -> None:
-        """initialize storage"""
+    def load(self, id: str) -> Optional[Dict[str, Any]]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def close(self) -> None:
-        """close storage"""
+    def update(self, id: str, **kwargs: Any) -> bool:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def exist(self, key: Union[str, list], summary: str = '') -> Union[bool, list]:
-        """check if item with given key exists"""
+    def remove(self, id: str) -> bool:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def remove(self, key: Union[str, list]) -> None:
-        """remove item with given key"""
+    def exists(self, id: str) -> bool:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def search(self, key: str, value: Any, projection: Optional[list] = None, to_dict: bool = False) -> list:
-        """search by key and value"""
+    def search(self, key: str, value: Any) -> List[str]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def text_key_search(self, key: str) -> list:
-        """search for items whose key contains given substring"""
+    def count(self, id: Optional[str]) -> int:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def list_all(self) -> list:
-        """list all keys"""
+    def list_all(self) -> List[str]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def save(self, item: Union[Storable, list], update: bool = False) -> None:
-        """save item"""
+    async def list_like(self, id: str) -> List[str]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def update(self, key: Union[str, list], values: dict) -> None:
-        """update item with given key"""
+    def load_many(self, id: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
-    def load(self, key: Union[str, list], projection: Optional[list] = None, to_dict: bool = False)\
-            -> Optional[Union[Storable, dict, list]]:
-        """load item with given key"""
-
-    @staticmethod
-    def _validate_summary(summary: str) -> tuple:
-        op = summary.lower()
-        if op == '':
-            init = list()
-        elif op == 'and':
-            init = True
-        elif op == 'or':
-            init = False
-        else:
-            raise ValueError('%s is unknown' % summary)
-        return op, init
-
-    def get_item_key(self, item: Storable) -> Any:
-        if self.key is not None:
-            if self.key == '_serial_number':
-                return item.get_serial_number()
-            elif self.key == '_name':
-                return item.get_name()
-            elif self.key == '_timestamp':
-                return item.get_timestamp()
-            elif self.key == '_id':
-                return item.get_id()
-            else:
-                return getattr(item, self.key)
-        else:
-            return item.get_id()
+    def exists_many(self, id: List[str]) -> List[bool]:
+        pass  # pragma: no cover
