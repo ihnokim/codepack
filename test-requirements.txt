@@ -1,0 +1,5 @@
+pytest
+pytest-asyncio
+flake8
+pytest-cov
+mongomock

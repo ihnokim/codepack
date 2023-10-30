@@ -1,5 +1,6 @@
-dill==0.3.4
-parse==1.19.0
-requests==2.26.0
+parse
+requests
 pyreadline
-pymongo==3.12.1
+namesgenerator
+dill
+aiofiles
