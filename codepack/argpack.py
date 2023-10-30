@@ -1,105 +1,83 @@
+from typing import Dict, Any, Optional, List, Iterator
+from copy import deepcopy
+import namesgenerator
 from codepack.arg import Arg
-from codepack.utils.config.default import Default
-from codepack.storages.storable import Storable
-from typing import Optional, TypeVar, Union, Iterator
+from codepack.item import Item
 
 
-CodePack = TypeVar('CodePack', bound='codepack.codepack.CodePack')  # noqa: F821
-StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')  # noqa: F821
-
-
-class ArgPack(Storable):
-    def __init__(self, codepack: Optional[CodePack] = None,
+class ArgPack(Item):
+    def __init__(self,
+                 args: List[Arg],
                  name: Optional[str] = None,
                  version: Optional[str] = None,
                  owner: Optional[str] = None,
-                 timestamp: Optional[float] = None,
-                 args: Optional[dict] = None) -> None:
-        _name = None
-        if codepack:
-            _name = codepack.get_name()
-        if name:
-            _name = name
-        Storable.__init__(self, name=_name, version=version, timestamp=timestamp, id_key='_name')
-        if args:
-            self.args = dict()
-            for n, kwargs in args.items():
-                self.args[n] = Arg.from_dict(kwargs)
-        elif codepack:
-            self.args = self.extract(codepack)
+                 description: Optional[str] = None,
+                 code_map: Optional[Dict[str, str]] = None,
+                 ) -> None:
+        self.args: Dict[str, Arg] = dict()
+        self.code_map: Dict[str, str] = dict()
+        if len(args) == 0:
+            raise ValueError('At least one arg is required')
+        for arg in args:
+            self.args[arg.get_id()] = arg
+        if code_map:
+            for c, a in code_map.items():
+                self.map_code(code_id=c, arg_id=a)
+        super().__init__(name=name if name else namesgenerator.get_random_name(sep='-'),
+                         version=version,
+                         owner=owner,
+                         description=description)
+
+    def get_arg_by_code_id(self, code_id: str) -> Optional[Arg]:
+        if code_id in self.code_map.keys():
+            arg_id = self.code_map[code_id]
+            return self.args[arg_id]
         else:
-            self.args = dict()
-        self.owner = owner
+            return None
 
-    @staticmethod
-    def extract(codepack: CodePack) -> dict:
-        ret = dict()
-        stack = list()
-        for root in codepack.roots:
-            stack.append(root)
-            while len(stack):
-                n = stack.pop(-1)
-                if n.get_name() not in ret:
-                    ret[n.get_name()] = Arg(n)
-                for c in n.children.values():
-                    stack.append(c)
-        return ret
+    def map_code(self, code_id: str, arg_id: str) -> None:
+        if arg_id not in self.args.keys():
+            raise KeyError(f"'{arg_id}'")
+        self.code_map[code_id] = arg_id
 
-    def __getitem__(self, item: str) -> Arg:
-        return self.args[item]
+    def unmap_code(self, code_id: str) -> None:
+        self.code_map.pop(code_id, None)
 
-    def __setitem__(self, key: str, value: Union[Arg, dict]) -> None:
-        self.args[key] = value
+    def get_code_map(self) -> Dict[str, str]:
+        return deepcopy(self.code_map)
 
-    def to_dict(self) -> dict:
-        d = self.get_metadata()
-        d.pop('_serial_number', None)
-        d['args'] = dict()
-        for name, arg in self.args.items():
-            d['args'][name] = arg.to_dict()
-        d['owner'] = self.owner
-        return d
+    def get_id(self) -> str:
+        return self.get_fullname()
+
+    def __serialize__(self) -> Dict[str, Any]:
+        return {'name': self.name,
+                'version': self.version,
+                'owner': self.owner,
+                'description': self.description,
+                'args': [arg.to_dict() for arg in self.args.values()],
+                'code_map': deepcopy(self.code_map)}
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'ArgPack':
-        return cls(name=d.get('_name', None), timestamp=d.get('_timestamp', None),
-                   args=d.get('args', None), owner=d.get('owner', None))
+    def __deserialize__(cls, d: Dict[str, Any]) -> Item:
+        return cls(name=d['name'],
+                   version=d['version'],
+                   owner=d['owner'],
+                   description=d['description'],
+                   args=[Arg.from_dict(arg) for arg in d['args']],
+                   code_map=d['code_map'])
 
-    def save(self, update: bool = False, storage_service: Optional[StorageService] = None) -> None:
-        if storage_service is None:
-            storage_service = Default.get_service('argpack', 'storage_service')
-        storage_service.save(item=self, update=update)
+    def __getitem__(self, param: str) -> Optional[Arg]:
+        return self.args[param] if param in self.args else None
 
-    @classmethod
-    def load(cls, name: Union[str, list], storage_service: Optional[StorageService] = None)\
-            -> Optional[Union['ArgPack', list]]:
-        if storage_service is None:
-            storage_service = Default.get_service('argpack', 'storage_service')
-        return storage_service.load(name=name)
+    def __add__(self, arg: Arg) -> 'ArgPack':
+        self.args[arg.get_id()] = arg
+        return self
 
-    @classmethod
-    def remove(cls, name: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
-        if storage_service is None:
-            storage_service = Default.get_service('argpack', 'storage_service')
-        storage_service.remove(name=name)
-
-    def __getattr__(self, item: str) -> Arg:
-        return getattr(self.args, item)
+    def __sub__(self, arg: Arg) -> 'ArgPack':
+        if len(self.args) == 1 and arg.get_id() in self.args.keys():
+            raise ValueError('At least one arg is required')
+        self.args.pop(arg.get_id(), None)
+        return self
 
     def __iter__(self) -> Iterator[str]:
-        return self.args.__iter__()
-
-    def __str__(self) -> str:
-        ret = '%s(name: %s, args: {' % (self.__class__.__name__, self.get_name())
-        for i, (name, arg) in enumerate(self.args.items()):
-            if i:
-                ret += ', '
-            ret += '%s%s' % (name, arg.__str__().replace('Arg(', '('))
-        ret += '}'
-        if self.owner:
-            ret += ', owner: %s' % self.owner
-        ret += ')'
-        return ret
-
-    def __repr__(self) -> str:
-        return self.__str__()  # pragma: no cover
+        return self.args.values().__iter__()
