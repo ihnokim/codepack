@@ -1,591 +1,132 @@
-from codepack import Code, Callback, StorageService
-from codepack.storages import MongoStorage
-from tests import forward, add2, add3, mul2, print_x, combination, linear,\
-    dummy_function1, dummy_function2, dummy_callback1, dummy_callback2, dummy_callback3,\
-    decorator_function1, decorator_function2, DecoratorClass1, DecoratorClass2
-import pytest
-from datetime import datetime
-from unittest.mock import MagicMock
+from codepack.code import Code
+from codepack.async_code import AsyncCode
 from functools import partial
-import codepack.utils.functions
+from tests import add2, mul2, add3, run_function
+import pytest
 
 
-def test_assert_param(default_os_env):
-    code1 = Code(add2)
-    with pytest.raises(AssertionError):
-        code1.assert_param('c')
-    code2 = Code(dummy_function1)
-    reserved_params = ['a', 'b', 'c', 'd']
-    for param in reserved_params:
-        code2.assert_param(param)
-    with pytest.raises(AssertionError):
-        code2.assert_param('e')
-    code3 = Code(dummy_function2)
-    for param in reserved_params + ['e', 'f']:
-        code3.assert_param(param)
+test_params = ("code_class", [Code, AsyncCode])
 
 
-def test_get_reserved_params(default_os_env):
-    code1 = Code(add3)
-    assert dict(code1.get_reserved_params()) == {'a': None, 'b': None, 'c': 2}
-    code2 = Code(dummy_function1)
-    assert dict(code2.get_reserved_params()) == {'a': None, 'b': 2, 'c': None, 'd': 3}
-    code3 = Code(dummy_function2)
-    assert dict(code3.get_reserved_params()) == {'a': None, 'b': 2, 'c': None, 'd': 3}
-
-
-def test_print_params(default_os_env):
-    code1 = Code(add3)
-    assert code1.print_params() == '(a, b, c=2)'
-    code2 = Code(dummy_function1)
-    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3) -> int"
-    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
-    assert code2.print_params() == params_old or code2.print_params() == params_new
-    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3, **kwargs:list) -> None"
-    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None"
-    code3 = Code(dummy_function2)
-    assert code3.print_params() == params_old or code3.print_params() == params_new
-
-
-def test_load_code_with_annotations(default_os_env, fake_mongodb):
-    mongo_storage = MongoStorage(mongodb=fake_mongodb, db='test_db', collection='test_collection',
-                                 item_type=Code, key='_name')
-    storage_service = StorageService(storage=mongo_storage)
-    Code(add3, storage_service=storage_service).save()
-    code1 = Code.load('add3', storage_service=storage_service)
-    assert code1.print_params() == '(a, b, c=2)'
-    Code(dummy_function1, storage_service=storage_service).save()
-    code2 = Code.load('dummy_function1', storage_service=storage_service)
-    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3) -> int"
-    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int"
-    assert code2.print_params() == params_old or code2.print_params() == params_new
-    params_old = "(a:dict, b:str=2, *args:'Code', c:Any, d=3, **kwargs:list) -> None"
-    params_new = "(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None"
-    Code(dummy_function2, storage_service=storage_service).save()
-    code3 = Code.load('dummy_function2', storage_service=storage_service)
-    assert code3.print_params() == params_old or code3.print_params() == params_new
-
-
-def test_print_info(default_os_env):
-    code1 = Code(add2, env='test-env')
-    code2 = Code(add3, image='test-image', owner='admin')
-    code1 >> code2
-    code2.receive('b') << code1
-    assert code1.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
-                               " env: test-env, state: UNKNOWN)"
-    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
-                               " image: test-image, owner: admin, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(name: add2, function: add2, params: (a, b), env: test-env)"
-    assert code2.get_info(state=False) == "Code(name: add3, function: add3, params: (a, b, c=2)," \
-                                          " receive: {'b': 'add2'}, image: test-image, owner: admin)"
-    code1.image = 'test-image2'
-    code1.owner = 'admin2'
-    assert code1.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
-                               " env: test-env, image: test-image2, owner: admin2, state: UNKNOWN)"
-    assert code1.get_info(state=False) == "Code(name: add2, function: add2, params: (a, b)," \
-                                          " env: test-env, image: test-image2, owner: admin2)"
-    code2.owner = None
-    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
-                               " image: test-image, state: UNKNOWN)"
-    assert code2.get_info(state=False) == "Code(name: add3, function: add3, params: (a, b, c=2)," \
-                                          " receive: {'b': 'add2'}, image: test-image)"
-    code2.image = None
-    assert code2.get_info() == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'}," \
-                               " state: UNKNOWN)"
-    assert code2.get_info(
-        state=False) == "Code(name: add3, function: add3, params: (a, b, c=2), receive: {'b': 'add2'})"
-
-
-def test_partial_print_info(default_os_env):
-    plus2 = partial(add2, b=3)
-    code = Code(plus2, owner='admin')
-    assert code.get_info() == "Code(name: add2, function: add2, params: (a, b)," \
-                              " context: {'b': 3}, owner: admin, state: UNKNOWN)"
-
-
-def test_get_function_from_source(default_os_env):
-    source = """def plus1(x):\n  return x + 1"""
-    code = Code(source=source)
-    ret = code(x=5)
-    assert ret == 6
-    assert code.get_state() == 'TERMINATED'
-
-
-def test_from_dict(default_os_env):
-    d = {'_name': 'test', 'source': "def plus1(x):\n  return x + 1"}
-    code = Code.from_dict(d)
-    assert code.get_name() == 'test'
-    assert code.function.__name__ == 'plus1'
-    ret = code(x=5)
-    assert ret == 6
-    assert code.get_state() == 'TERMINATED'
-
-
-def test_to_dict(default_os_env):
-    code = Code(add2)
-    d = code.to_dict()
-    assert code.get_name() == d['_id'] and code.source == d['source'] and code.description == "exec a + b = ?"
-
-
-def test_add_dependency(default_os_env):
-    dependency = [{'_name': 'test1', '_serial_number': '1234', 'param': None},
-                  {'_name': 'test2', '_serial_number': '5678', 'param': 'a'}]
-    code = Code(add2, dependency=dependency)
-    assert '1234' in code.dependency and '5678' in code.dependency
-    assert code.dependency['5678'].param == 'a'
-    assert not code.dependency['1234'].param
-    tmp = code.dependency.get_params()
-    assert len(tmp) == 1 and 'a' in tmp
-
-
-def test_check_dependency_linkage(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(print_x)
-    code3 = Code(add3)
-    code4 = Code(linear)
-    code1 >> [code2, code3]
-    code3 >> code4
-    assert code3.get_serial_number() in code4.dependency
-    assert code3.get_name() in code4.parents
-    assert code4.get_name() in code3.children
-    assert set(code2.dependency.keys()) == set(code3.dependency.keys())
-    assert not code4.dependency[code3.get_serial_number()].param
-    code4.receive('c') << code3
-    assert code4.dependency[code3.get_serial_number()].param == 'c'
-    code3.receive('b') << code1
-    assert code3.dependency[code1.get_serial_number()].param == 'b'
-    assert not code2.dependency[code1.get_serial_number()].param
-    code3 // code4
-    assert len(set(code4.dependency)) == 0
-    assert code3.get_name() not in code4.parents
-    assert code4.get_name() not in code3.children
-    code1 // [code2, code3]
-    assert len(code2.dependency.keys()) == len(code3.dependency.keys()) == 0
-    assert len(code1.children) == 0
-    assert len(code2.parents) == 0 and len(code3.parents) == 0
-
-
-def test_check_dependency_state(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(mul2)
-    code3 = Code(add3)
-    code1 >> code3
-    code2 >> code3
-    assert len(code3.dependency) == 2
-    ret = code3()
-    assert not ret and code3.get_state() == 'WAITING'
-    a = code1(a=3, b=5)
-    assert a == 8 and code1.get_state() == 'TERMINATED'
-    ret = code3()
-    assert not ret and code3.get_state() == 'WAITING'
-    b = code2(a=2, b=3)
-    assert b == 6 and code2.get_state() == 'TERMINATED'
-    try:
-        ret = code3()
-    except TypeError:
-        pass
-    assert not ret and code3.get_state() == 'ERROR'
-    ret = code3(a=1, b=5)
-    assert ret == 8 and code3.get_state() == 'TERMINATED'
-    code3.receive('a') << code1
-    code3.receive('b') << code2
-    ret = code3()
-    assert ret == 16 and code3.get_state() == 'TERMINATED'
-    ret = code3(a=1, b=5)
-    assert ret == 8 and code3.get_state() == 'TERMINATED'
-
-
-def test_dependency_error_propagation(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(mul2)
-    code3 = Code(add3)
-    code1 >> code3
-    code2 >> code3
-    assert code3.get_state() == 'UNKNOWN'
-    with pytest.raises(TypeError):
-        code1()
-    assert code1.get_state() == 'ERROR'
-    ret = code3(1, 2, 3)
-    assert ret is None
-    assert code3.get_state() == 'WAITING'
-
-
-def test_validate_dependency_result(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(mul2)
-    code3 = Code(add3)
-    code1 >> code3
-    code2 >> code3
-    code3.receive('b') << code1
-    code3.receive('c') << code2
-    code1(1, 2)
-    code2(3, 4)
-    code2.service['delivery'].cancel(code2.get_serial_number())
-    ret = code3(a=3)
-    assert ret is None
-    assert code3.get_state() == 'ERROR'
-    code2(3, 4)
-    code2.send_result(item=1, timestamp=datetime.now().timestamp() + 1)
-    ret = code3(a=3)
-    assert ret == 7
-    assert code3.get_state() == 'TERMINATED'
-    code2(3, 4)
-    snapshots = code3.dependency.load_snapshot()
-    assert len(snapshots) == 2
-    assert code3.dependency.check_delivery() is True
-    snapshot_dict = {x['_id']: x for x in snapshots}
-    code2_state_info = snapshot_dict.pop(code2.get_serial_number())
-    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'WAITING'
-    snapshot_dict[code2.get_serial_number()] = code2_state_info
-    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
-    code2.service['delivery'].cancel(code2.get_serial_number())
-    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'ERROR'
-    code2.service['delivery'].send(name='dummy', serial_number=code2.get_serial_number(), item=123)
-    assert code3.dependency.validate(snapshot=snapshot_dict.values()) == 'READY'
-
-
-def test_default_arg(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add3)
-    ret = code2(a=1, b=3)
-    assert ret == 6 and code2.get_state() == 'TERMINATED'
-    code1 >> code2
-    code2.receive('c') << code1
-    ret = code2(a=1, b=3)
-    assert not ret and code2.get_state() == 'WAITING'
-    c = code1(a=3, b=5)
-    assert c == 8 and code1.get_state() == 'TERMINATED'
-    ret = code2(a=1, b=3)
-    assert ret == 12 and code2.get_state() == 'TERMINATED'
-    code1 // code2
-    ret = code2(a=1, b=3)
-    assert ret == 6 and code2.get_state() == 'TERMINATED'
-
-
-def test_update_serial_number(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(mul2)
-    code3 = Code(add3)
-    code4 = Code(linear)
-    code1 >> code2
-    code2 >> [code3, code4]
-    code2.receive('a') << code1
-    code3.receive('b') << code2
-    code4.receive('c') << code2
-    old_serial_number = code2.get_serial_number()
-    new_serial_number = '1234'
-    code2.update_serial_number(new_serial_number)
-    assert code2.get_serial_number() == new_serial_number
-    assert code2.get_name() in code1.children
-    assert code1.children[code2.get_name()].get_serial_number() == new_serial_number
-    assert code2.get_name() in code3.parents
-    assert code3.parents[code2.get_name()].get_serial_number() == new_serial_number
-    assert old_serial_number not in code3.dependency
-    assert new_serial_number in code3.dependency
-    assert code3.dependency[new_serial_number].param == 'b'
-    assert code3.dependency[new_serial_number].code == code3
-    assert code3.dependency[new_serial_number].get_name() == code2.get_name()
-    assert code3.dependency[new_serial_number].get_serial_number() == new_serial_number
-    assert code2.get_name() in code4.parents
-    assert code4.parents[code2.get_name()].get_serial_number() == new_serial_number
-    assert old_serial_number not in code4.dependency
-    assert new_serial_number in code4.dependency
-    assert code4.dependency[new_serial_number].param == 'c'
-    assert code4.dependency[new_serial_number].code == code4
-    assert code4.dependency[new_serial_number].get_name() == code2.get_name()
-    assert code4.dependency[new_serial_number].get_serial_number() == new_serial_number
-
-
-def test_collect_linked_ids(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add3)
-    code3 = Code(mul2)
-    code4 = Code(print_x)
-    code5 = Code(linear)
-    code1 >> code2 >> code3
-    code2 >> code4
-    code5 >> code4
-    all_names = {'add2', 'add3', 'mul2', 'print_x', 'linear'}
-    assert code1._collect_linked_names() == all_names
-    assert code2._collect_linked_names() == all_names
-    assert code3._collect_linked_names() == all_names
-    assert code4._collect_linked_names() == all_names
-
-
-def test_recursion_detection(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add3)
-    code3 = Code(mul2)
-    code4 = Code(print_x)
-    code1 >> code2
-    all_names = {'add2', 'add3'}
-    assert code1._collect_linked_names() == all_names
-    assert code2._collect_linked_names() == all_names
-    code2 >> code3
-    all_names.add('mul2')
-    assert code1._collect_linked_names() == all_names
-    assert code2._collect_linked_names() == all_names
-    assert code3._collect_linked_names() == all_names
-    with pytest.raises(ValueError):
-        code3 >> code2
-    code3 >> code4
-    all_names.add('print_x')
-    assert code1._collect_linked_names() == all_names
-    assert code2._collect_linked_names() == all_names
-    assert code3._collect_linked_names() == all_names
-    assert code4._collect_linked_names() == all_names
-
-
-def test_default_load(default_os_env):
-    _ = Code(add2)
-    code2 = Code(add3)
-    search_result = Code.load(['add2', 'add3'])
-    assert type(search_result) == list and len(search_result) == 0
-    code2.save()
-    search_result = Code.load(['add2', 'add3'])
-    assert type(search_result) == list and len(search_result) == 1
-    assert isinstance(search_result[0], Code) and search_result[0].get_name() == 'add3'
-    search_result = Code.load('add2')
-    assert search_result is None
-    search_result = Code.load('add3')
-    assert search_result is not None
-    assert isinstance(search_result, Code) and search_result.get_name() == 'add3'
-
-
-def test_get_message(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(mul2)
-    code3 = Code(combination)
-    result1 = None
-    with pytest.raises(TypeError):
-        result1 = code1(a=2)
-    assert result1 is None
-    assert code1.get_state() == 'ERROR'
-    assert code1.get_message() == "add2() missing 1 required positional argument: 'b'"
-    result2 = code2(a=2, b=3)
-    assert result2 == 6
-    assert code2.get_state() == 'TERMINATED'
-    assert code2.get_message() == ''
-    assert code3.get_state() == 'UNKNOWN'
-    assert code3.get_message() == ''
-
-
-def test_create_code_without_anything(default_os_env):
-    with pytest.raises(AssertionError):
-        Code()
-
-
-def test_remove(default_os_env):
-    code = Code(add2)
-    ret = Code.load('add2')
-    assert ret is None
-    code.save()
-    ret = Code.load('add2')
-    assert ret is not None
-    assert isinstance(ret, Code)
-    assert ret.get_name() == code.get_name()
-    Code.remove('add2')
-    ret = Code.load('add2')
-    assert ret is None
-
-
-def test_register_callback_with_names(default_os_env):
-    code = Code(add2)
-    code.register_callback(callback=dummy_callback1, name=['callback1', 'callback2', 'callback3'])
-    assert len(code.callback) == 1
-    assert 'callback1' in code.callback
-    assert isinstance(code.callback['callback1'], Callback)
-    assert code.callback['callback1'].to_dict() == Callback(dummy_callback1).to_dict()
-
-
-def test_register_multiple_callbacks_without_names(default_os_env):
-    code = Code(add2)
-    code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)])
-    assert len(code.callback) == 3
-    assert set(code.callback.keys()) == {'dummy_callback1', 'dummy_callback2', 'dummy_callback3'}
-
-
-def test_register_multiple_callbacks_with_one_name(default_os_env):
-    code = Code(add2)
-    with pytest.raises(IndexError):
-        code.register_callback(callback=[dummy_callback1, partial(dummy_callback2, 'test'), Callback(dummy_callback3)],
-                               name='dummy_callback')
-    assert len(code.callback) == 0
-    code.register_callback(callback=[dummy_callback1], name='dummy_callback')
-    assert len(code.callback) == 1
-    assert 'dummy_callback' in code.callback
-    assert isinstance(code.callback['dummy_callback'], Callback)
-    assert code.callback['dummy_callback'].to_dict() == Callback(dummy_callback1).to_dict()
-
-
-def test_register_multiple_callbacks_with_multiple_names(default_os_env):
-    code = Code(add2)
-    _dummy_callback2 = partial(dummy_callback2, 'test')
-    _dummy_callback3 = Callback(dummy_callback3)
-    with pytest.raises(IndexError):
-        code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
-                               name=['dummy_callback'])
-    assert len(code.callback) == 0
-    code.register_callback(callback=[dummy_callback1, _dummy_callback2, _dummy_callback3],
-                           name=['callback1', 'callback2', 'callback3'])
-    assert len(code.callback) == 3
-    for callback_name in ['callback1', 'callback2', 'callback3']:
-        assert callback_name in code.callback
-        assert isinstance(code.callback[callback_name], Callback)
-    assert code.callback['callback1'].to_dict() == Callback(dummy_callback1).to_dict()
-    assert code.callback['callback2'].to_dict() == Callback(_dummy_callback2).to_dict()
-    assert code.callback['callback3'] == _dummy_callback3
-
-
-def test_run_callback_with_normal_case(default_os_env):
-    mock_function = MagicMock()
-    mock_function.__name__ = 'dummy_name'
-    mock_function.__code__ = MagicMock()
-    code = Code(add2)
-    code.register_callback(callback=mock_function, name='test_function')
-    mock_function.assert_not_called()
-    code(a=3, b=5)
-    arg_list = mock_function.call_args_list
-    assert len(arg_list) == 3
-    seq = ['READY', 'RUNNING', 'TERMINATED']
-    for i, (args, kwargs) in enumerate(arg_list):
-        assert len(args) == 1 and len(kwargs) == 0
-        assert args[0] == {'_serial_number': code.get_serial_number(), 'state': seq[i]}
-
-
-def test_run_callback_with_error_case(default_os_env):
-    mock_function = MagicMock()
-    mock_function.__name__ = 'dummy_name'
-    mock_function.__code__ = MagicMock()
-    code = Code(add2)
-    code.register_callback(callback=mock_function, name='test_function')
-    mock_function.assert_not_called()
-    with pytest.raises(TypeError):
-        code(a=3)
-    arg_list = mock_function.call_args_list
-    assert len(arg_list) == 3
-    seq = ['READY', 'RUNNING', 'ERROR']
-    for i, (args, kwargs) in enumerate(arg_list):
-        assert len(args) == 1 and len(kwargs) == 0
-        x = {'_serial_number': code.get_serial_number(), 'state': seq[i]}
-        if seq[i] == 'ERROR':
-            x['message'] = "add2() missing 1 required positional argument: 'b'"
-        assert args[0] == x
-
-
-def test_run_multiple_callbacks_with_normal_case(default_os_env):
-    mock_function1 = MagicMock()
-    mock_function2 = MagicMock()
-    mock_function1.__name__ = 'dummy_name1'
-    mock_function2.__name__ = 'dummy_name2'
-    mock_function1.__code__ = MagicMock()
-    mock_function2.__code__ = MagicMock()
-    code = Code(add2)
-    code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
-    mock_function1.assert_not_called()
-    mock_function2.assert_not_called()
-    code(a=3, b=5)
-    for mock_function in [mock_function1, mock_function2]:
-        arg_list = mock_function.call_args_list
-        assert len(arg_list) == 3
-        seq = ['READY', 'RUNNING', 'TERMINATED']
-        for i, (args, kwargs) in enumerate(arg_list):
-            assert len(args) == 1 and len(kwargs) == 0
-            assert args[0] == {'_serial_number': code.get_serial_number(), 'state': seq[i]}
-
-
-def test_run_multiple_callbacks_with_error_case(default_os_env):
-    mock_function1 = MagicMock()
-    mock_function2 = MagicMock()
-    mock_function1.__name__ = 'dummy_name1'
-    mock_function2.__name__ = 'dummy_name2'
-    mock_function1.__code__ = MagicMock()
-    mock_function2.__code__ = MagicMock()
-    code = Code(add2)
-    code.register_callback(callback=[mock_function1, mock_function2], name=['test_function1', 'test_function2'])
-    mock_function1.assert_not_called()
-    mock_function2.assert_not_called()
-    with pytest.raises(TypeError):
-        code(a=3)
-    for mock_function in [mock_function1, mock_function2]:
-        arg_list = mock_function.call_args_list
-        assert len(arg_list) == 3
-        seq = ['READY', 'RUNNING', 'ERROR']
-        for i, (args, kwargs) in enumerate(arg_list):
-            assert len(args) == 1 and len(kwargs) == 0
-            x = {'_serial_number': code.get_serial_number(), 'state': seq[i]}
-            if seq[i] == 'ERROR':
-                x['message'] = "add2() missing 1 required positional argument: 'b'"
-            assert args[0] == x
-
-
-def test_get_source_of_function_defined_in_string():
-    mock_function1 = MagicMock()
-    mock_function1.__name__ = 'dummy_name'
-    mock_function1.__code__ = MagicMock()
-    mock_function1.__code__.co_filename = '<string>'
-    with pytest.raises(AssertionError):
-        codepack.utils.functions.get_source(mock_function1)
-
-
-def test_partial_code_run(default_os_env):
+@pytest.mark.asyncio
+@pytest.mark.parametrize(*test_params)
+async def test_partial_code_execution(code_class):
     plus1 = partial(add2, b=1)
-    code = Code(plus1)
-    assert code.get_name() == 'add2'
-    assert code.context == {'b': 1}
-    assert code(3) == 4
-    assert code(4, b=5) == 9
+    code = code_class(plus1)
+    assert code.get_id() == 'add2'
+    assert code.function.context == {'b': 1}
+    assert await run_function(code.__call__, 3) == 4
+    assert await run_function(code.__call__, 4, b=5) == 9
     with pytest.raises(TypeError):
-        code(4, 5)
-    snapshot = code.to_snapshot()
-    code2 = Code.from_snapshot(snapshot)
-    assert code2.get_name() == 'add2'
-    assert code2.context == {'b': 1}
-    assert code2(4) == 5
+        await run_function(code.__call__, 4, 5)
 
 
-def test_decorator(default_os_env):
-    code1 = Code(forward)
-    code2 = Code(forward, decorator=decorator_function1)
-    code3 = Code(forward, decorator=DecoratorClass1)
-    result1 = code1.light('X')
-    result2 = code2.light('X')
-    result3 = code3.light('X')
-    assert result1 == 'X'
-    assert result2 == 'func1(X)func1'
-    assert result3 == 'class1(X)class1'
-    code1.set_decorator(decorator_function1)
-    assert code1.light('X') == 'func1(X)func1'
+@pytest.mark.parametrize(*test_params)
+def test_partial_code_serialization_without_metadata(code_class):
+    plus1 = partial(add2, b=1)
+    code = code_class(plus1)
+    assert code.to_dict() == {'_id': code.get_id(),
+                              'name': code.function.name,
+                              'version': None,
+                              'description': code.function.description,
+                              'owner': None,
+                              'function': code.function.to_dict()}
 
 
-def test_multiple_decorators(default_os_env):
-    code1 = Code(forward)
-    code2 = Code(forward, decorator=[decorator_function1, decorator_function2])
-    code3 = Code(forward, decorator=[decorator_function1, DecoratorClass1, decorator_function2, DecoratorClass2])
-    result1 = code1.light('X')
-    result2 = code2.light('X')
-    result3 = code3.light('X')
-    assert result1 == 'X'
-    assert result2 == 'func2(func1(X)func1)func2'
-    assert result3 == 'class2(func2(class1(func1(X)func1)class1)func2)class2'
+@pytest.mark.asyncio
+@pytest.mark.parametrize(*test_params)
+async def test_copying_partial_code_by_serialization(code_class):
+    plus1 = partial(add2, b=1)
+    code1 = code_class(plus1)
+    code2 = code_class.from_dict(code1.to_dict())
+    assert code1.to_dict() == code2.to_dict()
+    assert await run_function(code2.__call__, 3) == 4
 
 
-def test_code_version(default_os_env):
-    code1 = Code(add2)
-    code2 = Code(add2, version='0.0.1')
-    code3 = Code(add2, name='hello')
-    code4 = Code(add2, name='hello', version='0.1.1')
-    code5 = Code(add2, name='hello@0.2.1')
-    assert code1.__str__() == 'Code(name: add2, function: add2, params: (a, b))'
-    assert code2.__str__() == 'Code(name: add2@0.0.1, function: add2, params: (a, b))'
-    assert code3.__str__() == 'Code(name: hello, function: add2, params: (a, b))'
-    assert code4.__str__() == 'Code(name: hello@0.1.1, function: add2, params: (a, b))'
-    assert code5.__str__() == 'Code(name: hello@0.2.1, function: add2, params: (a, b))'
+@pytest.mark.parametrize(*test_params)
+def test_wrong_initialization_without_none_type_arguments(code_class):
+    with pytest.raises(TypeError):
+        _ = code_class()
+    with pytest.raises(ValueError):
+        _ = code_class(function=None)
 
 
-def test_code_timestamp(default_os_env):
-    code = Code(add2, version='0.0.1')
-    d = code.to_dict()
-    assert '_timestamp' in d
-    code2 = Code.from_dict(d)
-    assert code2.get_timestamp() == d['_timestamp']
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes1(code_class):
+    s = code_class(add2)
+    with pytest.raises(ValueError):
+        s > s
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes2(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    s > o
+    assert s._is_acyclic(o)
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes3(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    o > s
+    with pytest.raises(ValueError):
+        s > o
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes4(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    s > o > x
+    assert s._is_acyclic(o)
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes5(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    x > s > o
+    assert s._is_acyclic(o)
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes6(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    s > x > o
+    assert s._is_acyclic(o)
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes7(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    o > s > x
+    with pytest.raises(ValueError):
+        s > o
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes8(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    x > o > s
+    with pytest.raises(ValueError):
+        s > o
+
+
+@pytest.mark.parametrize(*test_params)
+def test_cyclic_link_of_codes9(code_class):
+    s = code_class(add2)
+    o = code_class(mul2)
+    x = code_class(add3)
+    o > x > s
+    with pytest.raises(ValueError):
+        s > o
