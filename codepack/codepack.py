@@ -1,317 +1,174 @@
-from codepack.code import Code
-from codepack.base.codepack_base import CodePackBase
-from codepack.argpack import ArgPack
-from codepack.utils.config.default import Default
-from codepack.plugins.state import State
-from parse import compile as parser
-from ast import literal_eval
+from typing import Any, Optional, Dict, Set, List, Iterator, Union
 from queue import Queue
-from typing import Any, TypeVar, Optional, Union
+import namesgenerator
+from codepack.utils.observer import Observer
+from codepack.code import Code
+from codepack.argpack import ArgPack
+from codepack.item import Item
+from codepack.utils.double_key_map import DoubleKeyMap
 
 
-CodePackSnapshot = TypeVar('CodePackSnapshot',
-                           bound='codepack.plugins.snapshots.codepack_snapshot.CodePackSnapshot')  # noqa: F821
-SnapshotService = TypeVar('SnapshotService', bound='codepack.plugins.snapshot_service.SnapshotService')  # noqa: F821
-StorageService = TypeVar('StorageService', bound='codepack.plugins.storage_service.StorageService')  # noqa: F821
-
-
-class CodePack(CodePackBase):
-    def __init__(self, name: str, code: Code, subscribe: Optional[Union[Code, str]] = None,
-                 serial_number: Optional[str] = None,
+class CodePack(Item, Observer):
+    def __init__(self,
+                 codes: List[Code],
+                 name: Optional[str] = None,
                  version: Optional[str] = None,
-                 timestamp: Optional[float] = None,
-                 config_path: Optional[str] = None,
-                 snapshot_service: Optional[SnapshotService] = None,
-                 storage_service: Optional[StorageService] = None,
-                 argpack_service: Optional[StorageService] = None,
-                 owner: Optional[str] = None) -> None:
-        super().__init__(name=name, serial_number=serial_number, version=version, timestamp=timestamp)
-        self.root = None
-        self.roots = None
-        self.subscribe = None
-        self.service = None
-        self.owner = None
-        self._set_root(code)
-        self.codes = dict()
-        self.init()
-        self.init_subscription(subscribe=subscribe)
-        self.init_service(snapshot_service=snapshot_service,
-                          storage_service=storage_service,
-                          argpack_service=argpack_service,
-                          config_path=config_path)
-        self._set_str_attr(key='owner', value=owner)
-
-    def init(self) -> None:
-        self.roots = self._get_roots()
-
-    def init_service(self, snapshot_service: Optional[SnapshotService] = None,
-                     storage_service: Optional[StorageService] = None,
-                     argpack_service: Optional[StorageService] = None, config_path: Optional[str] = None) -> None:
-        self.service = dict()
-        self.service['snapshot'] =\
-            snapshot_service if snapshot_service else Default.get_service('codepack_snapshot', 'snapshot_service',
-                                                                          config_path=config_path)
-        self.service['storage'] =\
-            storage_service if storage_service else Default.get_service('codepack', 'storage_service',
-                                                                        config_path=config_path)
-        self.service['argpack'] = \
-            argpack_service if argpack_service else Default.get_service('argpack', 'storage_service',
-                                                                        config_path=config_path)
-
-    def init_subscription(self, subscribe: Optional[Union[Code, str]] = None) -> None:
-        if isinstance(subscribe, Code):
-            self.subscribe = subscribe.get_name()
-        elif isinstance(subscribe, str):
-            self.subscribe = subscribe
+                 owner: Optional[str] = None,
+                 description: Optional[str] = None,
+                 subscription: Optional[Union[str, Code]] = None):
+        super().__init__(name=name if name else namesgenerator.get_random_name(sep='-'),
+                         version=version,
+                         owner=owner,
+                         description=description)
+        self.codes: Dict[str, Code] = dict()
+        self.links: DoubleKeyMap = DoubleKeyMap()
+        self.subscription: Optional[str]
+        if subscription and isinstance(subscription, Code):
+            self.subscription = subscription.get_id()
         else:
-            self.subscribe = None
+            self.subscription = subscription
+        if len(codes) == 0:
+            raise ValueError('At least one code is required')
+        for code in codes:
+            self.add_code(code=code, update=False)
+        self.update()
 
-    def _set_str_attr(self, key: str, value: str) -> None:
-        if value is None or value == 'None' or value == 'null':
-            _value = None
-        else:
-            _value = value
-        setattr(self, key, _value)
+    def get_id(self) -> str:
+        return self.get_fullname()
 
-    def make_argpack(self) -> ArgPack:
-        return ArgPack(self)
-
-    def save_argpack(self, argpack: ArgPack) -> None:
-        self.service['argpack'].save(item=argpack)
-
-    def load_argpack(self, name: str) -> ArgPack:
-        return self.service['argpack'].load(name=name)
-
-    def _set_root(self, code: Code) -> None:
-        if not isinstance(code, Code):
-            raise TypeError(type(code))  # pragma: no cover
-        self.root = code
-
-    def __str__(self) -> str:
-        ret = '%s(name: %s, subscribe: %s' % (self.__class__.__name__, self.get_name(), self.subscribe)
-        additional_item = 'owner'
-        item = getattr(self, additional_item)
-        if item:
-            ret += ', %s: %s' % (additional_item, item)
-        ret += ')\n'
-        stack = list()
-        hierarchy = 0
-        first_token = True
-        for root in self.roots:
-            stack.append((root, hierarchy))
-            while len(stack):
-                n, h = stack.pop(-1)
-                if not first_token:
-                    ret += '\n'
-                else:
-                    first_token = False
-                ret += '|%s %s' % ('-' * h, n)
-                for c in n.children.values():
-                    stack.append((c, h + 1))
-        return ret
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def save_snapshot(self, timestamp: Optional[float] = None, argpack: Optional[Union[ArgPack, dict]] = None) -> None:
-        snapshot = self.to_snapshot(argpack=argpack, timestamp=timestamp)
-        self.service['snapshot'].save(snapshot)
-
-    def get_state(self) -> str:
-        states = self.root.service['snapshot']\
-            .load(serial_number=[code.get_serial_number() for code in self.codes.values()], projection={'state'})
-        if states:
-            max_state = 0
-            terminated = True
-            for state in states:
-                if state['state'] == 'ERROR':
-                    return 'ERROR'
-                elif state['state'] != 'TERMINATED':
-                    terminated = False
-                    max_state = max(State[state['state']].value, max_state)
-            if terminated:
-                return 'TERMINATED'
-            else:
-                return State(max_state).name
-        return 'UNKNOWN'
-
-    def get_message(self) -> dict:
-        messages = self.root.service['snapshot'] \
-            .load(serial_number=[code.get_serial_number() for code in self.codes.values()],
-                  projection={'_name', 'message'})
-        ret = dict()
-        if messages:
-            for message in messages:
-                if message['message']:
-                    ret[message['_name']] = message['message']
-        return ret
-
-    def save(self, update: bool = False) -> None:
-        self.service['storage'].save(item=self, update=update)
-
-    @classmethod
-    def load(cls, name: Union[str, list], storage_service: Optional[StorageService] = None)\
-            -> Optional[Union['CodePack', list]]:
-        if storage_service is None:
-            storage_service = Default.get_service('codepack', 'storage_service')
-        return storage_service.load(name=name)
-
-    @classmethod
-    def remove(cls, name: Union[str, list], storage_service: Optional[StorageService] = None) -> None:
-        if storage_service is None:
-            storage_service = Default.get_service('codepack', 'storage_service')
-        storage_service.remove(name=name)
-
-    def _get_leaves(self) -> set:
-        leaves = set()
-        q = Queue()
-        q.put(self.root)
-        while not q.empty():
-            n = q.get()
-            for c in n.children.values():
-                q.put(c)
-            if len(n.children) == 0:
-                leaves.add(n)
-        return leaves
-
-    def _get_roots(self) -> set:
-        roots = set()
-        touched = set()
-        q = Queue()
-        for leave in self._get_leaves():
-            q.put(leave)
-            touched.add(leave.get_name())
-        while not q.empty():
-            n = q.get()
-            if n.get_name() not in self.codes:
-                self.codes[n.get_name()] = n
-            for p in n.parents.values():
-                if p.get_name() not in touched:
-                    q.put(p)
-                    touched.add(p.get_name())
-            if len(n.parents) == 0:
-                roots.add(n)
+    def _get_roots(self) -> Set[Code]:
+        roots: Set[Code] = set()
+        for code in self.traverse_codes():
+            if len(code.upstream) == 0:
+                roots.add(code)
         return roots
 
-    def _recursive_run(self, code: Code, argpack: Union[ArgPack, dict]) -> None:
-        for p in code.parents.values():
-            if p.get_state() != State.TERMINATED:
-                code.update_state(State.WAITING)
-                self._recursive_run(p, argpack)
-        code.update_state(State.READY)
-        if isinstance(argpack, dict):
-            argpack = ArgPack.from_dict(argpack)
-        code(**argpack[code.get_name()])
+    def traverse_codes(self) -> Set[Code]:
+        basket: Set[Code] = set()
+        q = Queue()
+        for code in self.codes.values():
+            q.put(code)
+        while not q.empty():
+            code: Code = q.get()
+            basket.add(code)
+            for adj_code in (code.upstream | code.downstream):
+                if adj_code not in basket:
+                    q.put(adj_code)
+        return basket
 
-    def sync_run(self, argpack: Union[ArgPack, dict]) -> None:
-        for leave in self._get_leaves():
-            self._recursive_run(leave, argpack)
+    def _check_if_code_is_included_in_other_codepack(self, code: Code) -> None:
+        if len(code.observable.observers) != 0 and code.observable.get_observer(id=self.get_id()) is None:
+            raise ValueError(f"'{code.get_id()}' is included in other codepack")
 
-    def async_run(self, argpack: Union[ArgPack, dict]) -> None:
-        for name, code in self.codes.items():
-            code(**argpack[name])
+    def collect_codes(self) -> None:
+        new_codes: Set[Code] = set()
+        for code in self.traverse_codes():
+            if code.get_id() not in self.codes:
+                self._check_if_code_is_included_in_other_codepack(code=code)
+                new_codes.add(code)
+        for code in new_codes:
+            self.add_code(code=code, update=False)
 
-    def __call__(self, argpack: Optional[Union[ArgPack, dict]] = None, sync: bool = True) -> Any:
-        self.init_code_state(state=State.READY, argpack=argpack)
-        self.save_snapshot(argpack=argpack)
-        if not argpack:
-            argpack = self.make_argpack()
-        if sync:
-            self.sync_run(argpack=argpack)
-        else:
-            self.async_run(argpack=argpack)
-        return self.get_result()
+    def add_code(self, code: Code, update: bool = True) -> None:
+        self._check_if_code_is_included_in_other_codepack(code=code)
+        if len(code.observable.observers) == 0:
+            code.observable.register_observer(id=self.get_id(), observer=self)
+        self.codes[code.get_id()] = code
+        if update:
+            self.update(observable=code.observable)
 
-    def init_code_state(self, state: Union[State, str], argpack: Optional[Union[ArgPack, dict]] = None) -> None:
-        for name, code in self.codes.items():
-            if argpack and name in argpack:
-                if isinstance(argpack[name], dict):
-                    _kwargs = argpack[name]
+    def remove_code(self, code: Code, update: bool = True) -> None:
+        if code.get_id() not in self.codes.keys():
+            raise KeyError(f"'{code.get_id()}' not found")
+        self._check_if_code_is_included_in_other_codepack(code=code)
+        self.codes.pop(code.get_id())
+        code.observable.unregister_observer(id=self.get_id())
+        if update:
+            self.update(observable=code.observable)
+
+    def __add__(self, code: Code) -> 'CodePack':
+        self.add_code(code=code)
+        return self
+
+    def __sub__(self, code: Code) -> 'CodePack':
+        self.remove_code(code=code)
+        return self
+
+    def update(self, observable: Optional[Code] = None, **kwargs: Any) -> None:
+        self.collect_codes()
+        backup = self.links.to_dict()
+        try:
+            self.links.remove_all()
+            for code in self.codes.values():
+                for child_code in code.downstream:
+                    src = code.get_id()
+                    dst = child_code.get_id()
+                    if not self.links.contains(key1=src, key2=dst):
+                        self.links.put(key1=src, key2=dst)
+                for parent_code in code.upstream:
+                    src = parent_code.get_id()
+                    dst = code.get_id()
+                    if not self.links.contains(key1=src, key2=dst):
+                        self.links.put(key1=src, key2=dst)
+                for param, src in code.dependencies.items():
+                    self.links.put(key1=src.get_id(), key2=code.get_id(), value=param)
+        except Exception as e:
+            self.links = DoubleKeyMap(map=backup)
+            raise e
+
+    def __call__(self, argpack: Optional[ArgPack] = None) -> Any:
+        results = dict()
+        executed: Set[str] = set()
+        q = Queue()
+        for code in self._get_roots():
+            q.put(code)
+        while not q.empty():
+            code = q.get()
+            if code.get_id() in executed:
+                continue
+            dependencies = {param: results[src.get_id()] for param, src in code.dependencies.items()}
+            if argpack:
+                arg = argpack.get_arg_by_code_id(code_id=code.get_id())
+                if arg:
+                    results[code.get_id()] = code(*arg.args, **arg.kwargs, **dependencies)
                 else:
-                    _kwargs = argpack[name].to_dict()
-                code.update_state(state, kwargs=_kwargs)
-
-    def get_result(self) -> Optional[Any]:
-        if self.subscribe and self.codes[self.subscribe].get_state() == State.TERMINATED:
-            return self.codes[self.subscribe].get_result()
+                    results[code.get_id()] = code(**dependencies)
+            else:
+                results[code.get_id()] = code(**dependencies)
+            executed.add(code.get_id())
+            for child in code.downstream:
+                q.put(child)
+        if self.subscription:
+            return results[self.subscription]
         else:
             return None
 
-    def to_dict(self) -> dict:
-        d = self.get_metadata()
-        d.pop('_serial_number', None)
-        d['subscribe'] = self.subscribe
-        d['structure'] = self.get_structure()
-        d['source'] = self.get_source()
-        d['owner'] = self.owner
-        return d
+    def __serialize__(self) -> Dict[str, Any]:
+        return {'codes': sorted([code.to_dict() for code in self.codes.values()], key=lambda x: x['_id']),
+                'links': self.links.to_dict(),
+                'name': self.name,
+                'version': self.version,
+                'owner': self.owner,
+                'description': self.description,
+                'subscription': self.subscription}
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'CodePack':
-        root = None
-        stack = list()
-        codes = dict()
-        receive = dict()
-        for i, line in enumerate(d['structure'].split('\n')):  # os.linesep
-            split_idx = line.index('Code')
-            hierarchy = len(line[1: split_idx-1])
-            code_str = line[split_idx:]
-            p = parser(Code.blueprint(code_str))
-            attr = p.parse(code_str).named
-            if attr['name'] not in codes:
-                codes[attr['name']] = Code(name=attr['name'],
-                                           source=d['source'][attr['name']],
-                                           env=attr.get('env', None), image=attr.get('image', None),
-                                           owner=attr.get('owner', None))
-            code = codes[attr['name']]
-            dependent_params = attr.get('receive', None)
-            receive[code.get_name()] = literal_eval(dependent_params) if dependent_params else dict()
-            if i == 0:
-                root = code
-            while len(stack) and stack[-1][1] >= hierarchy:
-                n, h = stack.pop(-1)
-                if len(stack) > 0 and n.get_name() not in stack[-1][0].children:
-                    stack[-1][0] >> n
-            stack.append((code, hierarchy))
-        while len(stack):
-            n, h = stack.pop(-1)
-            if len(stack) > 0 and n.get_name() not in stack[-1][0].children:
-                stack[-1][0] >> n
-        for name, code in codes.items():
-            for arg, sender in receive[name].items():
-                code.receive(arg) << codes[sender]
-        return cls(name=d['_name'], code=root, subscribe=d['subscribe'],
-                   owner=d.get('owner', None), timestamp=d.get('_timestamp', None))
+    def __deserialize__(cls, d: Dict[str, Any]) -> 'CodePack':
+        links = DoubleKeyMap(map=d['links'])
+        codes = {c['_id']: Code.from_dict(c) for c in d['codes']}
+        for src, dst, param in links.items():
+            code1 = codes[src]
+            code2 = codes[dst]
+            if param:
+                code1 >> code2 | param
+            else:
+                code1 > code2
+        return cls(codes=list(codes.values()),
+                   name=d['name'],
+                   version=d['version'],
+                   owner=d['owner'],
+                   description=d['description'],
+                   subscription=d['subscription'])
 
-    def get_source(self) -> dict:
-        return {name: code.source for name, code in self.codes.items()}
-
-    def get_structure(self) -> str:
-        ret = str()
-        stack = list()
-        hierarchy = 0
-        first_token = True
-        for root in self.roots:
-            stack.append((root, hierarchy))
-            while len(stack):
-                n, h = stack.pop(-1)
-                if not first_token:
-                    ret += '\n'
-                else:
-                    first_token = False
-                ret += '|%s %s' % ('-' * h, n.get_info(state=False))
-                for c in n.children.values():
-                    stack.append((c, h + 1))
-        return ret
-
-    def to_snapshot(self, *args: Any, **kwargs: Any) -> CodePackSnapshot:
-        return self.service['snapshot'].convert_to_snapshot(self, *args, **kwargs)
-
-    @classmethod
-    def from_snapshot(cls, snapshot: CodePackSnapshot) -> 'CodePack':
-        d = snapshot.to_dict()
-        ret = cls.from_dict(d)
-        ret.set_serial_number(serial_number=d['_serial_number'])
-        for name, code in ret.codes.items():
-            code.update_serial_number(d['codes'][name])
-        return ret
+    def __iter__(self) -> Iterator[str]:
+        return self.codes.values().__iter__()
