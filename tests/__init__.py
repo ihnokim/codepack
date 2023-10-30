@@ -1,10 +1,25 @@
-from typing import Any
+from typing import Any, Optional, Callable
 from codepack.code import Code
+from codepack.codepack import CodePack
+import asyncio
+import time
+
+
+test_config_path = 'tests/config/test.ini'
+default_config_path = 'tests/config/default.ini'
 
 
 def add2(a, b):
     """exec a + b = ?"""
     print('exec add2')
+    ret = a + b
+    print('add2: %s + %s = %s' % (a, b, ret))
+    return ret
+
+
+async def async_add2(a, b):
+    """exec async a + b = ?"""
+    print('exec async_add2')
     ret = a + b
     print('add2: %s + %s = %s' % (a, b, ret))
     return ret
@@ -58,61 +73,34 @@ def forward(x):
     return x
 
 
-def dummy_callback1(x):
+def do_nothing():
     pass
 
 
-def dummy_callback2(x1, x2):
-    pass
-
-
-def dummy_callback3(x):
-    pass
-
-
-def dummy_function1(a: dict, b: str = 2, *args: 'Code', c: Any, d=3) -> int:
-    return 1
-
-
-def dummy_function2(a: dict, b: str = 2, *args: 'Code', c: Any, d=3, **kwargs: list) -> None:
+def dummy_function(a: dict, b: str = 2, c=None, *args: Any, d: Any, e=3, f: Optional[str] = None, **kwargs: 'Code') -> None:
     return None
 
 
-def decorator_function1(original_function):
-    def wrapper_function(*args, **kwargs):
-        ret = 'func1('
-        ret += original_function(*args, **kwargs)
-        ret += ')func1'
-        return ret
-    return wrapper_function
+def raise_error():
+    raise SystemError()
 
 
-def decorator_function2(original_function):
-    def wrapper_function(*args, **kwargs):
-        ret = 'func2('
-        ret += original_function(*args, **kwargs)
-        ret += ')func2'
-        return ret
-    return wrapper_function
+def get_codepack_from_code(code: Code) -> Optional[CodePack]:
+    if len(code.observable.observers) == 1:
+        return list(code.observable.observers.values())[0]
+    else:
+        return None
 
 
-class DecoratorClass1:
-    def __init__(self, original_function):
-        self.original_function = original_function
-
-    def __call__(self, *args, **kwargs):
-        ret = 'class1('
-        ret += self.original_function(*args, **kwargs)
-        ret += ')class1'
-        return ret
+async def run_function(function: Callable, *args: Any, **kwargs: Any) -> Any:
+    if asyncio.iscoroutinefunction(function):
+        return await function(*args, **kwargs)
+    else:
+        return function(*args, **kwargs)
 
 
-class DecoratorClass2:
-    def __init__(self, original_function):
-        self.original_function = original_function
-
-    def __call__(self, *args, **kwargs):
-        ret = 'class2('
-        ret += self.original_function(*args, **kwargs)
-        ret += ')class2'
-        return ret
+async def sleep(key: str, seconds: float = 1.0) -> None:
+    if 'async' not in key:
+        time.sleep(seconds)
+    else:
+        await asyncio.sleep(seconds)

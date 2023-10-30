@@ -1,145 +1,186 @@
-from codepack import Default, Delivery
-from codepack.interfaces import MongoDB
-from codepack.interfaces import MemoryMessageQueue
-from apps.apiserver.main import app
-from fastapi.testclient import TestClient
 import pytest
+from codepack.code import Code
+from codepack.jobs.code_snapshot import CodeSnapshot
+from codepack.jobs.async_code_snapshot import AsyncCodeSnapshot
+from codepack.jobs.codepack_snapshot import CodePackSnapshot
+from codepack.jobs.async_codepack_snapshot import AsyncCodePackSnapshot
+from codepack.jobs.job import Job
+from codepack.jobs.async_job import AsyncJob
+from codepack.jobs.result_cache import ResultCache
+from codepack.jobs.async_result_cache import AsyncResultCache
+from codepack.storages.memory_storage import MemoryStorage
+from codepack.storages.async_memory_storage import AsyncMemoryStorage
+from codepack.jobs.async_worker import AsyncWorker
+from codepack.jobs.worker import Worker
+from codepack.messengers.receiver import Receiver
+from codepack.messengers.async_receiver import AsyncReceiver
+from codepack.messengers.sender import Sender
+from codepack.messengers.async_sender import AsyncSender
+from codepack.interfaces.memory_message_queue import MemoryMessageQueue
+from codepack.interfaces.async_memory_message_queue import AsyncMemoryMessageQueue
+from codepack.interfaces.file_message_queue import FileMessageQueue
+from codepack.interfaces.async_file_message_queue import AsyncFileMessageQueue
+from codepack.jobs.lock import Lock
+from codepack.jobs.async_lock import AsyncLock
+from codepack.storages.storage_type import StorageType
+from codepack.jobs.supervisor import Supervisor
+from codepack.jobs.async_supervisor import AsyncSupervisor
 import os
-import mongomock
-
-
 from shutil import rmtree
-from glob import glob
-
-
-def mkdir(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-
-def rmdir(directory):
-    if os.path.exists(directory):
-        rmtree(directory)
-
-
-def empty_dir(directory):
-    if directory[-1] != '/' and directory[-1] != '\\':
-        tmp = '/*'
-    else:
-        tmp = '*'
-    files = glob(directory + tmp)
-    for file in files:
-        os.remove(file)
+from tests import test_config_path, default_config_path
+from copy import deepcopy
 
 
 @pytest.fixture(scope='function', autouse=False)
-def default_os_env():
-    os.environ['CODEPACK_CONFIG_DIR'] = 'config'
-    os.environ['CODEPACK_CONFIG_PATH'] = 'test.ini'
-    Default.get_service('delivery', 'delivery_service').storage.init()
-    Default.get_service('code_snapshot', 'snapshot_service').storage.init()
-    Default.get_service('code', 'storage_service').storage.init()
-    Default.get_service('codepack', 'storage_service').storage.init()
+def init_storages():
+    code_ms = MemoryStorage()
+    code_snapshot_ms = MemoryStorage()
+    async_code_snapshot_ms = AsyncMemoryStorage()
+    codepack_snapshot_ms = MemoryStorage()
+    async_codepack_snapshot_ms = AsyncMemoryStorage()
+    job_ms = MemoryStorage()
+    async_job_ms = AsyncMemoryStorage()
+    result_cache_ms = MemoryStorage()
+    async_result_cache_ms = AsyncMemoryStorage()
+    lock_ms = MemoryStorage()
+    async_lock_ms = AsyncMemoryStorage()
+    Code.set_storage(storage=code_ms)
+    CodeSnapshot.set_storage(storage=code_snapshot_ms)
+    AsyncCodeSnapshot.set_storage(storage=async_code_snapshot_ms)
+    CodePackSnapshot.set_storage(storage=codepack_snapshot_ms)
+    AsyncCodePackSnapshot.set_storage(storage=async_codepack_snapshot_ms)
+    Job.set_storage(storage=job_ms)
+    AsyncJob.set_storage(storage=async_job_ms)
+    ResultCache.set_storage(storage=result_cache_ms)
+    AsyncResultCache.set_storage(storage=async_result_cache_ms)
+    Lock.set_storage(storage=lock_ms)
+    AsyncLock.set_storage(storage=async_lock_ms)
+    MemoryMessageQueue().clear()
+    AsyncMemoryMessageQueue().clear()
+    FileMessageQueue('testdir').clear()
+    AsyncFileMessageQueue('testdir').clear()
     yield
-    os.environ.pop('CODEPACK_CONFIG_DIR', None)
+
+
+@pytest.fixture(scope='function', autouse=True)
+def clear_storages():
+    storage_type_backup = deepcopy(StorageType.types)
+    yield
+    Code.storage = None
+    CodeSnapshot.storage = None
+    AsyncCodeSnapshot.storage = None
+    CodePackSnapshot.storage = None
+    AsyncCodePackSnapshot.storage = None
+    Job.storage = None
+    AsyncJob.storage = None
+    ResultCache.storage = None
+    AsyncResultCache.storage = None
+    Lock.storage = None
+    AsyncLock.storage = None
+    MemoryMessageQueue().clear()
+    AsyncMemoryMessageQueue().clear()
+    FileMessageQueue('testdir').clear()
+    AsyncFileMessageQueue('testdir').clear()
+    StorageType.types = storage_type_backup
+
+
+@pytest.fixture(scope='function', autouse=False)
+def testdir():
+    testdir_path = 'testdir'
+    if os.path.exists(testdir_path):
+        rmtree(testdir_path)
+    yield testdir_path
+
+
+@pytest.fixture(scope='function', autouse=True)
+def remove_testdir():
+    testdir_path = 'testdir'
+    yield
+    if os.path.exists(testdir_path):
+        rmtree(testdir_path)
+
+
+@pytest.fixture(scope='function', autouse=False)
+def memory_job_managers():
+    worker_mr = Receiver(topics=['test-jobs'], group='worker')
+    supervisor_mr = Receiver(topics=['test-jobs'], group='supervisor')
+    ms = Sender()
+    _supervisor = Supervisor(topic='test-jobs',
+                             receiver=supervisor_mr,
+                             sender=ms)
+    _worker = Worker(topic='test-jobs',
+                     receiver=worker_mr,
+                     sender=ms)
+    yield _supervisor, _worker
+    supervisor_mr.close()
+    worker_mr.close()
+    _supervisor.stop()
+    _worker.stop()
+
+
+@pytest.fixture(scope='function', autouse=False)
+def file_job_managers():
+    worker_mr = Receiver(topics=['test-jobs'], group='worker', message_queue=FileMessageQueue(path='testdir'))
+    supervisor_mr = Receiver(topics=['test-jobs'], group='supervisor', message_queue=FileMessageQueue(path='testdir'))
+    ms = Sender(message_queue=FileMessageQueue(path='testdir'))
+    _supervisor = Supervisor(topic='test-jobs',
+                             receiver=supervisor_mr,
+                             sender=ms)
+    _worker = Worker(topic='test-jobs',
+                     receiver=worker_mr,
+                     sender=ms)
+    yield _supervisor, _worker
+    supervisor_mr.close()
+    worker_mr.close()
+    _supervisor.stop()
+    _worker.stop()
+
+
+@pytest.fixture(scope='function', autouse=False)
+def async_memory_job_managers():
+    worker_mr = AsyncReceiver(topics=['test-jobs'], group='worker')
+    supervisor_mr = AsyncReceiver(topics=['test-jobs'], group='supervisor')
+    ms = AsyncSender()
+    _supervisor = AsyncSupervisor(topic='test-jobs',
+                                  receiver=supervisor_mr,
+                                  sender=ms)
+    _worker = AsyncWorker(topic='test-jobs',
+                          receiver=worker_mr,
+                          sender=ms)
+    yield _supervisor, _worker
+    supervisor_mr.stop_event.set()
+    worker_mr.stop_event.set()
+
+
+@pytest.fixture(scope='function', autouse=False)
+def async_file_job_managers():
+    worker_mr = AsyncReceiver(topics=['test-jobs'],
+                              group='worker',
+                              message_queue=AsyncFileMessageQueue(path='testdir'))
+    supervisor_mr = AsyncReceiver(topics=['test-jobs'],
+                                  group='supervisor',
+                                  message_queue=AsyncFileMessageQueue(path='testdir'))
+    ms = AsyncSender(message_queue=AsyncFileMessageQueue(path='testdir'))
+    _supervisor = AsyncSupervisor(topic='test-jobs',
+                                  receiver=supervisor_mr,
+                                  sender=ms)
+    _worker = AsyncWorker(topic='test-jobs',
+                          receiver=worker_mr,
+                          sender=ms)
+    yield _supervisor, _worker
+    supervisor_mr.stop_event.set()
+    worker_mr.stop_event.set()
+
+
+@pytest.fixture(scope='function', autouse=False)
+def os_env_test_config_path():
+    os.environ['CODEPACK_CONFIG_PATH'] = test_config_path
+    yield os.environ['CODEPACK_CONFIG_PATH']
     os.environ.pop('CODEPACK_CONFIG_PATH', None)
 
 
 @pytest.fixture(scope='function', autouse=False)
-def fake_mongodb():
-    mongodb = MongoDB({'host': 'unknown', 'port': '0'})
-    mongodb.session = mongomock.MongoClient()
-    yield mongodb
-    mongodb.close()
-
-
-@pytest.fixture(scope='session', autouse=True)
-def testdir():
-    rootdir = 'testdir/'
-    mkdir(rootdir)
-    mkdir(rootdir + 'delivery_service/')
-    mkdir(rootdir + 'state_manager/')
-    mkdir(rootdir + 'storage_service/')
-    mkdir(rootdir + 'snapshot_service/')
-    mkdir(rootdir + 'docker_test/')
-    mkdir(rootdir + 'scheduler/')
-    yield
-    rmdir(rootdir)
-
-
-@pytest.fixture(scope='function', autouse=False)
-def testdir_delivery_service():
-    directory = 'testdir/delivery_service/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=False)
-def testdir_storage_service():
-    directory = 'testdir/storage_service/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=False)
-def testdir_snapshot_service():
-    directory = 'testdir/snapshot_service/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=False)
-def testdir_docker_manager():
-    directory = 'testdir/docker_test/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=False)
-def testdir_file_storage():
-    directory = 'testdir/file_storage/'
-    empty_dir(directory)
-    yield directory
-    empty_dir(directory)
-
-
-@pytest.fixture(scope='function', autouse=True)
-def init_default():
-    Default.alias = None
-    Default.config = None
-    Default.instances = dict()
-    MemoryMessageQueue.remove_all_instances()
-
-
-@pytest.fixture(scope='function', autouse=False)
-def dummy_deliveries():
-    obj1 = Delivery(name='obj1', serial_number='123', item='x')
-    obj2 = Delivery(name='obj2', serial_number='456', item='y')
-    obj3 = Delivery(name='obj3', serial_number='789', item='y')
-    yield [obj1, obj2, obj3]
-
-
-@pytest.fixture(scope='function', autouse=False)
-def dummy_deliveries_for_text_key_search():
-    obj1 = Delivery(name='apple_orange', serial_number='123', item='x')
-    obj2 = Delivery(name='orange_banana', serial_number='456', item='y')
-    obj3 = Delivery(name='banana_apple', serial_number='789', item='z')
-    yield [obj1, obj2, obj3]
-
-
-@pytest.fixture
-def test_client():
-    with TestClient(app) as client:
-        yield client
-
-
-@pytest.fixture
-def test_worker():
-    worker = Default.get_employee('worker')
-    worker.start()
-    yield worker
-    worker.stop()
+def os_env_default_config_path():
+    os.environ['CODEPACK_CONFIG_PATH'] = default_config_path
+    yield os.environ['CODEPACK_CONFIG_PATH']
+    os.environ.pop('CODEPACK_CONFIG_PATH', None)
